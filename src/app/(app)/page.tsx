@@ -1,0 +1,251 @@
+import Link from "next/link";
+import { and, asc, desc, eq, gt, gte, isNull, lt, lte, sql } from "drizzle-orm";
+import { ArrowRight, CalendarDays, MessageCircle } from "lucide-react";
+import { db, schema } from "@/lib/db";
+import { requireUser } from "@/lib/auth";
+import { dealScope } from "@/lib/deals";
+import { EVENT_TYPES } from "@/lib/constants";
+import { fmtDate, fmtPhone, fmtRelativeShort, fmtTime, money, moneyShort, todayISO } from "@/lib/format";
+import { PageBody } from "@/components/page-header";
+import { Section } from "@/components/crm/section";
+import { TaskList } from "@/components/crm/tasks";
+import { AskAna } from "@/components/ana/ask-ana";
+
+export default async function Dashboard() {
+  const user = await requireUser();
+  const partner = user.role === "parceiro";
+  const today = todayISO();
+  const monthStart = new Date(`${today.slice(0, 7)}-01T00:00:00-03:00`);
+  const dayStart = new Date(`${today}T00:00:00-03:00`);
+  const in7 = new Date(dayStart.getTime() + 7 * 864e5);
+  const in30 = new Date(dayStart.getTime() + 30 * 864e5).toISOString().slice(0, 10);
+  const scope = dealScope(user);
+
+  const [funnel, [won], agenda, myTasks] = await Promise.all([
+    db
+      .select({
+        id: schema.stages.id,
+        name: schema.stages.name,
+        color: schema.stages.color,
+        kind: schema.stages.kind,
+        n: sql<number>`count(${schema.deals.id})::int`,
+        total: sql<number>`coalesce(sum(${schema.deals.valueCents}),0)::bigint`,
+      })
+      .from(schema.stages)
+      .leftJoin(schema.deals, and(eq(schema.deals.stageId, schema.stages.id), scope))
+      .groupBy(schema.stages.id)
+      .orderBy(asc(schema.stages.position)),
+    db
+      .select({ n: sql<number>`count(*)::int`, total: sql<number>`coalesce(sum(${schema.deals.valueCents}),0)::bigint` })
+      .from(schema.deals)
+      .innerJoin(schema.stages, eq(schema.deals.stageId, schema.stages.id))
+      .where(and(eq(schema.stages.kind, "ganho"), gte(schema.deals.closedAt, monthStart), scope)),
+    db
+      .select({
+        id: schema.events.id,
+        title: schema.events.title,
+        type: schema.events.type,
+        startsAt: schema.events.startsAt,
+        allDay: schema.events.allDay,
+        location: schema.events.location,
+      })
+      .from(schema.events)
+      .where(and(gte(schema.events.endsAt, dayStart), lt(schema.events.startsAt, in7), partner ? eq(schema.events.userId, user.id) : undefined))
+      .orderBy(asc(schema.events.startsAt))
+      .limit(8),
+    db
+      .select({
+        id: schema.tasks.id,
+        title: schema.tasks.title,
+        dueAt: schema.tasks.dueAt,
+        doneAt: schema.tasks.doneAt,
+        dealId: schema.tasks.dealId,
+        dealTitle: schema.deals.title,
+      })
+      .from(schema.tasks)
+      .leftJoin(schema.deals, eq(schema.tasks.dealId, schema.deals.id))
+      .where(and(eq(schema.tasks.assigneeId, user.id), isNull(schema.tasks.doneAt)))
+      .orderBy(sql`${schema.tasks.dueAt} asc nulls last`)
+      .limit(8),
+  ]);
+
+  const [waiting, [receivable]] = partner
+    ? [[], [undefined]]
+    : await Promise.all([
+        db
+          .select({
+            id: schema.conversations.id,
+            name: sql<string>`coalesce(${schema.contacts.name}, ${schema.conversations.profileName}, ${schema.conversations.phone})`,
+            preview: schema.conversations.preview,
+            unread: schema.conversations.unread,
+            at: schema.conversations.lastMessageAt,
+          })
+          .from(schema.conversations)
+          .leftJoin(schema.contacts, eq(schema.conversations.contactId, schema.contacts.id))
+          .where(and(gt(schema.conversations.unread, 0), eq(schema.conversations.status, "aberta")))
+          .orderBy(desc(schema.conversations.lastMessageAt))
+          .limit(5),
+        db
+          .select({
+            total: sql<number>`coalesce(sum(${schema.transactions.amountCents}),0)::bigint`,
+            late: sql<number>`coalesce(sum(${schema.transactions.amountCents}) filter (where ${schema.transactions.dueDate} < ${today}),0)::bigint`,
+          })
+          .from(schema.transactions)
+          .where(and(eq(schema.transactions.kind, "receita"), isNull(schema.transactions.paidAt), lte(schema.transactions.dueDate, in30))),
+      ]);
+
+  const open = funnel.filter((s) => s.kind === "aberto");
+  const openTotal = open.reduce((s, x) => s + Number(x.total), 0);
+  const openCount = open.reduce((s, x) => s + x.n, 0);
+  const maxStage = Math.max(1, ...open.map((s) => Number(s.total)));
+  const hour = Number(fmtTime(new Date()).slice(0, 2));
+  const hello = hour < 12 ? "Bom dia" : hour < 18 ? "Boa tarde" : "Boa noite";
+
+  return (
+    <>
+      <header className="px-5 pt-8 pb-6 sm:px-8 lg:px-10">
+        <p className="label mb-2 capitalize">{fmtDate(today, "EEEE, d 'de' MMMM")}</p>
+        <h1 className="h-display text-[34px] sm:text-[40px]">
+          {hello}, {user.name.split(" ")[0]}.
+        </h1>
+      </header>
+
+      <PageBody className="grid gap-5">
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <Kpi label="No funil" value={moneyShort(openTotal)} sub={`${openCount} negócios em andamento`} href="/negocios" />
+          <Kpi label="Fechado no mês" value={moneyShort(Number(won?.total ?? 0))} sub={`${won?.n ?? 0} negócios ganhos`} href="/negocios" />
+          {!partner ? (
+            <>
+              <Kpi
+                label="A receber · 30 dias"
+                value={moneyShort(Number(receivable?.total ?? 0))}
+                sub={Number(receivable?.late) ? `${money(Number(receivable?.late))} em atraso` : "nada em atraso"}
+                alert={Number(receivable?.late) > 0}
+                href="/financeiro?v=abertos"
+              />
+              <Kpi
+                label="Aguardando resposta"
+                value={String(waiting.length)}
+                sub={waiting.length ? "conversas no WhatsApp" : "caixa de entrada em dia"}
+                alert={waiting.length > 0}
+                href="/atendimento?f=nao-lidas"
+              />
+            </>
+          ) : (
+            <Kpi label="Próximos 7 dias" value={String(agenda.length)} sub="compromissos na agenda" href="/agenda" />
+          )}
+        </div>
+
+        <AskAna />
+
+        <div className="grid items-start gap-5 lg:grid-cols-3">
+          <Section
+            title="Funil"
+            className="lg:col-span-2"
+            action={
+              <Link href="/negocios" className="flex items-center gap-1 text-[12px] text-muted-foreground hover:text-foreground">
+                Abrir quadro <ArrowRight className="size-3" />
+              </Link>
+            }
+          >
+            <div className="grid gap-2.5">
+              {open.map((s) => (
+                <div key={s.id} className="grid grid-cols-[140px_1fr_auto] items-center gap-3 text-[13px] sm:grid-cols-[170px_1fr_auto]">
+                  <span className="flex items-center gap-2 truncate">
+                    <span className="size-2 shrink-0 rounded-full" style={{ background: s.color }} />
+                    <span className="truncate">{s.name}</span>
+                  </span>
+                  <div className="h-2 overflow-hidden rounded-full bg-muted">
+                    <div className="h-full rounded-full" style={{ width: `${(Number(s.total) / maxStage) * 100}%`, background: s.color }} />
+                  </div>
+                  <span className="w-28 text-right text-muted-foreground tabular-nums">
+                    {s.n} · {moneyShort(Number(s.total))}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </Section>
+
+          <Section title="Minhas tarefas">
+            <TaskList
+              compose={false}
+              showDeal
+              tasks={myTasks.map((t) => ({ ...t, dueAt: t.dueAt?.toISOString() ?? null, doneAt: t.doneAt?.toISOString() ?? null }))}
+            />
+          </Section>
+
+          <Section
+            title="Próximos 7 dias"
+            className={partner ? "lg:col-span-3" : "lg:col-span-1"}
+            action={
+              <Link href="/agenda" className="text-muted-foreground hover:text-foreground" aria-label="Agenda">
+                <CalendarDays className="size-4" />
+              </Link>
+            }
+          >
+            {agenda.length ? (
+              <ul className="grid gap-3">
+                {agenda.map((e) => (
+                  <li key={e.id} className="flex gap-3 text-[13px]">
+                    <span className="w-12 shrink-0 text-[11.5px] leading-tight text-muted-foreground">
+                      <span className="block capitalize">{fmtDate(e.startsAt, "EEE")}</span>
+                      {e.allDay ? "dia" : fmtTime(e.startsAt)}
+                    </span>
+                    <span className="mt-1.5 size-1.5 shrink-0 rounded-full" style={{ background: EVENT_TYPES[e.type]?.color }} />
+                    <span className="grid leading-tight">
+                      <span>{e.title}</span>
+                      {e.location && <span className="text-[11.5px] text-muted-foreground">{e.location}</span>}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-[13px] text-muted-foreground">Agenda livre.</p>
+            )}
+          </Section>
+
+          {!partner && (
+            <Section
+              title="Aguardando resposta"
+              className="lg:col-span-2"
+              action={
+                <Link href="/atendimento" className="text-muted-foreground hover:text-foreground" aria-label="Atendimento">
+                  <MessageCircle className="size-4" />
+                </Link>
+              }
+            >
+              {waiting.length ? (
+                <ul className="grid">
+                  {waiting.map((c) => (
+                    <li key={c.id}>
+                      <Link href={`/atendimento?c=${c.id}`} className="flex items-center gap-3 rounded-md px-1 py-2 hover:bg-muted/60">
+                        <span className="min-w-0 flex-1 leading-tight">
+                          <span className="block truncate text-[13px] font-medium">{/^\d+$/.test(c.name) ? fmtPhone(c.name) : c.name}</span>
+                          <span className="block truncate text-[12px] text-muted-foreground">{c.preview}</span>
+                        </span>
+                        <span className="text-[11px] text-muted-foreground">{fmtRelativeShort(c.at)}</span>
+                        <span className="rounded-full bg-brand px-1.5 text-[10.5px] leading-[18px] text-white">{c.unread}</span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-[13px] text-muted-foreground">Ninguém esperando. 👌</p>
+              )}
+            </Section>
+          )}
+        </div>
+      </PageBody>
+    </>
+  );
+}
+
+function Kpi({ label, value, sub, href, alert }: { label: string; value: string; sub: string; href: string; alert?: boolean }) {
+  return (
+    <Link href={href} className="group grid gap-1 rounded-xl border bg-white p-4 transition-colors hover:border-foreground/20">
+      <span className="label">{label}</span>
+      <span className="text-[28px] leading-tight font-light tabular-nums">{value}</span>
+      <span className={alert ? "text-[12px] text-brand" : "text-[12px] text-muted-foreground"}>{sub}</span>
+    </Link>
+  );
+}
