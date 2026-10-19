@@ -12,7 +12,7 @@ export const LEVELS: Level[] = ["none", "view", "edit", "manage"];
 export const LEVEL_LABEL: Record<Level, string> = { none: "Sem acesso", view: "Ver", edit: "Editar", manage: "Gerenciar" };
 const RANK: Record<Level, number> = { none: 0, view: 1, edit: 2, manage: 3 };
 
-export type ModuleKey = "negocios" | "tarefas" | "contatos" | "atendimento" | "agenda" | "financeiro" | "documentos" | "site" | "equipe" | "configuracoes";
+export type ModuleKey = "negocios" | "tarefas" | "contatos" | "atendimento" | "agenda" | "financeiro" | "documentos" | "planilhas" | "drive" | "site" | "equipe" | "configuracoes";
 
 export const MODULES: {
   key: ModuleKey;
@@ -29,7 +29,9 @@ export const MODULES: {
   { key: "agenda", label: "Agenda", help: "Ver: consulta · Editar: cria e altera eventos" },
   { key: "financeiro", label: "Financeiro", help: "Ver: consulta e exporta · Editar: lança e baixa · Gerenciar: exclui lançamentos" },
   { key: "documentos", label: "Contratos e apresentações", help: "Ver: consulta · Editar: cria e edita · Gerenciar: exclui e gerencia modelos" },
-  { key: "site", label: "Site (projetos, blog, vagas)", help: "Ver: consulta · Editar: publica e altera · Gerenciar: exclui", soon: true },
+  { key: "planilhas", label: "Planilhas", help: "Ver: abre e exporta · Editar: cria, edita e importa · Gerenciar: exclui planilhas" },
+  { key: "drive", label: "Drive (arquivos)", help: "Ver: consulta e abre · Editar: organiza e vincula arquivos · Gerenciar: conecta o Google Drive e remove" },
+  { key: "site", label: "Site (projetos, blog, vagas, imagens)", help: "Ver: consulta · Editar: publica e altera · Gerenciar: exclui" },
   { key: "equipe", label: "Equipe e acessos", help: "Ver: vê quem tem acesso · Gerenciar: cria contas e altera permissões", levels: ["none", "view", "manage"] },
   { key: "configuracoes", label: "Configurações do sistema", help: "Ver: consulta etapas e integrações · Gerenciar: altera", levels: ["none", "view", "manage"] },
 ];
@@ -59,7 +61,7 @@ export const PROFILES: Record<
     description: "Toca a operação inteira: negócios, atendimento, agenda, financeiro e documentos. Vê a equipe, mas não altera acessos.",
     type: "equipe",
     ownOnly: false,
-    perms: make({ negocios: "manage", tarefas: "manage", contatos: "manage", atendimento: "manage", agenda: "manage", financeiro: "manage", documentos: "manage", site: "edit", equipe: "view", configuracoes: "view" }),
+    perms: make({ negocios: "manage", tarefas: "manage", contatos: "manage", atendimento: "manage", agenda: "manage", financeiro: "manage", documentos: "manage", planilhas: "manage", drive: "manage", site: "manage", equipe: "view", configuracoes: "view" }),
     color: "#193f32",
   },
   comercial: {
@@ -67,7 +69,7 @@ export const PROFILES: Record<
     description: "Vende: funil, contatos, atendimento, agenda e documentos. Sem financeiro.",
     type: "equipe",
     ownOnly: false,
-    perms: make({ negocios: "edit", tarefas: "edit", contatos: "edit", atendimento: "edit", agenda: "edit", documentos: "edit" }),
+    perms: make({ negocios: "edit", tarefas: "edit", contatos: "edit", atendimento: "edit", agenda: "edit", documentos: "edit", planilhas: "edit", drive: "edit" }),
     color: "#537179",
   },
   atendimento: {
@@ -83,7 +85,7 @@ export const PROFILES: Record<
     description: "Cuida do caixa. Consulta negócios, contatos e agenda.",
     type: "equipe",
     ownOnly: false,
-    perms: make({ negocios: "view", tarefas: "edit", contatos: "view", agenda: "view", financeiro: "manage", documentos: "view" }),
+    perms: make({ negocios: "view", tarefas: "edit", contatos: "view", agenda: "view", financeiro: "manage", documentos: "view", planilhas: "manage", drive: "view" }),
     color: "#002934",
   },
   parceiro: {

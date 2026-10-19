@@ -6,6 +6,9 @@ import {
   CalendarDays,
   FileSignature,
   ListChecks,
+  Table2,
+  HardDrive,
+  Globe,
   ChevronsUpDown,
   KanbanSquare,
   LayoutDashboard,
@@ -66,6 +69,9 @@ function groups(user: SessionUser, unread: number): Group[] {
 
   const gestao: Item[] = [];
   if (has(user, "financeiro")) gestao.push({ key: "financeiro", href: "/financeiro", label: "Financeiro", icon: Wallet });
+  if (has(user, "planilhas")) gestao.push({ key: "planilhas", href: "/planilhas", label: "Planilhas", icon: Table2 });
+  if (has(user, "drive")) gestao.push({ key: "drive", href: "/drive", label: "Drive", icon: HardDrive });
+  if (has(user, "site")) gestao.push({ key: "site", href: "/site", label: "Site", icon: Globe });
   if (has(user, "documentos")) gestao.push({ key: "documentos", href: "/documentos", label: "Documentos", icon: FileSignature });
   if (gestao.length) g.push({ label: "Gestão", items: gestao });
 
