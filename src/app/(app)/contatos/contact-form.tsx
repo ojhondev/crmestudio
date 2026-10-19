@@ -111,7 +111,7 @@ export function NewContactButton({ team }: { team: Team }) {
             )}
           </div>
           {state?.error && <p className="text-sm text-destructive">{state.error}</p>}
-          <div className="flex justify-end gap-2">
+          <div className="flex justify-end gap-2 max-sm:sticky max-sm:bottom-0 max-sm:z-10 max-sm:-mx-4 max-sm:border-t max-sm:bg-popover max-sm:px-4 max-sm:pt-3 max-sm:pb-[max(0.75rem,env(safe-area-inset-bottom))]">
             <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
               Cancelar
             </Button>

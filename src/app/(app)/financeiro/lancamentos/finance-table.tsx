@@ -56,7 +56,7 @@ export function FinanceTable({ rows, today, deals, contacts, canEdit = true, can
     <>
       <div data-tour="fin-table">
         {/* celular: cartões; computador: tabela */}
-        <ul className="grid grid-cols-[minmax(0,1fr)] gap-2 md:hidden">
+        <ul className="grid grid-cols-[minmax(0,1fr)] gap-2 lg:hidden">
           {optimistic.map((r) => {
             const late = !r.paidAt && r.dueDate < today;
             return (
@@ -100,7 +100,7 @@ export function FinanceTable({ rows, today, deals, contacts, canEdit = true, can
             );
           })}
         </ul>
-        <div className="hidden overflow-x-auto rounded-xl border bg-card md:block">
+        <div className="hidden overflow-x-auto rounded-xl border bg-card lg:block">
         <table className="w-full min-w-[720px] text-[13px]">
           <thead>
             <tr className="border-b text-left text-xs text-muted-foreground">
@@ -308,7 +308,7 @@ function TransactionDialog({
             <Textarea id="tx-notes" name="notes" rows={2} defaultValue={row?.notes ?? ""} />
           </Field>
           {state?.error && <p className="text-sm text-destructive">{state.error}</p>}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 max-sm:sticky max-sm:bottom-0 max-sm:z-10 max-sm:-mx-4 max-sm:border-t max-sm:bg-popover max-sm:px-4 max-sm:pt-3 max-sm:pb-[max(0.75rem,env(safe-area-inset-bottom))]">
             {row && canDelete && (
               <ConfirmButton
                 title="Excluir lançamento?"

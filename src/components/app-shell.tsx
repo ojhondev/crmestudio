@@ -18,6 +18,7 @@ import {
   Settings,
   Sparkles,
   UserCog,
+  X,
   Users,
   Wallet,
 } from "lucide-react";
@@ -108,7 +109,17 @@ function AppSidebar({ user }: { user: SessionUser }) {
 
   return (
     <Sidebar collapsible="icon" data-tour="sidebar">
-      <SidebarHeader className="h-14 justify-center border-b border-sidebar-border px-4 group-data-[collapsible=icon]:px-2">
+      <SidebarHeader className="relative h-14 justify-center border-b border-sidebar-border px-4 group-data-[collapsible=icon]:px-2">
+        {isMobile && (
+          <button
+            type="button"
+            onClick={() => setOpenMobile(false)}
+            aria-label="Fechar menu"
+            className="absolute top-1/2 right-2 grid size-11 -translate-y-1/2 place-items-center rounded-lg text-muted-foreground hover:bg-sidebar-accent"
+          >
+            <X className="size-5" />
+          </button>
+        )}
         <div className="group-data-[collapsible=icon]:hidden">
           <Brand />
         </div>
@@ -125,7 +136,7 @@ function AppSidebar({ user }: { user: SessionUser }) {
               <SidebarMenu>
                 {group.items.map(({ key, href, label, icon: Icon, badge }) => (
                   <SidebarMenuItem key={key}>
-                    <SidebarMenuButton asChild isActive={isActive(pathname, href)} tooltip={label} className="h-10 text-[13.5px] md:h-9">
+                    <SidebarMenuButton asChild isActive={isActive(pathname, href)} tooltip={label} className="h-11 text-[13.5px] md:h-9">
                       <Link href={href} onClick={close} data-tour={`nav-${key}`}>
                         <Icon className={cn(isActive(pathname, href) && "text-brand")} />
                         <span>{label}</span>
@@ -140,7 +151,7 @@ function AppSidebar({ user }: { user: SessionUser }) {
         ))}
       </SidebarContent>
 
-      <SidebarFooter className="gap-2 p-2">
+      <SidebarFooter className="gap-2 p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
         <SidebarMenu>
           {ANA_UI_ENABLED && (
             <SidebarMenuItem>
@@ -221,7 +232,7 @@ function TopBar() {
   return (
     <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-1.5 border-b bg-background px-3 md:px-4">
       <SidebarTrigger className="hidden md:inline-flex" data-tour="sidebar-toggle" aria-label="Recolher ou expandir menu" />
-      <Link href="/" className="flex h-10 min-w-10 items-center justify-center md:hidden" aria-label="Início">
+      <Link href="/" className="flex h-11 min-w-11 items-center justify-center md:hidden" aria-label="Início">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/mark.png" alt="" className="h-6 w-auto" />
       </Link>

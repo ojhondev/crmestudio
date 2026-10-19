@@ -94,7 +94,8 @@ GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET — passo a passo em /drive/conexao). Audi
 ## Transversal
 - PWA: instalar no celular, abrir em tela cheia, ícone próprio, áreas seguras (notch).
 - Desempenho no celular (listas paginadas, imagens otimizadas), acessibilidade (contraste nos 2 temas).
-- Notificações (e-mail de lead novo, tarefa vencendo) — 🔑 serviço de envio de e-mail.
+- Passada mobile (2026-10-19): ✅ alvos de toque ≥ 44px e campos em 16px (sem zoom do iOS) por CSS global; barra de ferramentas com ações primeiro e fade lateral; menu lateral com botão de fechar; Agenda com lista do dia; Contatos e Lançamentos em cartões até 1024px; formulários em gaveta inferior com botão fixo; editor de contrato com gaveta de variáveis/cláusulas; Kanban com snap por coluna. Pendente: testar arrastar com pressão longa em aparelho real e as telas Tarefas/Planilhas/Site/Drive (outra frente).
+- Avisos dentro da plataforma: ✅ (ver Avisos e Automações). Falta o envio por e-mail/WhatsApp/push — 🔑 serviço de envio.
 
 ## Decisões tomadas (podem ser revistas)
 - PDF de contratos/apresentações gerado a partir do mesmo HTML do editor (fidelidade total).

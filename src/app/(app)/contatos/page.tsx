@@ -109,7 +109,7 @@ export default async function ContactsPage({ searchParams }: PageProps<"/contato
           </EmptyState>
         ) : (
           <>
-          <ul data-tour="contacts-list-m" className="grid gap-2.5 md:hidden">
+          <ul data-tour="contacts-list-m" className="grid gap-2.5 lg:hidden">
             {rows.map((r) => (
               <li key={r.id}>
                 <Link href={`/contatos/${r.id}`} className="grid gap-1 rounded-xl border bg-card px-4 py-3 active:bg-muted/50">
@@ -138,7 +138,7 @@ export default async function ContactsPage({ searchParams }: PageProps<"/contato
               </li>
             ))}
           </ul>
-          <div data-tour="contacts-list" className="overflow-x-auto rounded-xl border bg-card max-md:hidden">
+          <div data-tour="contacts-list" className="overflow-x-auto rounded-xl border bg-card max-lg:hidden">
             <table className="w-full min-w-[760px] text-[13px]">
               <thead>
                 <tr className="border-b text-left text-xs text-muted-foreground">

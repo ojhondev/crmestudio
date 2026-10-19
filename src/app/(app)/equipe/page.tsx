@@ -57,7 +57,7 @@ export default async function TeamPage({ searchParams }: PageProps<"/equipe">) {
   const tab = (key: string, label: string) => (
     <Link
       href={key === "pessoas" ? "/equipe" : "/equipe?aba=atividade"}
-      className={cn("rounded-md px-3 py-1.5 text-[13px] whitespace-nowrap transition-colors max-md:py-2.5", aba === key ? "bg-foreground font-medium text-background" : "text-muted-foreground hover:text-foreground")}
+      className={cn("rounded-md px-3 py-1.5 text-[13px] whitespace-nowrap transition-colors max-md:inline-flex max-md:min-h-11 max-md:items-center", aba === key ? "bg-foreground font-medium text-background" : "text-muted-foreground hover:text-foreground")}
     >
       {label}
     </Link>
