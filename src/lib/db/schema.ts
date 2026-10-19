@@ -68,6 +68,8 @@ export const stages = pgTable("stages", {
   position: integer("position").notNull(),
   color: text("color").notNull().default("#9a948f"),
   kind: text("kind").$type<StageKind>().notNull().default("aberto"),
+  /** chance de fechar (0–100%), usada na previsão ponderada do funil */
+  probability: integer("probability").notNull().default(0),
 });
 
 export const deals = pgTable(

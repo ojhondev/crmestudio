@@ -35,9 +35,14 @@ export async function changePassword(_: unknown, form: FormData) {
   return { ok: true, msg: "Senha alterada. Os outros aparelhos foram desconectados." };
 }
 
-export async function saveStage(id: number, data: { name?: string; color?: string; kind?: StageKind }) {
+export async function saveStage(id: number, data: { name?: string; color?: string; kind?: StageKind; probability?: number }) {
   await requireAccess("configuracoes", "manage");
-  await db.update(schema.stages).set(data).where(eq(schema.stages.id, id));
+  const patch: typeof data = { ...data };
+  if (patch.probability !== undefined) patch.probability = Math.min(100, Math.max(0, Math.round(Number(patch.probability) || 0)));
+  // fechado = 100%, perdido = 0%
+  if (patch.kind === "ganho") patch.probability = 100;
+  if (patch.kind === "perdido") patch.probability = 0;
+  await db.update(schema.stages).set(patch).where(eq(schema.stages.id, id));
   revalidatePath("/", "layout");
 }
 

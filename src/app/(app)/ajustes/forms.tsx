@@ -90,6 +90,19 @@ export function StagesEditor({ stages }: { stages: Stage[] }) {
           <div className="w-40">
             <SimpleSelect options={KINDS} defaultValue={s.kind} className="h-8" onValueChange={(v) => start(() => saveStage(s.id, { kind: v as StageKind }))} />
           </div>
+          <label className="flex items-center gap-1 text-[12px] text-muted-foreground" title="Chance de fechar o negócio nesta etapa — usada na previsão do funil">
+            <Input
+              type="number"
+              min={0}
+              max={100}
+              defaultValue={s.probability}
+              disabled={s.kind !== "aberto"}
+              aria-label={`Chance de fechar em ${s.name} (%)`}
+              className="h-8 w-[68px] px-2 text-right"
+              onBlur={(e) => Number(e.target.value) !== s.probability && start(() => saveStage(s.id, { probability: Number(e.target.value) }))}
+            />
+            %
+          </label>
           <Button variant="ghost" size="icon-sm" disabled={pending || i === 0} onClick={() => start(() => moveStage(s.id, -1))} aria-label="Subir">
             <ArrowUp />
           </Button>

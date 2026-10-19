@@ -139,7 +139,7 @@ export default async function Dashboard({ searchParams }: PageProps<"/">) {
               value={moneyShort(Number(receivable?.total ?? 0))}
               sub={Number(receivable?.late) ? `${money(Number(receivable?.late))} em atraso` : "nada em atraso"}
               alert={Number(receivable?.late) > 0}
-              href="/financeiro?v=abertos"
+              href="/financeiro/lancamentos?v=abertos"
             />
           )}
           {canInbox && (

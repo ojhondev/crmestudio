@@ -12,14 +12,14 @@ import { hashPassword, randomToken } from "../src/lib/password";
 
 const db = drizzle(neon(process.env.DATABASE_URL!), { schema });
 
-const STAGES: { name: string; color: string; kind: schema.StageKind }[] = [
-  { name: "Novo lead", color: "#9a948f", kind: "aberto" },
-  { name: "Qualificação", color: "#537179", kind: "aberto" },
-  { name: "Visita técnica", color: "#776157", kind: "aberto" },
-  { name: "Proposta enviada", color: "#b75928", kind: "aberto" },
-  { name: "Negociação", color: "#002934", kind: "aberto" },
-  { name: "Fechado", color: "#2f6b4f", kind: "ganho" },
-  { name: "Perdido", color: "#c0392b", kind: "perdido" },
+const STAGES: { name: string; probability: number; color: string; kind: schema.StageKind }[] = [
+  { name: "Novo lead", probability: 10, color: "#9a948f", kind: "aberto" },
+  { name: "Qualificação", probability: 25, color: "#537179", kind: "aberto" },
+  { name: "Visita técnica", probability: 40, color: "#776157", kind: "aberto" },
+  { name: "Proposta enviada", probability: 60, color: "#b75928", kind: "aberto" },
+  { name: "Negociação", probability: 80, color: "#002934", kind: "aberto" },
+  { name: "Fechado", probability: 100, color: "#2f6b4f", kind: "ganho" },
+  { name: "Perdido", probability: 0, color: "#c0392b", kind: "perdido" },
 ];
 
 async function main() {

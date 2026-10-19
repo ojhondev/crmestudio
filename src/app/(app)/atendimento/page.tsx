@@ -131,7 +131,7 @@ export default async function InboxPage({ searchParams }: PageProps<"/atendiment
   };
 
   return (
-    <div className="grid h-[calc(100svh-3.5rem-4.25rem-env(safe-area-inset-bottom))] min-h-0 md:h-[calc(100svh-3.5rem)] lg:grid-cols-[320px_minmax(0,1fr)]">
+    <div className="grid h-[calc(100svh-3.5rem-4.25rem-env(safe-area-inset-bottom))] min-h-0 grid-cols-[minmax(0,1fr)] md:h-[calc(100svh-3.5rem)] lg:grid-cols-[320px_minmax(0,1fr)]">
       {/* Lista */}
       <aside data-tour="inbox-list" className={cn("flex min-h-0 flex-col border-r bg-card", thread && "hidden lg:flex")}>
         <div className="grid gap-3 border-b px-4 pt-5 pb-3">

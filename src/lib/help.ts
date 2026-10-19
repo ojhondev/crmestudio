@@ -227,22 +227,51 @@ export const articles: Article[] = [
     slug: "financeiro",
     module: "Gestão",
     title: "Financeiro",
-    summary: "Receitas, despesas, parcelas e visão do caixa do mês.",
+    summary: "Painel com gráficos, lançamentos e uma planilha que vai e volta do Excel e do Google Sheets.",
     href: "/financeiro",
     tour: "/financeiro",
-    keywords: ["caixa", "receita", "despesa", "parcela", "atrasado", "pagar", "receber"],
+    keywords: ["caixa", "receita", "despesa", "parcela", "atrasado", "pagar", "receber", "planilha", "csv", "excel", "sheets", "exportar", "importar", "painel", "gráfico", "previsão"],
     body: [
-      { t: "p", text: "Controle o que entra e o que sai, mês a mês." },
+      { t: "p", text: "O Financeiro tem três abas: Painel (visão geral com gráficos), Lançamentos (a lista do mês) e Planilha (edição rápida, estilo Excel)." },
+      {
+        t: "list",
+        title: "Painel",
+        items: [
+          "Resultado do período: o que já foi recebido menos o que já foi pago. O que ainda está em aberto aparece em “A receber” e “A pagar”.",
+          "Troque o período no topo: este mês, 3, 6 ou 12 meses, ou o ano. Cada número mostra a variação contra o período anterior de mesmo tamanho.",
+          "Gráfico de receita × despesa por mês: cor cheia é o que já foi pago, cor clara é o que está em aberto. Toque (ou passe o mouse) em um mês para ler os valores; “Ver em tabela” mostra os mesmos números em linhas.",
+          "Previsão de caixa dos próximos 6 meses, só com o que ainda está em aberto, e a lista dos vencimentos dos próximos 14 dias.",
+          "Receita e despesa por categoria, receita por serviço e maiores clientes (precisam que os lançamentos estejam ligados a negócios e clientes).",
+          "Previsão ponderada do funil: cada negócio em andamento vale o seu valor vezes a chance de fechar da etapa (ajuste as chances em Ajustes → Etapas do funil).",
+        ],
+      },
       {
         t: "steps",
         title: "Lançar uma receita ou despesa",
-        items: ["Toque em “Lançamento” e escolha Receita ou Despesa.", "Informe descrição, valor e vencimento. Para dividir, use o campo Parcelas (uma por mês).", "Vincule a um negócio para ver o financeiro dentro dele."],
+        items: ["Em Lançamentos, toque em “Lançamento” e escolha Receita ou Despesa.", "Informe descrição, valor e vencimento. Para dividir, use o campo Parcelas (uma por mês).", "Vincule a um negócio para ver o financeiro dentro dele."],
       },
       {
         t: "list",
-        title: "Acompanhamento",
-        items: ["Marque como pago/recebido tocando na caixinha da linha.", "Itens vencidos e não pagos aparecem em vermelho e no total “Em atraso”.", "Os cartões do topo mostram recebido, pago, resultado e atrasos do mês. Use as setas para trocar de mês."],
+        title: "Planilha: preencher rápido, inclusive pelo celular",
+        items: [
+          "Cada linha é um lançamento; toque na célula e digite. Enter desce para a linha de baixo.",
+          "Cole direto do Excel ou do Google Sheets: copie as células, toque na primeira célula de destino e cole — as linhas seguintes viram novos lançamentos.",
+          "As alterações só são gravadas quando você toca em Salvar (um contador mostra o que está pendente). “Descartar” volta ao que está salvo.",
+          "O rodapé soma receitas, despesas e saldo da planilha na hora, enquanto você edita.",
+          "Em Cliente/fornecedor e Negócio, escreva o nome como está no sistema para criar o vínculo. Se não encontrar, o lançamento é salvo sem vínculo e o app avisa.",
+        ],
       },
+      {
+        t: "steps",
+        title: "Levar para o Excel ou o Google Sheets",
+        items: [
+          "Na Planilha, toque em Exportar e escolha o formato: “Excel (Brasil)” (separado por ponto e vírgula, datas dd/mm/aaaa) ou “Google Sheets / internacional” (vírgula e datas aaaa-mm-dd).",
+          "Abra o arquivo no programa. Os acentos já saem corretos.",
+          "Para trazer de volta: Importar CSV, escolha o arquivo e confira a prévia. Linhas com o ID original são atualizadas; linhas sem ID viram lançamentos novos. Nada é gravado até você tocar em Salvar.",
+        ],
+      },
+      { t: "tip", text: "Precisa começar do zero? Em Importar CSV há o “Modelo em branco” com as colunas e dois exemplos. Não altere a coluna ID se quiser atualizar lançamentos existentes." },
+      { t: "warn", text: "Excluir lançamentos exige o nível Gerenciar no Financeiro. Quem só edita pode criar e alterar, mas não apagar." },
     ],
   },
   {
@@ -427,11 +456,29 @@ export const tours: Record<string, { label: string; steps: TourStep[] }> = {
     ],
   },
   "/financeiro": {
-    label: "Tour do Financeiro",
+    label: "Tour do Painel financeiro",
     steps: [
-      { target: ["page-actions"], title: "Novo lançamento", body: "Registre receitas e despesas, inclusive parceladas." },
+      { target: ["fin-tabs"], title: "Três abas", body: "Painel (visão geral), Lançamentos (a lista do mês) e Planilha (edição rápida, estilo Excel)." },
+      { target: ["fin-period"], title: "Período", body: "Troque entre este mês, 3, 6 ou 12 meses e o ano. Tudo na tela acompanha o período escolhido." },
+      { target: ["fin-hero"], title: "Resultado do período", body: "O que já foi recebido menos o que já foi pago. O que ainda está em aberto fica em “A receber” e “A pagar”." },
+      { target: ["fin-chart"], title: "Receita × despesa por mês", body: "Cor cheia é o que já foi pago; clara, o que está em aberto. Toque em um mês para ler os valores." },
+      { target: ["fin-forecast"], title: "Previsão de caixa", body: "O que ainda vai entrar e sair nos próximos 6 meses, para você se antecipar a meses apertados." },
+    ],
+  },
+  "/financeiro/lancamentos": {
+    label: "Tour dos Lançamentos",
+    steps: [
+      { target: ["page-actions"], title: "Novo lançamento", body: "Registre receitas e despesas, inclusive parceladas em vários meses." },
       { target: ["fin-kpis"], title: "Resumo do mês", body: "Recebido, pago, resultado e atrasos. Use as setas para mudar de mês." },
       { target: ["fin-table"], title: "Lançamentos", body: "Marque como pago tocando na caixinha. Toque na linha para editar." },
+    ],
+  },
+  "/financeiro/planilha": {
+    label: "Tour da Planilha",
+    steps: [
+      { target: ["sheet-period"], title: "Período", body: "Veja um mês, só o que está em aberto ou tudo. A planilha mostra e edita exatamente esses lançamentos." },
+      { target: ["sheet-toolbar"], title: "Linha, Importar e Exportar", body: "Adicione linhas, importe um CSV do Excel/Sheets e exporte nos dois formatos. Só grava quando você toca em Salvar." },
+      { target: ["sheet-grid"], title: "A grade", body: "Toque numa célula e digite. Enter desce. Você também pode copiar células do Excel ou do Sheets e colar aqui — as linhas viram lançamentos." },
     ],
   },
   "/equipe": {

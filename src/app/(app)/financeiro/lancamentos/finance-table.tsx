@@ -19,7 +19,7 @@ import { EmptyState } from "@/components/page-header";
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from "@/lib/constants";
 import { centsToInput, fmtDate, money, todayISO } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { deleteTransaction, saveTransaction, togglePaid } from "./actions";
+import { deleteTransaction, saveTransaction, togglePaid } from "../actions";
 
 type Row = {
   id: string;
@@ -54,7 +54,53 @@ export function FinanceTable({ rows, today, deals, contacts, canEdit = true, can
 
   return (
     <>
-      <div data-tour="fin-table" className="overflow-x-auto rounded-xl border bg-card">
+      <div data-tour="fin-table">
+        {/* celular: cartões; computador: tabela */}
+        <ul className="grid grid-cols-[minmax(0,1fr)] gap-2 md:hidden">
+          {optimistic.map((r) => {
+            const late = !r.paidAt && r.dueDate < today;
+            return (
+              <li key={r.id}>
+                <div
+                  role={canEdit ? "button" : undefined}
+                  tabIndex={canEdit ? 0 : undefined}
+                  onClick={canEdit ? () => setEditing(r) : undefined}
+                  onKeyDown={canEdit ? (e) => e.key === "Enter" && setEditing(r) : undefined}
+                  className="flex items-center gap-3 rounded-xl border bg-card p-3.5 active:bg-muted/50"
+                >
+                  <label className="-m-2.5 p-2.5" onClick={(e) => e.stopPropagation()}>
+                    <Checkbox
+                      checked={!!r.paidAt}
+                      disabled={!canEdit}
+                      aria-label="Marcar como pago"
+                      onCheckedChange={(v) =>
+                        start(async () => {
+                          setPaid({ id: r.id, paid: !!v });
+                          await togglePaid(r.id, !!v);
+                        })
+                      }
+                    />
+                  </label>
+                  <span className="grid min-w-0 flex-1 leading-tight">
+                    <span className={cn("flex min-w-0 items-center gap-1.5 text-[13.5px]", r.paidAt && "text-muted-foreground")}>
+                      <span className="size-2 shrink-0 rounded-full" style={{ background: r.kind === "receita" ? "var(--fin-in)" : "var(--fin-out)" }} aria-hidden />
+                      <span className="truncate">{r.description}</span>
+                    </span>
+                    <span className={cn("mt-0.5 truncate text-[11.5px] text-muted-foreground", late && "text-destructive")}>
+                      {fmtDate(r.dueDate, "dd/MM")} · {r.paidAt ? (r.kind === "receita" ? "recebido" : "pago") : late ? "atrasado" : "em aberto"}
+                      {r.category ? " · " + r.category : ""}
+                    </span>
+                  </span>
+                  <span className="num shrink-0 text-[14px]">
+                    {r.kind === "despesa" ? "−" : ""}
+                    {money(r.amountCents)}
+                  </span>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+        <div className="hidden overflow-x-auto rounded-xl border bg-card md:block">
         <table className="w-full min-w-[720px] text-[13px]">
           <thead>
             <tr className="border-b text-left text-[11.5px] text-muted-foreground">
@@ -90,9 +136,9 @@ export function FinanceTable({ rows, today, deals, contacts, canEdit = true, can
                   <td className="px-4 py-2.5">
                     <div className="flex items-center gap-2">
                       {r.kind === "receita" ? (
-                        <ArrowDownLeft className="size-3.5 shrink-0 text-success" />
+                        <ArrowDownLeft className="size-3.5 shrink-0 text-fin-in" />
                       ) : (
-                        <ArrowUpRight className="size-3.5 shrink-0 text-destructive" />
+                        <ArrowUpRight className="size-3.5 shrink-0 text-fin-out" />
                       )}
                       <div className="grid leading-tight">
                         <span className={cn(r.paidAt && "text-muted-foreground")}>{r.description}</span>
@@ -111,7 +157,7 @@ export function FinanceTable({ rows, today, deals, contacts, canEdit = true, can
                     </div>
                   </td>
                   <td className="px-4 py-2.5 text-muted-foreground">{r.category ?? "—"}</td>
-                  <td className={cn("px-4 py-2.5 text-right tabular-nums", r.kind === "despesa" && "text-destructive")}>
+                  <td className="num px-4 py-2.5 text-right text-[13px]">
                     {r.kind === "despesa" ? "−" : ""}
                     {money(r.amountCents)}
                   </td>
@@ -120,6 +166,7 @@ export function FinanceTable({ rows, today, deals, contacts, canEdit = true, can
             })}
           </tbody>
         </table>
+        </div>
       </div>
       <TransactionDialog open={!!editing} onClose={() => setEditing(null)} row={editing ?? undefined} deals={deals} contacts={contacts} canDelete={canDelete} />
     </>

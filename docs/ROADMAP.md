@@ -25,7 +25,7 @@ Perfis prontos: Administrador · Gestor · Comercial · Atendimento · Financeir
 Cada pessoa pode ter permissões ajustadas individualmente. Filtro de dados continua no servidor
 (parceiro vê só os negócios dele). Trilha de auditoria (quem mudou o quê) para financeiro e contratos.
 
-## Fase 3 — Financeiro v2
+## Fase 3 — Financeiro v2 ✅ (entregue 2026-10-19)
 - **Dashboard**: receita × despesa por mês, fluxo de caixa, a receber/pagar, inadimplência,
   receita por serviço/origem, ticket médio, previsão (negócios ponderados por etapa).
 - **Planilha própria** (grade editável, otimizada para toque): lançamentos em linhas, filtros,

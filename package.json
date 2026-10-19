@@ -10,7 +10,9 @@
     "db:push": "node --env-file=.env.local node_modules/drizzle-kit/bin.cjs push --force",
     "db:studio": "node --env-file=.env.local node_modules/drizzle-kit/bin.cjs studio",
     "db:seed": "node --env-file=.env.local node_modules/tsx/dist/cli.mjs scripts/seed.ts",
-    "db:demo": "node --env-file=.env.local node_modules/tsx/dist/cli.mjs scripts/demo.ts"
+    "db:demo": "node --env-file=.env.local node_modules/tsx/dist/cli.mjs scripts/demo.ts",
+    "db:demo-fin": "node --env-file=.env.local node_modules/tsx/dist/cli.mjs scripts/demo-finance.ts",
+    "test:csv": "node node_modules/tsx/dist/cli.mjs scripts/test-csv.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.133.0",

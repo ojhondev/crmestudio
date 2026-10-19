@@ -201,7 +201,7 @@ export default async function DealPage({ params }: PageProps<"/negocios/[id]">) 
               action={
                 canFinanceEdit ? (
                   <Button asChild variant="ghost" size="icon-sm" aria-label="Lançar">
-                    <Link href={`/financeiro?novo=receita&deal=${deal.id}`}>
+                    <Link href={`/financeiro/lancamentos?novo=receita&deal=${deal.id}`}>
                       <Plus />
                     </Link>
                   </Button>

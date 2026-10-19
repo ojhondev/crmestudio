@@ -13,6 +13,10 @@ const opts = { locale: ptBR, in: inTZ };
 const brl = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 export const money = (cents: number) => brl.format((cents || 0) / 100);
 
+const brlInt = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
+/** Sem centavos: para números grandes em cartões (cabe em telas estreitas). */
+export const moneyInt = (cents: number) => brlInt.format(Math.round((cents || 0) / 100));
+
 /** "R$ 28 mil", "R$ 1,2 mi" — formatado à mão: o `notation: "compact"` do Intl
  *  muda entre Node e navegador e quebra a hidratação. */
 export function moneyShort(cents: number) {

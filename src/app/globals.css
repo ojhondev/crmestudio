@@ -13,6 +13,8 @@
   --color-brand: var(--brand);
   --color-brand-soft: var(--brand-soft);
   --color-success: var(--success);
+  --color-fin-in: var(--fin-in);
+  --color-fin-out: var(--fin-out);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -74,6 +76,9 @@
   --ring: #b75928;
   --brand: #b75928;
   --brand-soft: #f7ece5;
+  /* gráficos financeiros: azul × terracota (ΔE ≥ 25 sob protanopia) */
+  --fin-in: #2a78d6;
+  --fin-out: #c8452c;
   --success: #2f6b4f;
   --chart-1: #b75928;
   --chart-2: #193f32;
@@ -112,6 +117,8 @@
   --ring: #e2683a;
   --brand: #e2683a;
   --brand-soft: rgb(226 104 58 / 14%);
+  --fin-in: #3d8fe0;
+  --fin-out: #e2683a;
   --success: #5fb48a;
   --chart-1: #e2683a;
   --chart-2: #5fb48a;

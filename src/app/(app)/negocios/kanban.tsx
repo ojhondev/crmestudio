@@ -86,7 +86,7 @@ export function Kanban({ stages, deals: initial, canEdit = true, canLaunch = tru
         else if (kind === "ganho")
           toast.success("Negócio fechado! 🎉", {
             description: "Quer lançar o valor no financeiro?",
-            action: { label: "Lançar", onClick: () => router.push(`/financeiro?novo=receita&deal=${dealId}`) },
+            action: { label: "Lançar", onClick: () => router.push(`/financeiro/lancamentos?novo=receita&deal=${dealId}`) },
           });
       } catch {
         toast.error("Não foi possível mover o negócio");

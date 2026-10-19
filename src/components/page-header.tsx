@@ -26,7 +26,7 @@ export function PageHeader({
 }
 
 export function PageBody({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <div className={cn("px-5 pb-12 sm:px-8 lg:px-10", className)}>{children}</div>;
+  return <div className={cn("px-5 pb-12 sm:px-8 lg:px-10 [&>*]:min-w-0", className)}>{children}</div>;
 }
 
 export function EmptyState({ icon: Icon, title, children }: { icon: React.ElementType; title: string; children?: React.ReactNode }) {
