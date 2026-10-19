@@ -14,7 +14,8 @@ export const metadata: Metadata = { title: "Equipe e acessos" };
 const FILTERS: Record<string, { label: string; actions: string[] | null }> = {
   todas: { label: "Tudo", actions: null },
   acessos: { label: "Acessos", actions: ["login", "login_falhou", "senha_trocada", "senha_redefinida"] },
-  equipe: { label: "Equipe", actions: ["usuario_criado", "usuario_ativado", "usuario_desativado", "permissoes_alteradas"] },
+  equipe: { label: "Equipe", actions: ["usuario_criado", "usuario_ativado", "usuario_desativado", "permissoes_alteradas", "supervisor_alterado"] },
+  automacoes: { label: "Automações", actions: ["automacao_criada", "automacao_alterada", "automacao_ligada", "automacao_desligada", "automacao_excluida", "automacao_rodada"] },
   financeiro: { label: "Financeiro", actions: ["lancamento_criado", "lancamento_alterado", "lancamento_baixado", "lancamento_reaberto", "lancamento_excluido"] },
   exclusoes: { label: "Exclusões", actions: ["negocio_excluido", "contato_excluido", "lancamento_excluido", "exemplos_removidos"] },
 };
@@ -38,6 +39,7 @@ export default async function TeamPage({ searchParams }: PageProps<"/equipe">) {
       phone: u.phone,
       active: u.active,
       ownOnly: u.role === "admin" ? false : u.ownOnly,
+      supervisorId: u.supervisorId,
       perms: resolvePermissions(u),
       lastLoginAt: u.lastLoginAt?.toISOString() ?? null,
       mustChange: u.mustChangePassword,

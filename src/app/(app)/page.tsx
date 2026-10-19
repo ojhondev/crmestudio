@@ -7,6 +7,9 @@ import { dealScope } from "@/lib/deals";
 import { EVENT_TYPES } from "@/lib/constants";
 import { fmtDate, fmtTime, money, moneyShort, todayISO } from "@/lib/format";
 import { StartGuide } from "@/components/start-guide";
+import { AvisosCard } from "@/components/avisos-card";
+import { getAvisos } from "@/lib/avisos";
+import { scheduleLazyTick } from "@/lib/automations-engine";
 import { PageBody } from "@/components/page-header";
 import { Section } from "@/components/crm/section";
 import { TaskList } from "@/components/crm/tasks";
@@ -85,12 +88,14 @@ export default async function Dashboard({ searchParams }: PageProps<"/">) {
       .from(schema.transactions)
       .where(and(eq(schema.transactions.kind, "receita"), isNull(schema.transactions.paidAt), lte(schema.transactions.dueDate, in30)));
 
-  const [funnel, [won], agenda, myTasks, [receivable]] = await Promise.all([
+  scheduleLazyTick(); // abrir o painel também "acorda" as regras de tempo (no máximo 1 rodada a cada 15 min)
+  const [funnel, [won], agenda, myTasks, [receivable], avisos] = await Promise.all([
     canDeals ? funnelQ() : [],
     canDeals ? wonQ() : [],
     canAgenda ? agendaQ() : [],
     tasksQ(),
     canFinance ? receivableQ() : [],
+    getAvisos(user),
   ]);
 
   const open = funnel.filter((s) => s.kind === "aberto");
@@ -102,11 +107,14 @@ export default async function Dashboard({ searchParams }: PageProps<"/">) {
 
   return (
     <>
-      <header className="px-5 pt-8 pb-6 sm:px-8 lg:px-10">
-        <p className="label mb-2 capitalize">{fmtDate(today, "EEEE, d 'de' MMMM")}</p>
-        <h1 className="h-display text-[34px] sm:text-[40px]">
-          {hello}, {user.name.split(" ")[0]}.
-        </h1>
+      <header className="flex flex-col gap-5 px-5 pt-8 pb-6 sm:px-8 lg:flex-row lg:items-start lg:justify-between lg:gap-8 lg:px-10">
+        <div className="min-w-0">
+          <p className="label mb-2 capitalize">{fmtDate(today, "EEEE, d 'de' MMMM")}</p>
+          <h1 className="h-display text-[34px] sm:text-[40px]">
+            {hello}, {user.name.split(" ")[0]}.
+          </h1>
+        </div>
+        <AvisosCard data={avisos} />
       </header>
 
       <PageBody className="grid gap-5">
@@ -122,6 +130,7 @@ export default async function Dashboard({ searchParams }: PageProps<"/">) {
       has(user, "tarefas", "edit") && { href: "/tarefas", t: "Criar uma tarefa", d: "Organize o que precisa ser feito, com responsável e prazo." },
       has(user, "negocios") && { href: "/negocios", t: "Acompanhar o funil", d: "Arraste os negócios entre as etapas conforme avançam." },
       has(user, "documentos", "edit") && { href: "/documentos", t: "Gerar um contrato", d: "Escolha um modelo; os dados do cliente entram sozinhos." },
+      { href: "/notificacoes", t: "Conferir seus avisos", d: "Atrasos, prazos e leads parados chegam no sino e no quadro Avisos." },
           ].filter(Boolean) as { href: string; t: string; d: string }[]}
         />
 
@@ -188,7 +197,7 @@ export default async function Dashboard({ searchParams }: PageProps<"/">) {
               title="Próximos 7 dias"
               className={canDeals ? "lg:col-span-1" : "lg:col-span-2"}
               action={
-                <Link href="/agenda" className="grid size-8 place-items-center text-muted-foreground hover:text-foreground max-md:size-10" aria-label="Agenda">
+                <Link href="/agenda" className="grid size-8 place-items-center text-muted-foreground hover:text-foreground max-md:size-11" aria-label="Agenda">
                   <CalendarDays className="size-4" />
                 </Link>
               }

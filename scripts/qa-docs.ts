@@ -63,6 +63,12 @@ async function main() {
     await db.delete(schema.auditLog).where(like(schema.auditLog.actorName, "QA Documentos"));
     await db.delete(schema.sheets).where(like(schema.sheets.name, "QA%")); // planilhas de teste (abas e versões saem em cascata)
     await db.delete(schema.taskBoards).where(like(schema.taskBoards.name, "QA%"));
+    // Avisos e Automações: tarefas, regras, execuções e contas de QA (avisos saem em cascata com a conta)
+    await db.delete(schema.tasks).where(like(schema.tasks.title, "QA%"));
+    await db.delete(schema.automationRuns).where(like(schema.automationRuns.entityLabel, "QA%"));
+    await db.delete(schema.automationRules).where(like(schema.automationRules.name, "QA%"));
+    await db.delete(schema.auditLog).where(like(schema.auditLog.actorName, "QA %"));
+    await db.delete(schema.users).where(like(schema.users.email, "qa-%@example.test"));
     await db.delete(schema.users).where(eq(schema.users.email, EMAIL));
     if (fs.existsSync(FILE)) fs.unlinkSync(FILE);
     console.log("QA removido:", docs.length, "documento(s)");

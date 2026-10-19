@@ -8,6 +8,7 @@ import type { TaskColumn, TaskColumnType, TaskLink, TaskPriority, TaskRecur, Tas
 import { BOARD_TEMPLATES } from "@/lib/task-templates";
 import { addDays, cleanCustomValue, nextDue, type TaskDTO } from "@/lib/tasks";
 import { isoDateBR, todayISO } from "@/lib/format";
+import { afterResponse, fireTaskEvent } from "@/lib/automations-engine";
 
 const str = (v: unknown, n: number) => (typeof v === "string" ? v.trim().slice(0, n) : "");
 const STATUSES: TaskStatus[] = ["a_fazer", "em_andamento", "travada", "concluida"];
@@ -199,6 +200,7 @@ export async function createTask(input: { boardId: string; groupId: string; titl
       createdById: user.id,
     })
     .returning();
+  if (t.assigneeId && t.assigneeId !== user.id) afterResponse(() => fireTaskEvent("task_assigned", t.id, user, { eventKey: t.assigneeId! }));
   return { task: toDTO(t) };
 }
 
@@ -344,6 +346,13 @@ export async function updateTask(id: string, patch: TaskPatch) {
     await logActivity(n.id, user.id, "criada automaticamente (tarefa recorrente)");
     spawned = toDTO(n);
   }
+  // automações: avisos e regras por evento (rodam depois da resposta, sem atrasar a tela)
+  afterResponse(async () => {
+    if (completedNow) await fireTaskEvent("task_completed", id, user, { eventKey: String(t.doneAt?.getTime() ?? Date.now()) });
+    if (t.assigneeId && t.assigneeId !== cur.assigneeId) await fireTaskEvent("task_assigned", id, user, { eventKey: `${t.assigneeId}:${Date.now()}` });
+    if (t.status === "travada" && cur.status !== "travada") await fireTaskEvent("task_stuck", id, user, { eventKey: String(Date.now()) });
+    if (spawned) await fireTaskEvent("task_recurring", spawned.id, user, { eventKey: spawned.id });
+  });
   return { task: toDTO(t), spawned };
 }
 
@@ -487,5 +496,6 @@ export async function addTaskComment(taskId: string, body: string): Promise<{ it
   const [cur] = await db.select().from(schema.tasks).where(eq(schema.tasks.id, taskId));
   if (!cur || !canTouch(user, cur)) return { error: "Sem acesso a esta tarefa." };
   const [r] = await db.insert(schema.taskComments).values({ taskId, userId: user.id, kind: "comentario", body: text }).returning();
+  afterResponse(() => fireTaskEvent("task_comment", taskId, user, { eventKey: r.id, comment: text }));
   return { item: { id: r.id, kind: "comentario", body: r.body, at: r.createdAt.toISOString(), userName: user.name } };
 }

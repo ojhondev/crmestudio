@@ -7,6 +7,7 @@ import { db, schema } from "@/lib/db";
 import { has, requireAccess } from "@/lib/auth";
 import { audit } from "@/lib/audit";
 import { normalizePhone, parseMoney } from "@/lib/format";
+import { afterResponse, fireDealEvent } from "@/lib/automations-engine";
 
 const str = (v: FormDataEntryValue | null) => {
   const s = String(v ?? "").trim();
@@ -62,6 +63,7 @@ export async function createContact(_: unknown, form: FormData) {
       })
       .returning({ id: schema.deals.id });
     await db.insert(schema.activities).values({ dealId: deal.id, contactId: c.id, userId: user.id, type: "nota", body: "Lead cadastrado" });
+    afterResponse(() => fireDealEvent(["deal_created"], deal.id, user, { eventKey: deal.id }));
   }
   revalidatePath("/", "layout");
   return { ok: true, id: c.id };

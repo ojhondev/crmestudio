@@ -7,6 +7,7 @@ import { db, schema } from "@/lib/db";
 import { has, requireAccess, requireUser, type SessionUser } from "@/lib/auth";
 import { audit } from "@/lib/audit";
 import { normalizePhone, parseLocalInput, parseMoney } from "@/lib/format";
+import { afterResponse, fireDealEvent, fireTaskEvent, stageTriggers } from "@/lib/automations-engine";
 
 const str = (v: FormDataEntryValue | null) => {
   const s = String(v ?? "").trim();
@@ -75,6 +76,7 @@ export async function createDeal(_: unknown, form: FormData) {
     .values({ ...fields, ownerId, partnerId, contactId, stageId, position: (top ?? 0) + 1 })
     .returning({ id: schema.deals.id });
   await db.insert(schema.activities).values({ dealId: deal.id, contactId, userId: user.id, type: "nota", body: "Negócio criado" });
+  afterResponse(() => fireDealEvent(["deal_created"], deal.id, user, { eventKey: deal.id }));
   revalidatePath("/", "layout");
   return { ok: true, id: deal.id };
 }
@@ -99,7 +101,10 @@ export async function updateDeal(_: unknown, form: FormData) {
       updatedAt: new Date(),
     })
     .where(eq(schema.deals.id, id));
-  if (stageId !== current.stageId) await logStageChange(user, id, contactId, stageId);
+  if (stageId !== current.stageId) {
+    const moved = await logStageChange(user, id, contactId, stageId);
+    afterResponse(() => fireDealEvent(stageTriggers(moved.kind), id, user, { eventKey: `${stageId}:${Date.now()}` }));
+  }
   revalidatePath("/", "layout");
   return { ok: true };
 }
@@ -126,7 +131,11 @@ export async function moveDeal(dealId: string, stageId: number, position: number
   const current = await assertDealAccess(user, dealId);
   await db.update(schema.deals).set({ stageId, position, updatedAt: new Date() }).where(eq(schema.deals.id, dealId));
   let kind: string | null = null;
-  if (stageId !== current.stageId) kind = (await logStageChange(user, dealId, current.contactId, stageId)).kind;
+  if (stageId !== current.stageId) {
+    kind = (await logStageChange(user, dealId, current.contactId, stageId)).kind;
+    const k = kind as "aberto" | "ganho" | "perdido";
+    afterResponse(() => fireDealEvent(stageTriggers(k), dealId, user, { eventKey: `${stageId}:${Date.now()}` }));
+  }
   revalidatePath("/", "layout");
   return { kind };
 }
@@ -201,7 +210,15 @@ async function assertTaskAccess(user: SessionUser, taskId: string) {
 export async function toggleTask(taskId: string, done: boolean) {
   await assertTaskAccess(await requireUser(), taskId);
   // doneAt continua sendo a fonte de "concluída"; o status do módulo Tarefas acompanha
-  if (done) await db.update(schema.tasks).set({ doneAt: new Date(), status: "concluida" }).where(eq(schema.tasks.id, taskId));
+  if (done) {
+    const doneAt = new Date();
+    const [prev] = await db.select({ doneAt: schema.tasks.doneAt }).from(schema.tasks).where(eq(schema.tasks.id, taskId));
+    await db.update(schema.tasks).set({ doneAt, status: "concluida" }).where(eq(schema.tasks.id, taskId));
+    if (!prev?.doneAt) {
+      const actor = await requireUser();
+      afterResponse(() => fireTaskEvent("task_completed", taskId, actor, { eventKey: String(doneAt.getTime()) }));
+    }
+  }
   else {
     await db.update(schema.tasks).set({ doneAt: null }).where(eq(schema.tasks.id, taskId));
     await db.update(schema.tasks).set({ status: "a_fazer" }).where(and(eq(schema.tasks.id, taskId), eq(schema.tasks.status, "concluida")));

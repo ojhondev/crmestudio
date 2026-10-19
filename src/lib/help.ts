@@ -95,6 +95,7 @@ export const articles: Article[] = [
           "Funil: quantos negócios e quanto dinheiro há em cada etapa.",
           "Minhas tarefas: o que está atribuído a você, em ordem de prazo.",
           "Próximos 7 dias: visitas, reuniões e prazos da agenda.",
+          "Avisos (canto superior direito, ou logo abaixo da saudação no celular): atrasadas, o que vence hoje e amanhã, leads sem follow-up, negócios parados e ações recentes da equipe. Recolhível. Veja “Avisos e o sino”.",
         ],
       },
       { t: "tip", text: "A caixa “Pergunte à Ana” responde dúvidas sobre o seu próprio funil, agenda e caixa. Ex.: “quem precisa de follow-up?”." },
@@ -375,6 +376,7 @@ export const articles: Article[] = [
           "Toque na pessoa na lista.",
           "Escolha outro perfil ou ajuste módulo a módulo. Se a combinação não bate com um perfil pronto, ela vira “Personalizado”.",
           "Use “Ver só os próprios” para limitar a pessoa aos negócios dela e à própria agenda.",
+          "Defina o “Gestor / supervisor”: ele recebe os avisos de atraso e negócios parados da pessoa. Sem gestor, os administradores recebem.",
           "Toque em Salvar. A mudança vale na hora, sem a pessoa precisar sair e entrar de novo.",
         ],
       },
@@ -540,6 +542,114 @@ export const articles: Article[] = [
     ],
   },
   {
+    slug: "avisos",
+    module: "Operação",
+    title: "Avisos e o sino",
+    summary: "O sino no topo, a página Avisos, o quadro AVISOS do Painel e as suas preferências.",
+    href: "/notificacoes",
+    tour: "/notificacoes",
+    keywords: ["notificação", "notificacoes", "sino", "aviso", "alerta", "menção", "silenciar", "preferências", "lido"],
+    body: [
+      { t: "p", text: "O sistema avisa você, dentro do próprio app, do que precisa de atenção: tarefa atrasada, prazo chegando, lead parado, alguém que concluiu ou comentou algo seu. Cada fato gera um aviso só — você nunca recebe o mesmo aviso duas vezes." },
+      {
+        t: "list",
+        title: "Onde os avisos aparecem",
+        items: [
+          "Sino no topo: o número mostra os não lidos. Toque para abrir a gaveta, filtre (Todas, Não lidas, Tarefas, Leads e negócios), toque num aviso para ir direto ao item ou em “Marcar todas como lidas”. A lista atualiza sozinha a cada cerca de 1 minuto e quando você volta para a aba.",
+          "Página Avisos (gaveta do sino → Ver todas): histórico completo, filtro por tipo, só não lidas, seleção para marcar como lida ou arquivar, e “Carregar mais”.",
+          "Quadro AVISOS no Painel: resumo do que o sistema mapeou — atrasadas, vencem hoje e amanhã, leads sem follow-up, negócios parados, previsão vencida, valor alto parado e ações recentes de colegas. Pode ser recolhido (a escolha fica neste aparelho).",
+        ],
+      },
+      {
+        t: "list",
+        title: "Quem vê o quê",
+        items: [
+          "Administradores e gestores (quem gerencia Tarefas) veem a visão da equipe toda.",
+          "Quem é gestor/supervisor de alguém (campo em Equipe e acessos) vê a si e às pessoas que respondem a ele.",
+          "Os demais veem só o que lhes diz respeito. Parceiros (“ver só os próprios”) veem apenas as próprias tarefas e os próprios negócios.",
+        ],
+      },
+      {
+        t: "steps",
+        title: "Escolher o que receber",
+        items: [
+          "Abra a página Avisos e a aba Preferências (ou o ícone de engrenagem na gaveta do sino).",
+          "Desligue as categorias que não quer (ex.: “Mudança de etapa”).",
+          "Para uma pausa total, ligue “Silenciar todos os avisos”. Os fatos continuam registrados: ao voltar você não recebe uma enxurrada de avisos antigos.",
+        ],
+      },
+      { t: "tip", text: "Mencione um colega em um comentário de tarefa com @nome (ex.: @Maria) para ele ser avisado na hora." },
+    ],
+  },
+  {
+    slug: "automacoes",
+    module: "Sistema",
+    title: "Automações",
+    summary: "Regras “Quando… e… então…” entre tarefas, negócios, pessoas e datas.",
+    href: "/automacoes",
+    tour: "/automacoes",
+    keywords: ["automação", "regra", "gatilho", "follow-up", "atrasada", "cron", "supervisor", "gestor", "ação"],
+    body: [
+      { t: "p", text: "Automações são regras que trabalham por você. Cada regra tem três partes: QUANDO acontece algo (gatilho), E em que condições (opcional) e ENTÃO o que fazer (ações). O sistema já traz regras prontas — você liga, desliga e ajusta os prazos." },
+      {
+        t: "list",
+        title: "Regras prontas de tarefas",
+        items: [
+          "Tarefa atrasada: avisa o responsável e o gestor dele.",
+          "Prazo se aproximando: 1 dia antes e no dia (você escolhe os dias).",
+          "Tarefa concluída: avisa quem criou, o gestor e quem comentou.",
+          "Tarefa atribuída ou reatribuída: avisa a pessoa que recebeu.",
+          "Tarefa travada: avisa o gestor e quem criou.",
+          "Comentários e menções (@nome).",
+          "Tarefa sem responsável por mais de 24 h.",
+          "Tarefa recorrente gerada.",
+        ],
+      },
+      {
+        t: "list",
+        title: "Regras prontas de leads e negócios",
+        items: [
+          "Lead novo e lead sem primeiro contato em X horas (padrão: 4 h).",
+          "Negócio parado na mesma etapa há X dias (padrão: 7) — com prazo diferente por etapa, se quiser.",
+          "Negócio sem atividade ou contato há X dias (padrão: 5).",
+          "Previsão de fechamento vencida ou chegando (3 dias antes e no dia).",
+          "Negócio ganho e negócio perdido.",
+          "Valor alto parado (padrão: a partir de R$ 50 mil, 3 dias parado).",
+          "Desligadas por padrão: criar tarefa de follow-up em negócio parado, criar tarefa de primeiro contato em lead novo e aviso a cada mudança de etapa.",
+        ],
+      },
+      {
+        t: "steps",
+        title: "Ajustar uma regra ou criar a sua",
+        items: [
+          "Abra Automações (menu Sistema). Use o interruptor do cartão para ligar ou desligar.",
+          "Toque em “Ajustar” para mudar prazos, condições (ex.: só prioridade alta, só negócios acima de R$ 20 mil), quem recebe o aviso e o texto da mensagem.",
+          "Em “Nova regra”, escolha o gatilho, as condições e as ações: avisar pessoas ou papéis, mudar situação ou prioridade, atribuir responsável, criar tarefa de follow-up e adicionar etiqueta.",
+          "Acompanhe tudo na aba Registro: cada execução mostra a regra, o item e o que foi feito.",
+        ],
+      },
+      {
+        t: "list",
+        title: "Gestor / supervisor",
+        items: [
+          "Em Equipe e acessos, cada pessoa tem o campo “Gestor / supervisor”. É ele quem recebe os avisos de atraso, travas e negócios parados daquela pessoa.",
+          "Sem gestor definido, os avisos vão para todos os administradores.",
+        ],
+      },
+      {
+        t: "list",
+        title: "Como e quando as regras rodam",
+        items: [
+          "Regras de evento (concluir, atribuir, comentar, lead novo, mudar de etapa) disparam na hora, quando alguém faz a ação.",
+          "Regras de tempo (atraso, prazo, parado) rodam todo dia de manhã e também quando alguém abre o Painel ou o sino atualiza (no máximo uma rodada a cada 15 minutos). Quem tem permissão de gerenciar pode tocar em “Rodar agora”.",
+          "Nada é avisado duas vezes: cada fato (ex.: a tarefa X venceu em 17/10) é registrado e a regra não age de novo sobre ele.",
+          "Mudanças feitas por automações não disparam outras automações (evita laços infinitos) e ficam no histórico da tarefa.",
+        ],
+      },
+      { t: "warn", text: "Permissão: ver as regras e o registro exige “Configurações do sistema” em Ver; ligar, editar, criar, excluir e rodar exige Gerenciar (perfil Administrador). Toda mudança fica na trilha de Atividade em Equipe e acessos." },
+    ],
+  },
+  {
     slug: "atalhos",
     module: "Começando",
     title: "Atalhos do teclado",
@@ -578,6 +688,7 @@ export const tours: Record<string, { label: string; steps: TourStep[] }> = {
       { target: ["nav-financeiro", "nav-mais"], title: "Financeiro e mais", body: "Receitas, despesas e o caixa do mês ficam no menu. No celular, toque em “Mais” para ver tudo." },
       { target: ["sidebar-toggle"], title: "Menu recolhível", body: "No computador, este botão recolhe o menu lateral para deixar só os ícones e abrir mais espaço." },
       { target: ["theme-toggle"], title: "Tema claro ou escuro", body: "O visual padrão é claro. Se preferir, troque para o escuro aqui — a escolha fica salva neste aparelho." },
+      { target: ["bell"], title: "Avisos", body: "O sino mostra o que precisa de atenção: tarefas atrasadas, prazos, leads parados, menções. Toque num aviso para ir direto ao item." },
       { target: ["help-button"], title: "Ajuda sempre à mão", body: "Aqui você revê este tour, faz o tour de cada tela e abre a Central de ajuda com o passo a passo de tudo." },
     ],
   },
@@ -585,7 +696,24 @@ export const tours: Record<string, { label: string; steps: TourStep[] }> = {
     label: "Tour do Painel",
     steps: [
       { target: ["dash-kpis"], title: "Números do dia", body: "Valor no funil, fechado no mês, e a receber. Toque em um número para abrir a tela dele." },
+      { target: ["dash-avisos"], title: "Avisos", body: "O resumo do que o sistema mapeou: atrasadas, o que vence hoje e amanhã, leads sem follow-up, negócios parados e o que os colegas fizeram. Administradores e gestores veem a equipe; os demais, só o que lhes diz respeito. Dá para recolher." },
       { target: ["dash-funnel"], title: "Funil", body: "Quantos negócios e quanto dinheiro há em cada etapa." },
+    ],
+  },
+  "/notificacoes": {
+    label: "Tour dos Avisos",
+    steps: [
+      { target: ["notif-tabs"], title: "Avisos e preferências", body: "Em Avisos fica o histórico (filtre por tipo, marque como lido ou arquive). Em Preferências você escolhe quais tipos receber ou silencia tudo." },
+      { target: ["bell"], title: "O sino", body: "Atualiza sozinho a cada cerca de 1 minuto. Toque num aviso para abrir o item." },
+    ],
+  },
+  "/automacoes": {
+    label: "Tour das Automações",
+    steps: [
+      { target: ["auto-tabs"], title: "Regras e Registro", body: "Em Regras você liga, desliga e ajusta. No Registro vê tudo o que cada regra fez, com data e hora." },
+      { target: ["auto-rule"], title: "Quando… e… então…", body: "Cada cartão resume a regra numa frase. O interruptor liga ou desliga; “Ajustar” muda prazos, condições, quem recebe e a mensagem." },
+      { target: ["auto-new"], title: "Nova regra", body: "Monte a sua: escolha o gatilho, as condições e as ações (avisar, mudar situação ou prioridade, atribuir, criar tarefa de follow-up, etiquetar)." },
+      { target: ["auto-run"], title: "Rodar agora", body: "As regras de tempo rodam sozinhas todo dia e quando alguém abre o sistema. Este botão força uma rodada na hora; nada é avisado duas vezes." },
     ],
   },
   "/negocios": {

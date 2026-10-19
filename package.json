@@ -15,7 +15,8 @@
     "test:csv": "node node_modules/tsx/dist/cli.mjs scripts/test-csv.ts",
     "test:docs": "node node_modules/tsx/dist/cli.mjs scripts/test-docs.ts",
     "test:tasks": "node node_modules/tsx/dist/cli.mjs scripts/test-tasks.ts",
-    "test:sheets": "node node_modules/tsx/dist/cli.mjs scripts/test-sheets.ts"
+    "test:sheets": "node node_modules/tsx/dist/cli.mjs scripts/test-sheets.ts",
+    "test:automations": "node node_modules/tsx/dist/cli.mjs scripts/test-automations.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.133.0",

@@ -11,6 +11,7 @@ import {
   serial,
   index,
   jsonb,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
 
 /** admin = acesso total (tech) · equipe = operação · parceiro = só o que é dele */
@@ -36,6 +37,8 @@ export const users = pgTable("users", {
   sessionVersion: integer("session_version").notNull().default(0),
   lastLoginAt: timestamp("last_login_at", { withTimezone: true }),
   calendarToken: text("calendar_token").notNull(), // feed .ics privado
+  /** gestor/supervisor: recebe os avisos da pessoa (sem ele, os administradores recebem) */
+  supervisorId: uuid("supervisor_id"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
@@ -496,3 +499,101 @@ export const sheetVersions = pgTable(
 );
 
 export type SheetRowDb = typeof sheets.$inferSelect;
+
+/* --------------------------- Notificações e automações --------------------------- */
+
+/** Aviso dentro da plataforma, para uma pessoa. `dedupeKey` evita avisar duas vezes o mesmo fato. */
+export const notifications = pgTable(
+  "notifications",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    /** categoria (ver lib/notifications-types.ts) */
+    type: text("type").notNull(),
+    title: text("title").notNull(),
+    body: text("body"),
+    href: text("href"),
+    entity: text("entity"), // tarefa | negocio
+    entityId: text("entity_id"),
+    readAt: timestamp("read_at", { withTimezone: true }),
+    archivedAt: timestamp("archived_at", { withTimezone: true }),
+    dedupeKey: text("dedupe_key"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("notifications_user_idx").on(t.userId, t.createdAt),
+    uniqueIndex("notifications_dedupe_idx").on(t.userId, t.dedupeKey),
+  ],
+);
+
+/** Preferências de aviso por pessoa: silenciar tudo e/ou desligar categorias. */
+export const notificationPrefs = pgTable("notification_prefs", {
+  userId: uuid("user_id")
+    .primaryKey()
+    .references(() => users.id, { onDelete: "cascade" }),
+  muted: boolean("muted").notNull().default(false),
+  disabledTypes: text("disabled_types").array().notNull().default([]),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export type RuleParams = {
+  days?: number;
+  hours?: number;
+  /** vários avisos antes do prazo (ex.: [1, 0]) */
+  daysBefore?: number[];
+  minValueCents?: number;
+  /** prazo por etapa do funil (id da etapa → dias); vale no lugar de `days` */
+  stageDays?: Record<string, number>;
+  /** limita a regra a estas etapas (vazio = todas) */
+  stageIds?: number[];
+};
+export type RuleCondition = { field: string; op: "eq" | "neq" | "in" | "gte" | "lte" | "contains" | "empty" | "notempty"; value?: string | number | string[] };
+export type RuleAction =
+  | { type: "notify"; to: string[]; title?: string; body?: string }
+  | { type: "set_status"; status: TaskStatus }
+  | { type: "set_priority"; priority: TaskPriority }
+  | { type: "assign"; to: string }
+  | { type: "add_label"; label: string }
+  | { type: "create_followup"; title: string; inDays: number; to: string };
+
+/** Regras de automação (gatilho → condições → ações). `key` identifica as regras prontas que acompanham o sistema. */
+export const automationRules = pgTable("automation_rules", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  key: text("key").unique(),
+  name: text("name").notNull(),
+  description: text("description"),
+  trigger: text("trigger").notNull(),
+  enabled: boolean("enabled").notNull().default(true),
+  params: jsonb("params").$type<RuleParams>().notNull().default({}),
+  conditions: jsonb("conditions").$type<RuleCondition[]>().notNull().default([]),
+  actions: jsonb("actions").$type<RuleAction[]>().notNull().default([]),
+  builtin: boolean("builtin").notNull().default(false),
+  createdById: uuid("created_by_id").references(() => users.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** Registro de execuções. A chave (regra + fato) é única: é o que garante a idempotência. */
+export const automationRuns = pgTable(
+  "automation_runs",
+  {
+    id: serial("id").primaryKey(),
+    at: timestamp("at", { withTimezone: true }).notNull().defaultNow(),
+    ruleId: uuid("rule_id").references(() => automationRules.id, { onDelete: "cascade" }),
+    ruleName: text("rule_name").notNull(),
+    trigger: text("trigger").notNull(),
+    entity: text("entity"),
+    entityId: text("entity_id"),
+    entityLabel: text("entity_label"),
+    status: text("status").$type<"ok" | "erro">().notNull().default("ok"),
+    summary: text("summary").notNull(),
+    dedupeKey: text("dedupe_key").notNull(),
+  },
+  (t) => [uniqueIndex("automation_runs_dedupe_idx").on(t.ruleId, t.dedupeKey), index("automation_runs_at_idx").on(t.at)],
+);
+
+export type NotificationRow = typeof notifications.$inferSelect;
+export type AutomationRule = typeof automationRules.$inferSelect;
+export type AutomationRun = typeof automationRuns.$inferSelect;

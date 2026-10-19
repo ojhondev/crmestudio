@@ -39,6 +39,8 @@ export type Member = {
   phone: string | null;
   active: boolean;
   ownOnly: boolean;
+  /** gestor/supervisor (recebe os avisos da pessoa) */
+  supervisorId: string | null;
   perms: Permissions;
   lastLoginAt: string | null;
   mustChange: boolean;
@@ -164,7 +166,7 @@ export function MemberList({ members, viewer, canManage }: { members: Member[]; 
           );
         })}
       </div>
-      {current && <MemberSheet key={current.id} member={current} viewer={viewer} canManage={canManage} onClose={() => setOpenId(null)} />}
+      {current && <MemberSheet key={current.id} member={current} people={members} viewer={viewer} canManage={canManage} onClose={() => setOpenId(null)} />}
     </>
   );
 }
@@ -200,7 +202,7 @@ function LevelPicker({ value, allowed, disabledAbove, onChange, label }: { value
   );
 }
 
-function MemberSheet({ member, viewer, canManage, onClose }: { member: Member; viewer: Viewer; canManage: boolean; onClose: () => void }) {
+function MemberSheet({ member, people, viewer, canManage, onClose }: { member: Member; people: Member[]; viewer: Viewer; canManage: boolean; onClose: () => void }) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [name, setName] = useState(member.name);
@@ -208,6 +210,7 @@ function MemberSheet({ member, viewer, canManage, onClose }: { member: Member; v
   const [phone, setPhone] = useState(member.phone ?? "");
   const [perms, setPerms] = useState<Permissions>(member.perms);
   const [ownOnly, setOwnOnly] = useState(member.ownOnly);
+  const [supervisorId, setSupervisorId] = useState(member.supervisorId ?? "__none");
   const [creds, setCreds] = useState<{ email: string; password: string } | null>(null);
 
   const isSelf = member.id === viewer.id;
@@ -226,7 +229,7 @@ function MemberSheet({ member, viewer, canManage, onClose }: { member: Member; v
 
   function save() {
     start(async () => {
-      const r = await saveMemberAccess(member.id, { name, title, phone, profile: detected, permissions: perms, ownOnly });
+      const r = await saveMemberAccess(member.id, { name, title, phone, profile: detected, permissions: perms, ownOnly, supervisorId: supervisorId === "__none" ? null : supervisorId });
       if (r?.error) toast.error(r.error);
       else {
         toast.success("Alterações salvas");
@@ -275,6 +278,17 @@ function MemberSheet({ member, viewer, canManage, onClose }: { member: Member; v
                     <Input id="ms-phone" value={phone} onChange={(e) => setPhone(e.target.value)} inputMode="tel" disabled={!canManage} />
                   </Field>
                 </div>
+                <Field label="Gestor / supervisor" htmlFor="ms-sup" hint="Recebe os avisos de atraso, tarefas e negócios desta pessoa. Sem gestor, quem recebe são os administradores.">
+                  <SimpleSelect
+                    id="ms-sup"
+                    value={supervisorId}
+                    onValueChange={setSupervisorId}
+                    allowNone
+                    noneLabel="Sem gestor (avisa os administradores)"
+                    options={people.filter((p) => p.id !== member.id && p.active && p.role !== "parceiro").map((p) => ({ value: p.id, label: p.name }))}
+                    className={!canManage ? "pointer-events-none opacity-60" : undefined}
+                  />
+                </Field>
               </section>
 
               <section className="grid gap-3">

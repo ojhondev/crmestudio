@@ -18,6 +18,7 @@ import {
   Settings,
   Sparkles,
   UserCog,
+  Workflow,
   X,
   Users,
   Wallet,
@@ -30,6 +31,7 @@ import { PROFILES, atLeast } from "@/lib/permissions";
 import { ANA_UI_ENABLED } from "@/lib/ana-flag";
 import { useAna } from "@/components/ana/ana-provider";
 import { HelpMenu } from "@/components/help/help-menu";
+import { NotificationBell } from "@/components/notifications/bell";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -77,6 +79,7 @@ function groups(user: SessionUser): Group[] {
 
   const sistema: Item[] = [];
   if (has(user, "equipe")) sistema.push({ key: "equipe", href: "/equipe", label: "Equipe e acessos", icon: UserCog });
+  if (has(user, "configuracoes")) sistema.push({ key: "automacoes", href: "/automacoes", label: "Automações", icon: Workflow });
   sistema.push({ key: "ajustes", href: "/ajustes", label: "Ajustes", icon: Settings });
   g.push({ label: "Sistema", items: sistema });
   return g;
@@ -237,6 +240,7 @@ function TopBar() {
         <img src="/mark.png" alt="" className="h-6 w-auto" />
       </Link>
       <div className="ml-auto flex items-center gap-0.5">
+        <NotificationBell />
         <HelpMenu />
         <ThemeToggle />
         {ANA_UI_ENABLED && (

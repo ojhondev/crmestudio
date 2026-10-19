@@ -79,6 +79,8 @@ export type AccessInput = {
   profile: string;
   permissions: Record<string, string>;
   ownOnly: boolean;
+  /** gestor/supervisor (null = sem gestor; undefined = não mexe) */
+  supervisorId?: string | null;
 };
 
 export async function saveMemberAccess(id: string, input: AccessInput) {
@@ -89,7 +91,26 @@ export async function saveMemberAccess(id: string, input: AccessInput) {
   const name = input.name.trim();
   if (!name) return { error: "Informe o nome." };
 
-  const base = { name, title: input.title.trim() || null, phone: input.phone.trim() || null };
+  const base: { name: string; title: string | null; phone: string | null; supervisorId?: string | null } = { name, title: input.title.trim() || null, phone: input.phone.trim() || null };
+
+  // gestor/supervisor: precisa ser outra pessoa ativa e nunca pode formar um ciclo (A responde a B que responde a A)
+  if (input.supervisorId !== undefined && id !== actor.id) {
+    const wanted = input.supervisorId && /^[0-9a-f-]{36}$/i.test(input.supervisorId) ? input.supervisorId : null;
+    if (wanted) {
+      const all = await db.select({ id: schema.users.id, supervisorId: schema.users.supervisorId, active: schema.users.active }).from(schema.users);
+      const sup = all.find((u) => u.id === wanted);
+      if (!sup || !sup.active || wanted === id) return { error: "Escolha outra pessoa ativa como gestor." };
+      for (let cur: string | null | undefined = sup.supervisorId, hops = 0; cur && hops < 20; hops++) {
+        if (cur === id) return { error: "Esse gestor já responde a esta pessoa — escolha outro para não formar um ciclo." };
+        cur = all.find((u) => u.id === cur)?.supervisorId;
+      }
+    }
+    if ((wanted ?? null) !== (target.supervisorId ?? null)) {
+      base.supervisorId = wanted;
+      const supName = wanted ? (await db.select({ n: schema.users.name }).from(schema.users).where(eq(schema.users.id, wanted)))[0]?.n : null;
+      await audit(actor, "supervisor_alterado", `Definiu ${supName ? `${supName} como gestor de ${name}` : `${name} sem gestor (avisos vão para os administradores)`}`, { entity: "usuario", entityId: id, meta: { supervisorId: wanted } });
+    }
+  }
 
   // ninguém altera o próprio nível de acesso: no máximo os dados pessoais
   if (id === actor.id) {

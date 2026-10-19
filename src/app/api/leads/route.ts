@@ -5,6 +5,7 @@ import { eq, max, or } from "drizzle-orm";
 import { z } from "zod";
 import { db, schema } from "@/lib/db";
 import { normalizePhone } from "@/lib/format";
+import { afterResponse, fireDealEvent } from "@/lib/automations-engine";
 
 /**
  * Entrada de leads vindos do site institucional (formulário de contato e
@@ -78,6 +79,7 @@ export async function POST(req: Request) {
     body: `Lead recebido pelo site (${origem}${d.assunto ? ` · ${d.assunto}` : ""}):\n${d.mensagem}`,
   });
 
+  afterResponse(() => fireDealEvent(["deal_created"], deal.id, null, { eventKey: deal.id }));
   revalidatePath("/", "layout");
   return NextResponse.json({ ok: true, dealId: deal.id }, { status: 201 });
 }
