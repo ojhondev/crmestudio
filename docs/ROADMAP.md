@@ -19,8 +19,8 @@ Legenda: ✅ pronto · 🟡 em andamento · ⬜ a fazer · 🔑 depende de algo 
 | Telas existentes revisadas para toque: Kanban com colunas deslizantes e conversa em tela cheia ✅ · tabelas de contatos/financeiro e formulários em cartões/gavetas ⬜ |
 | Ajuda: botão "?" global, **tour guiado** (boas-vindas + 1 por tela), central de documentação (`/ajuda`) com busca e FAQ | ✅ |
 
-## Fase 2 — Acessos
-Hoje: 3 papéis fixos. Novo: **perfis + permissão por módulo** (nenhum / ver / editar / gerenciar).
+## Fase 2 — Acessos ✅ (entregue 2026-10-19)
+Feito: **perfis + permissão por módulo** (nenhum / ver / editar / gerenciar), regra no servidor em todas as telas e ações, tela Equipe e acessos com matriz, aba Atividade (auditoria), senha provisória com troca obrigatória, sessões revogáveis e bloqueio de tentativas de login.
 Perfis prontos: Administrador · Gestor · Comercial · Atendimento · Financeiro · Parceiro.
 Cada pessoa pode ter permissões ajustadas individualmente. Filtro de dados continua no servidor
 (parceiro vê só os negócios dele). Trilha de auditoria (quem mudou o quê) para financeiro e contratos.
