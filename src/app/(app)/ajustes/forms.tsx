@@ -81,7 +81,7 @@ export function StagesEditor({ stages }: { stages: Stage[] }) {
             type="color"
             defaultValue={s.color}
             aria-label="Cor"
-            className="size-8 cursor-pointer rounded border bg-transparent p-0.5"
+            className="size-8 cursor-pointer rounded border bg-transparent p-0.5 max-md:size-10"
             onBlur={(e) => e.target.value !== s.color && start(() => saveStage(s.id, { color: e.target.value }))}
           />
           <Input

@@ -240,7 +240,7 @@ export function TourProvider({ userId, children }: { userId: string; children: R
                 <p className="label">
                   {index + 1} de {steps.length}
                 </p>
-                <button onClick={stop} aria-label="Fechar tour" className="-mt-1 -mr-1 ml-auto grid size-8 place-items-center rounded-md text-muted-foreground hover:bg-muted">
+                <button onClick={stop} aria-label="Fechar tour" className="-mt-1 -mr-1 ml-auto grid size-8 max-md:size-10 place-items-center rounded-md text-muted-foreground hover:bg-muted">
                   <X className="size-4" />
                 </button>
               </div>
@@ -262,7 +262,7 @@ export function TourProvider({ userId, children }: { userId: string; children: R
                       Pular
                     </Button>
                   )}
-                  <Button size="sm" onClick={() => go(1)} className="bg-brand text-white hover:bg-brand/90">
+                  <Button size="sm" onClick={() => go(1)} className="bg-brand text-on-brand hover:bg-brand/90">
                     {index === steps.length - 1 ? "Concluir" : "Próximo"} {index < steps.length - 1 && <ArrowRight />}
                   </Button>
                 </div>

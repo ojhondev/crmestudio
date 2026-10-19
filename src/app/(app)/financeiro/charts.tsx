@@ -184,7 +184,7 @@ export function MonthlyColumns({
             <span>{row.label}</span>
             <span className="num text-right">{money(row.total)}</span>
             {mode === "realizado" && (
-              <span className="col-span-3 col-start-2 text-[11.5px] text-muted-foreground">
+              <span className="col-span-3 col-start-2 text-xs text-muted-foreground">
                 {row.verb} {money(row.paid)} · em aberto {money(row.open)}
               </span>
             )}
@@ -204,7 +204,7 @@ export function MonthlyColumns({
         <div className="thin-scroll mt-2 overflow-x-auto">
           <table className="w-full min-w-[420px] text-right tabular-nums">
             <thead>
-              <tr className="text-[11px] text-muted-foreground">
+              <tr className="text-xs text-muted-foreground">
                 <th className="py-1 text-left font-medium">Mês</th>
                 <th className="font-medium">{labels.in}</th>
                 {mode === "realizado" && <th className="font-medium">em aberto</th>}

@@ -19,11 +19,11 @@ export function Field({
 }) {
   return (
     <div className={cn("grid content-start gap-1.5", className)}>
-      <Label htmlFor={htmlFor} className="text-[12.5px] font-medium text-foreground/80">
+      <Label htmlFor={htmlFor} className="text-[13px] font-medium text-foreground">
         {label}
       </Label>
       {children}
-      {hint && <p className="text-[11.5px] text-muted-foreground">{hint}</p>}
+      {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
     </div>
   );
 }
@@ -68,7 +68,7 @@ export function SimpleSelect({
         {...controlled}
         onChange={onValueChange ? (e) => onValueChange(e.target.value) : undefined}
         className={cn(
-          "h-9 w-full appearance-none truncate rounded-lg border border-input bg-transparent py-1 pr-8 pl-2.5 text-base transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50 md:h-8 md:text-sm dark:bg-input/30 [&>option]:bg-popover [&>option]:text-popover-foreground",
+          "h-9 max-md:h-10 w-full appearance-none truncate rounded-lg border border-input bg-transparent py-1 pr-8 pl-2.5 text-base transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50 md:h-8 md:text-sm dark:bg-input/30 [&>option]:bg-popover [&>option]:text-popover-foreground",
           className,
         )}
       >

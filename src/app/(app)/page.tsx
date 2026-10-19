@@ -189,7 +189,7 @@ export default async function Dashboard({ searchParams }: PageProps<"/">) {
               title="Funil"
               className="lg:col-span-2"
               action={
-                <Link href="/negocios" className="flex items-center gap-1 text-[12px] text-muted-foreground hover:text-foreground">
+                <Link href="/negocios" className="flex items-center gap-1 text-[13px] text-muted-foreground underline-offset-2 hover:text-foreground hover:underline max-md:min-h-10">
                   Abrir quadro <ArrowRight className="size-3" />
                 </Link>
               }
@@ -226,7 +226,7 @@ export default async function Dashboard({ searchParams }: PageProps<"/">) {
               title="Próximos 7 dias"
               className={canDeals ? "lg:col-span-1" : "lg:col-span-2"}
               action={
-                <Link href="/agenda" className="text-muted-foreground hover:text-foreground" aria-label="Agenda">
+                <Link href="/agenda" className="grid size-8 place-items-center text-muted-foreground hover:text-foreground max-md:size-10" aria-label="Agenda">
                   <CalendarDays className="size-4" />
                 </Link>
               }
@@ -235,14 +235,14 @@ export default async function Dashboard({ searchParams }: PageProps<"/">) {
                 <ul className="grid gap-3">
                   {agenda.map((e) => (
                     <li key={e.id} className="flex gap-3 text-[13px]">
-                      <span className="w-12 shrink-0 text-[11.5px] leading-tight text-muted-foreground">
+                      <span className="w-12 shrink-0 text-xs leading-tight text-muted-foreground">
                         <span className="block capitalize">{fmtDate(e.startsAt, "EEE")}</span>
                         {e.allDay ? "dia" : fmtTime(e.startsAt)}
                       </span>
                       <span className="mt-1.5 size-1.5 shrink-0 rounded-full" style={{ background: EVENT_TYPES[e.type]?.color }} />
                       <span className="grid leading-tight">
                         <span>{e.title}</span>
-                        {e.location && <span className="text-[11.5px] text-muted-foreground">{e.location}</span>}
+                        {e.location && <span className="text-xs text-muted-foreground">{e.location}</span>}
                       </span>
                     </li>
                   ))}
@@ -258,7 +258,7 @@ export default async function Dashboard({ searchParams }: PageProps<"/">) {
               title="Aguardando resposta"
               className="lg:col-span-2"
               action={
-                <Link href="/atendimento" className="text-muted-foreground hover:text-foreground" aria-label="Atendimento">
+                <Link href="/atendimento" className="grid size-8 place-items-center text-muted-foreground hover:text-foreground max-md:size-10" aria-label="Atendimento">
                   <MessageCircle className="size-4" />
                 </Link>
               }
@@ -272,8 +272,8 @@ export default async function Dashboard({ searchParams }: PageProps<"/">) {
                           <span className="block truncate text-[13px] font-medium">{/^\d+$/.test(c.name) ? fmtPhone(c.name) : c.name}</span>
                           <span className="block truncate text-[12px] text-muted-foreground">{c.preview}</span>
                         </span>
-                        <span className="text-[11px] text-muted-foreground">{fmtRelativeShort(c.at)}</span>
-                        <span className="rounded-full bg-brand px-1.5 text-[10.5px] leading-[18px] text-white">{c.unread}</span>
+                        <span className="text-xs text-muted-foreground">{fmtRelativeShort(c.at)}</span>
+                        <span className="rounded-full bg-brand px-1.5 text-xs leading-[18px] text-on-brand">{c.unread}</span>
                       </Link>
                     </li>
                   ))}

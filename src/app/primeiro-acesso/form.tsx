@@ -14,7 +14,7 @@ export function FirstPasswordForm() {
       <div className="grid gap-1.5">
         <Label htmlFor="next">Nova senha</Label>
         <Input id="next" name="next" type="password" autoComplete="new-password" minLength={8} required className="h-10" />
-        <p className="text-[11.5px] text-muted-foreground">Mínimo de 8 caracteres.</p>
+        <p className="text-xs text-muted-foreground">Mínimo de 8 caracteres.</p>
       </div>
       <div className="grid gap-1.5">
         <Label htmlFor="confirm">Repita a nova senha</Label>

@@ -115,7 +115,7 @@ function AppSidebar({ user, unread }: { user: SessionUser; unread: number }) {
       <SidebarContent className="thin-scroll gap-0 py-2">
         {groups(user, unread).map((group) => (
           <SidebarGroup key={group.label} className="py-1.5">
-            <SidebarGroupLabel className="label h-6 px-2 text-[10px] tracking-[0.16em]">{group.label}</SidebarGroupLabel>
+            <SidebarGroupLabel className="label h-6 px-2 text-xs tracking-[0.16em]">{group.label}</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 {group.items.map(({ key, href, label, icon: Icon, badge }) => (
@@ -126,7 +126,7 @@ function AppSidebar({ user, unread }: { user: SessionUser; unread: number }) {
                         <span>{label}</span>
                       </Link>
                     </SidebarMenuButton>
-                    {!!badge && <SidebarMenuBadge className="rounded-full bg-brand text-[11px] font-semibold text-white peer-data-active/menu-button:text-white">{badge}</SidebarMenuBadge>}
+                    {!!badge && <SidebarMenuBadge className="rounded-full bg-brand text-xs font-semibold text-on-brand peer-data-active/menu-button:text-on-brand">{badge}</SidebarMenuBadge>}
                   </SidebarMenuItem>
                 ))}
               </SidebarMenu>
@@ -152,7 +152,7 @@ function AppSidebar({ user, unread }: { user: SessionUser; unread: number }) {
               </span>
               <span className="grid text-left leading-tight">
                 <span className="text-[13px] font-medium">Falar com a Ana</span>
-                <span className="text-[11px] text-muted-foreground">copiloto · ⌘J</span>
+                <span className="text-xs text-muted-foreground">copiloto · ⌘J</span>
               </span>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -173,11 +173,11 @@ function AppSidebar({ user, unread }: { user: SessionUser; unread: number }) {
               aria-label="Minha conta"
             >
               <Avatar className="size-8">
-                <AvatarFallback className="bg-secondary text-[11px] font-medium">{initials(user.name)}</AvatarFallback>
+                <AvatarFallback className="bg-secondary text-xs font-medium">{initials(user.name)}</AvatarFallback>
               </Avatar>
               <span className="grid min-w-0 flex-1 leading-tight group-data-[collapsible=icon]:hidden">
                 <span className="truncate text-[13px] font-medium">{user.name}</span>
-                <span className="truncate text-[11.5px] text-muted-foreground">{profileLabel(user)}</span>
+                <span className="truncate text-xs text-muted-foreground">{profileLabel(user)}</span>
               </span>
               <ChevronsUpDown className="size-4 text-muted-foreground group-data-[collapsible=icon]:hidden" />
             </button>
@@ -214,7 +214,7 @@ function TopBar() {
   return (
     <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-1.5 border-b bg-background px-3 md:px-4">
       <SidebarTrigger className="hidden md:inline-flex" data-tour="sidebar-toggle" aria-label="Recolher ou expandir menu" />
-      <Link href="/" className="flex items-center md:hidden" aria-label="Início">
+      <Link href="/" className="flex h-10 min-w-10 items-center justify-center md:hidden" aria-label="Início">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/mark.png" alt="" className="h-6 w-auto" />
       </Link>
@@ -223,7 +223,7 @@ function TopBar() {
         <ThemeToggle />
         <button
           onClick={() => ana.open()}
-          className="ml-1 flex h-9 items-center gap-1.5 rounded-full bg-brand-soft px-3 text-[13px] font-medium text-brand md:hidden"
+          className="ml-1 flex h-10 items-center gap-1.5 rounded-full bg-brand-soft px-3.5 text-[13px] font-medium text-brand md:hidden"
           data-tour="ana-top"
         >
           <Sparkles className="size-3.5" /> Ana
@@ -259,12 +259,12 @@ function BottomNav({ user, unread }: { user: SessionUser; unread: number }) {
                 href={href}
                 data-tour={`nav-${key}`}
                 aria-current={active ? "page" : undefined}
-                className={cn("relative flex h-full flex-col items-center justify-center gap-0.5 text-[10.5px] text-muted-foreground transition-colors", active && "font-medium text-foreground")}
+                className={cn("relative flex h-full flex-col items-center justify-center gap-0.5 text-xs text-muted-foreground transition-colors", active && "font-medium text-foreground")}
               >
                 <span className={cn("relative grid h-7 w-12 place-items-center rounded-full transition-colors", active && "bg-brand-soft text-brand")}>
                   <Icon className="size-[21px]" strokeWidth={active ? 2.2 : 1.8} />
                   {!!badge && (
-                    <span className="absolute -top-0.5 right-1 min-w-4 rounded-full bg-brand px-1 text-center text-[10px] leading-4 font-semibold text-white">{badge}</span>
+                    <span className="absolute -top-0.5 right-1 min-w-4 rounded-full bg-brand px-1 text-center text-xs leading-4 font-semibold text-on-brand">{badge}</span>
                   )}
                 </span>
                 {label}
@@ -273,7 +273,7 @@ function BottomNav({ user, unread }: { user: SessionUser; unread: number }) {
           );
         })}
         <li className="flex-1">
-          <button onClick={() => setOpenMobile(true)} className="flex h-full w-full flex-col items-center justify-center gap-0.5 text-[10.5px] text-muted-foreground" data-tour="nav-mais">
+          <button onClick={() => setOpenMobile(true)} className="flex h-full w-full flex-col items-center justify-center gap-0.5 text-xs text-muted-foreground" data-tour="nav-mais">
             <span className="grid h-7 w-12 place-items-center rounded-full">
               <Menu className="size-[21px]" strokeWidth={1.8} />
             </span>

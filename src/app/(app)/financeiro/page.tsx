@@ -17,13 +17,13 @@ export const metadata: Metadata = { title: "Painel financeiro" };
 const pct = (cur: number, prev: number) => (prev > 0 ? Math.round(((cur - prev) / prev) * 100) : null);
 
 function Delta({ value, goodWhenUp }: { value: number | null; goodWhenUp: boolean }) {
-  if (value === null) return <span className="text-[11.5px] text-muted-foreground">sem período anterior</span>;
-  if (value === 0) return <span className="text-[11.5px] text-muted-foreground">igual ao período anterior</span>;
+  if (value === null) return <span className="text-xs text-muted-foreground">sem período anterior</span>;
+  if (value === 0) return <span className="text-xs text-muted-foreground">igual ao período anterior</span>;
   const up = value > 0;
   const good = up === goodWhenUp;
   const Icon = up ? ArrowUpRight : ArrowDownRight;
   return (
-    <span className={cn("inline-flex items-center gap-0.5 text-[11.5px] font-medium", good ? "text-success" : "text-destructive")}>
+    <span className={cn("inline-flex items-center gap-0.5 text-xs font-medium", good ? "text-success" : "text-destructive")}>
       <Icon className="size-3.5" />
       {up ? "+" : "−"}
       {Math.abs(value)}% <span className="font-normal text-muted-foreground">vs. período anterior</span>
@@ -77,7 +77,7 @@ export default async function FinanceDashboard({ searchParams }: PageProps<"/fin
               href={p.key === "6m" ? "/financeiro" : `/financeiro?p=${p.key}`}
               aria-current={period === p.key ? "true" : undefined}
               className={cn(
-                "rounded-full border px-3 py-1.5 text-[12.5px] text-muted-foreground transition-colors hover:border-foreground/30",
+                "inline-flex items-center rounded-full border px-3 py-1.5 text-[13px] max-md:min-h-10 text-muted-foreground transition-colors hover:border-foreground/30",
                 period === p.key && "border-foreground bg-foreground text-background hover:border-foreground",
               )}
             >
@@ -120,7 +120,7 @@ export default async function FinanceDashboard({ searchParams }: PageProps<"/fin
           <Section
             title="Atenção"
             action={
-              <Link href="/financeiro/lancamentos?v=abertos" className="text-[12px] text-muted-foreground hover:text-foreground">
+              <Link href="/financeiro/lancamentos?v=abertos" className="inline-flex items-center text-[13px] text-muted-foreground underline-offset-2 hover:text-foreground hover:underline max-md:min-h-10">
                 ver em aberto
               </Link>
             }
@@ -157,7 +157,7 @@ export default async function FinanceDashboard({ searchParams }: PageProps<"/fin
                         </span>
                         <span className="grid min-w-0 flex-1 leading-tight">
                           <span className="truncate">{n.description}</span>
-                          <span className="text-[11.5px] text-muted-foreground">
+                          <span className="text-xs text-muted-foreground">
                             {n.kind === "receita" ? "a receber" : "a pagar"} · {fmtDate(n.dueDate, "EEE, dd/MM")}
                           </span>
                         </span>
@@ -182,7 +182,7 @@ export default async function FinanceDashboard({ searchParams }: PageProps<"/fin
             title="Funil e vendas"
             action={
               canDeals ? (
-                <Link href="/negocios" className="text-[12px] text-muted-foreground hover:text-foreground">
+                <Link href="/negocios" className="inline-flex items-center text-[13px] text-muted-foreground underline-offset-2 hover:text-foreground hover:underline max-md:min-h-10">
                   abrir funil
                 </Link>
               ) : undefined

@@ -146,13 +146,13 @@ export function MemberList({ members, viewer, canManage }: { members: Member[]; 
               </Avatar>
               <span className="grid min-w-0 flex-1 leading-tight">
                 <span className="truncate text-[14px] font-medium">
-                  {m.name} {m.id === viewer.id && <span className="text-[11.5px] font-normal text-muted-foreground">(você)</span>}
+                  {m.name} {m.id === viewer.id && <span className="text-xs font-normal text-muted-foreground">(você)</span>}
                 </span>
                 <span className="truncate text-[12px] text-muted-foreground">
                   {m.email}
                   {m.title && ` · ${m.title}`}
                 </span>
-                <span className="mt-0.5 text-[11.5px] text-muted-foreground">
+                <span className="mt-0.5 text-xs text-muted-foreground">
                   {!m.active ? "Conta desativada" : m.mustChange ? "Ainda não criou a senha pessoal" : m.lastLoginAt ? `Último acesso ${fmtDateTime(m.lastLoginAt)}` : "Nunca entrou"}
                 </span>
               </span>
@@ -314,9 +314,9 @@ function MemberSheet({ member, viewer, canManage, onClose }: { member: Member; v
                       <div className="grid leading-tight">
                         <span className="flex items-center gap-2 text-[13.5px] font-medium">
                           {m.label}
-                          {m.soon && <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-normal text-muted-foreground">em breve</span>}
+                          {m.soon && <span className="rounded bg-muted px-1.5 py-0.5 text-xs font-normal text-muted-foreground">em breve</span>}
                         </span>
-                        <span className="text-[11.5px] text-muted-foreground">{m.help}</span>
+                        <span className="text-xs text-muted-foreground">{m.help}</span>
                       </div>
                       <LevelPicker
                         label={m.label}
@@ -334,7 +334,7 @@ function MemberSheet({ member, viewer, canManage, onClose }: { member: Member; v
                     <Switch checked={ownOnly} onCheckedChange={setOwnOnly} className="mt-0.5" />
                     <span className="grid leading-tight">
                       <span className="text-[13.5px] font-medium">Ver só os próprios</span>
-                      <span className="text-[11.5px] text-muted-foreground">Só enxerga os negócios em que é responsável ou foi indicado, e a própria agenda. Ideal para parceiros comerciais.</span>
+                      <span className="text-xs text-muted-foreground">Só enxerga os negócios em que é responsável ou foi indicado, e a própria agenda. Ideal para parceiros comerciais.</span>
                     </span>
                   </label>
                 )}
@@ -347,7 +347,7 @@ function MemberSheet({ member, viewer, canManage, onClose }: { member: Member; v
                     <ShieldCheck className="size-4 text-muted-foreground" />
                     <span className="grid flex-1 leading-tight">
                       <span className="text-[13.5px] font-medium">Conta ativa</span>
-                      <span className="text-[11.5px] text-muted-foreground">Desativar impede o login e desconecta os aparelhos na hora. O histórico é mantido.</span>
+                      <span className="text-xs text-muted-foreground">Desativar impede o login e desconecta os aparelhos na hora. O histórico é mantido.</span>
                     </span>
                     <Switch
                       checked={member.active}
@@ -378,7 +378,7 @@ function MemberSheet({ member, viewer, canManage, onClose }: { member: Member; v
                   >
                     <KeyRound /> Gerar nova senha provisória
                   </Button>
-                  <p className="text-[11.5px] text-muted-foreground">Gerar uma nova senha desconecta a pessoa de todos os aparelhos.</p>
+                  <p className="text-xs text-muted-foreground">Gerar uma nova senha desconecta a pessoa de todos os aparelhos.</p>
                 </section>
               )}
             </div>

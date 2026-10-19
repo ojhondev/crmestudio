@@ -15,6 +15,8 @@ export type TaskRow = {
   title: string;
   dueAt: string | null;
   doneAt: string | null;
+  status?: "a_fazer" | "em_andamento" | "travada" | "concluida";
+  priority?: "baixa" | "media" | "alta" | "urgente";
   dealId?: string | null;
   dealTitle?: string | null;
 };
@@ -50,7 +52,7 @@ export function TaskList({
         return (
           <div key={t.id} className="group flex items-start gap-2.5 rounded-md px-1 py-1.5 hover:bg-muted/60">
             <Checkbox
-              className="mt-0.5"
+              className="mt-0.5 max-md:mt-2"
               checked={!!t.doneAt}
               onCheckedChange={(v) =>
                 start(async () => {
@@ -61,8 +63,12 @@ export function TaskList({
             />
             <div className="grid min-w-0 flex-1 leading-tight">
               <span className={cn("text-[13px]", t.doneAt && "text-muted-foreground line-through")}>{t.title}</span>
-              <span className={cn("text-[11.5px] text-muted-foreground", late && "text-destructive")}>
+              <span className={cn("text-xs text-muted-foreground", late && "text-destructive")}>
                 {t.dueAt ? fmtDateTime(t.dueAt) : "sem prazo"}
+                {!t.doneAt && t.status === "em_andamento" && " · em andamento"}
+                {!t.doneAt && t.status === "travada" && <span className="font-medium text-destructive"> · travada</span>}
+                {!t.doneAt && t.priority === "urgente" && <span className="font-medium text-destructive"> · urgente</span>}
+                {!t.doneAt && t.priority === "alta" && <span className="font-medium"> · prioridade alta</span>}
                 {showDeal && t.dealTitle && t.dealId && (
                   <>
                     {" · "}
@@ -76,25 +82,25 @@ export function TaskList({
             <button
               aria-label="Excluir tarefa"
               onClick={() => start(() => deleteTask(t.id))}
-              className="opacity-0 transition-opacity group-hover:opacity-100"
+              className="grid size-6 place-items-center rounded opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100 max-md:size-10 max-md:opacity-100"
             >
               <X className="size-3.5 text-muted-foreground" />
             </button>
           </div>
         );
       })}
-      {!optimistic.length && <p className="px-1 py-1 text-[12.5px] text-muted-foreground">Nenhuma tarefa.</p>}
+      {!optimistic.length && <p className="px-1 py-1 text-[13px] text-muted-foreground">Nenhuma tarefa. {compose ? "Escreva abaixo o que precisa ser feito e toque em +." : ""}</p>}
       {compose && (
         <form ref={ref} action={action} className="mt-2 grid gap-1.5">
           {dealId && <input type="hidden" name="dealId" value={dealId} />}
           {contactId && <input type="hidden" name="contactId" value={contactId} />}
           <div className="flex gap-1.5">
-            <Input name="title" placeholder="Nova tarefa…" className="h-8 text-[13px]" />
+            <Input name="title" placeholder="Nova tarefa — o que precisa ser feito?" aria-label="Título da nova tarefa" className="h-8 text-[13px]" />
             <Button size="icon" variant="outline" disabled={pending} aria-label="Adicionar tarefa">
               <Plus />
             </Button>
           </div>
-          <Input name="dueAt" type="datetime-local" className="h-8 text-[12.5px] text-muted-foreground" />
+          <Input name="dueAt" type="datetime-local" aria-label="Prazo (opcional)" className="h-8 text-[13px] text-muted-foreground" />
         </form>
       )}
     </div>

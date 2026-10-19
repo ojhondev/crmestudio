@@ -157,7 +157,7 @@ export function Thread({
               return (
                 <div key={m.id} className="grid gap-1.5">
                   {newDay && (
-                    <p className="my-3 justify-self-center rounded-full bg-card px-3 py-1 text-[11px] text-muted-foreground">
+                    <p className="my-3 justify-self-center rounded-full bg-card px-3 py-1 text-xs text-muted-foreground">
                       {fmtDate(date, "EEEE, d 'de' MMMM")}
                     </p>
                   )}
@@ -232,7 +232,7 @@ function Bubble({ m }: { m: Msg }) {
     return (
       <div className="my-1 justify-self-center rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[12.5px] text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200 sm:max-w-[80%]">
         <span className="font-medium">Nota de {m.author ?? "equipe"}:</span> <span className="whitespace-pre-wrap">{m.body}</span>
-        <span className="ml-2 text-[10.5px] text-amber-700/70 dark:text-amber-300/60">{time}</span>
+        <span className="ml-2 text-xs text-amber-700/70 dark:text-amber-300/60">{time}</span>
       </div>
     );
   const out = m.direction === "out";
@@ -244,7 +244,7 @@ function Bubble({ m }: { m: Msg }) {
       )}
     >
       <p className="whitespace-pre-wrap">{m.body}</p>
-      <p className={cn("mt-0.5 flex items-center justify-end gap-1 text-[10.5px]", out ? "text-primary-foreground/60" : "text-muted-foreground")}>
+      <p className={cn("mt-0.5 flex items-center justify-end gap-1 text-xs", out ? "text-primary-foreground/60" : "text-muted-foreground")}>
         {out && m.author && <span className="mr-auto pr-3">{m.author.split(" ")[0]}</span>}
         {time}
         {out &&
@@ -363,7 +363,7 @@ function SidePanel({
         {deals.map((d) => (
           <Link key={d.id} href={`/negocios/${d.id}`} className="grid rounded-lg border px-3 py-2 leading-tight hover:border-foreground/20">
             <span className="text-[13px] font-medium">{d.title}</span>
-            <span className="flex items-center gap-1.5 text-[11.5px] text-muted-foreground">
+            <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
               <span className="size-1.5 rounded-full" style={{ background: d.color }} /> {d.stage} · {d.valueLabel}
             </span>
           </Link>
@@ -377,7 +377,7 @@ function SidePanel({
       </section>
 
       {!connected && (
-        <p className="rounded-lg border border-dashed p-3 text-[11.5px] text-muted-foreground">
+        <p className="rounded-lg border border-dashed p-3 text-xs text-muted-foreground">
           WhatsApp em <strong>modo simulado</strong>: as mensagens ficam só no app até a Cloud API ser conectada em Ajustes.
         </p>
       )}

@@ -144,7 +144,7 @@ export default async function ContactPage({ params }: PageProps<"/contatos/[id]"
                   <li key={d.id}>
                     <Link href={`/negocios/${d.id}`} className="grid rounded-md px-1 py-1 leading-tight hover:bg-muted/60">
                       <span className="text-[13px] font-medium">{d.title}</span>
-                      <span className="flex items-center gap-1.5 text-[11.5px] text-muted-foreground">
+                      <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
                         <span className="size-1.5 rounded-full" style={{ background: d.color }} />
                         {d.stage} · {money(d.value)}
                       </span>
@@ -160,7 +160,7 @@ export default async function ContactPage({ params }: PageProps<"/contatos/[id]"
             <TaskList
               contactId={contact.id}
               compose={canEdit}
-              tasks={taskRows.map((t) => ({ id: t.id, title: t.title, dueAt: t.dueAt?.toISOString() ?? null, doneAt: t.doneAt?.toISOString() ?? null }))}
+              tasks={taskRows.map((t) => ({ id: t.id, title: t.title, dueAt: t.dueAt?.toISOString() ?? null, doneAt: t.doneAt?.toISOString() ?? null, status: t.status, priority: t.priority }))}
             />
           </Section>
         </div>

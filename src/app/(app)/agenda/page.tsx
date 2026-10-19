@@ -67,7 +67,7 @@ export default async function AgendaPage({ searchParams }: PageProps<"/agenda">)
 
   return (
     <>
-      <PageHeader eyebrow="Agenda" title="Agenda do estúdio" actions={<CalendarSync token={me.token} origin={`${h.get("x-forwarded-proto") ?? "https"}://${h.get("host")}`} />} />
+      <PageHeader eyebrow="Agenda" title="Agenda do estúdio" description="Visitas, reuniões e entregas do mês. Toque em um dia para marcar um evento." actions={<CalendarSync token={me.token} origin={`${h.get("x-forwarded-proto") ?? "https"}://${h.get("host")}`} />} />
       <AgendaView
         month={month}
         days={days}

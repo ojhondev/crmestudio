@@ -24,7 +24,7 @@ export default async function DealsPage() {
         title="Negócios"
         description={
           <>
-            {open.length} em andamento · <span className="text-foreground">{money(pipeline)}</span> no funil
+            {canEdit && <>Arraste os cartões entre as colunas para mudar a etapa. · </>}{open.length} em andamento · <span className="text-foreground">{money(pipeline)}</span> no funil
             {!canEdit && " · somente leitura"}
           </>
         }

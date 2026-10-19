@@ -108,7 +108,7 @@ const RowView = memo(function RowView({
       <td className={cn("sticky left-0 z-10 border-r border-b bg-card px-1.5", g.error && "bg-destructive/10")}>
         <div className="flex items-center gap-1">
           <span className="size-2 shrink-0 rounded-full" style={{ background: g.kind === "receita" ? "var(--fin-in)" : "var(--fin-out)" }} aria-hidden />
-          <span className="hidden w-6 shrink-0 text-right text-[11px] text-muted-foreground tabular-nums md:inline">{i + 1}</span>
+          <span className="hidden w-6 shrink-0 text-right text-xs text-muted-foreground tabular-nums md:inline">{i + 1}</span>
           {canEdit && (
             <>
               <button type="button" aria-label={`Duplicar linha ${i + 1}`} title="Duplicar" onClick={() => onDup(g.key)} className="grid size-8 place-items-center rounded md:size-7 text-muted-foreground hover:bg-muted hover:text-foreground">
@@ -202,7 +202,7 @@ function ImportDialog({ open, onOpenChange, onImport }: { open: boolean; onOpenC
             <Upload className="size-4 text-muted-foreground" />
             <span className="grid leading-tight">
               <span className="font-medium">{fileName || "Escolher arquivo .csv"}</span>
-              <span className="text-[11.5px] text-muted-foreground">ou cole o conteúdo abaixo</span>
+              <span className="text-xs text-muted-foreground">ou cole o conteúdo abaixo</span>
             </span>
             <input
               type="file"
@@ -502,12 +502,12 @@ export function Sheet({
             <DropdownMenuLabel className="label">Esta visualização</DropdownMenuLabel>
             <DropdownMenuItem asChild>
               <a href={`/financeiro/exportar?formato=br&${exportQuery}`} download>
-                <Download /> Excel (Brasil) <span className="ml-auto text-[11px] text-muted-foreground">; e vírgula</span>
+                <Download /> Excel (Brasil) <span className="ml-auto text-xs text-muted-foreground">; e vírgula</span>
               </a>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
               <a href={`/financeiro/exportar?formato=us&${exportQuery}`} download>
-                <Download /> Google Sheets / internacional <span className="ml-auto text-[11px] text-muted-foreground">, e ponto</span>
+                <Download /> Google Sheets / internacional <span className="ml-auto text-xs text-muted-foreground">, e ponto</span>
               </a>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
@@ -531,7 +531,7 @@ export function Sheet({
             </Button>
           )}
           {canEdit && (
-            <Button onClick={save} disabled={!changes || pending} className="bg-brand text-white hover:bg-brand/90">
+            <Button onClick={save} disabled={!changes || pending} className="bg-brand text-on-brand hover:bg-brand/90">
               {pending ? <Loader2 className="animate-spin" /> : <Save />} Salvar
             </Button>
           )}
@@ -542,9 +542,9 @@ export function Sheet({
         <table className="w-max min-w-full border-separate border-spacing-0 text-[13px]">
           <thead className="sticky top-0 z-20 bg-muted">
             <tr>
-              <th className="sticky left-0 z-30 border-r border-b bg-muted px-2 py-2 text-left text-[11px] font-medium text-muted-foreground">#</th>
+              <th className="sticky left-0 z-30 border-r border-b bg-muted px-2 py-2 text-left text-xs font-medium text-muted-foreground">#</th>
               {COLS.map((c) => (
-                <th key={c.k} className={cn("border-r border-b px-2 py-2 text-left text-[11px] font-medium text-muted-foreground", c.w, c.type === "money" && "text-right")}>
+                <th key={c.k} className={cn("border-r border-b px-2 py-2 text-left text-xs font-medium text-muted-foreground", c.w, c.type === "money" && "text-right")}>
                   {c.label}
                 </th>
               ))}

@@ -91,7 +91,7 @@ export function AnaSheet({
             )}
           </div>
           {focus && (
-            <p className="mt-2 w-fit rounded-full bg-muted px-2.5 py-1 text-[11.5px] text-muted-foreground">
+            <p className="mt-2 w-fit rounded-full bg-muted px-2.5 py-1 text-xs text-muted-foreground">
               Olhando: <span className="text-foreground">{focus.label}</span>
             </p>
           )}
@@ -138,7 +138,7 @@ export function AnaSheet({
                     )}
                     {m.content && !(loading && i === msgs.length - 1) && (
                       <button
-                        className="flex w-fit items-center gap-1 text-[11.5px] text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:text-foreground"
+                        className="flex w-fit items-center gap-1 text-xs text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:text-foreground"
                         onClick={() => navigator.clipboard.writeText(m.content).then(() => toast.success("Copiado"))}
                       >
                         <Copy className="size-3" /> copiar
@@ -183,7 +183,7 @@ export function AnaSheet({
               {loading ? <Square className="size-3" /> : <ArrowUp />}
             </Button>
           </div>
-          <p className="mt-1.5 px-1 text-[11px] text-muted-foreground">
+          <p className="mt-1.5 px-1 text-xs text-muted-foreground">
             A Ana sugere e redige; quem envia é sempre você.
           </p>
         </form>

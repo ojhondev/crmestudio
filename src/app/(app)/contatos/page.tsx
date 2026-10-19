@@ -93,7 +93,7 @@ export default async function ContactsPage({ searchParams }: PageProps<"/contato
               <Link
                 key={s || "all"}
                 href={{ query: { ...(q ? { q } : {}), ...(s ? { origem: s } : {}) } }}
-                className={`rounded-full border px-2.5 py-1 text-[12px] transition-colors ${
+                className={`inline-flex items-center rounded-full border px-3 py-1 text-[13px] transition-colors max-md:min-h-10 ${
                   origem === s ? "border-foreground bg-foreground text-background" : "text-muted-foreground hover:border-foreground/30"
                 }`}
               >
@@ -111,7 +111,7 @@ export default async function ContactsPage({ searchParams }: PageProps<"/contato
           <div data-tour="contacts-list" className="overflow-x-auto rounded-xl border bg-card">
             <table className="w-full min-w-[760px] text-[13px]">
               <thead>
-                <tr className="border-b text-left text-[11.5px] text-muted-foreground">
+                <tr className="border-b text-left text-xs text-muted-foreground">
                   <th className="px-4 py-2.5 font-medium">Nome</th>
                   <th className="px-4 py-2.5 font-medium">Contato</th>
                   <th className="px-4 py-2.5 font-medium">Etapa</th>

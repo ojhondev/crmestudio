@@ -43,7 +43,7 @@ export default async function SheetPage({ searchParams }: PageProps<"/financeiro
   const chip = (href: string, label: string, active: boolean) => (
     <Link
       href={href}
-      className={cn("rounded-full border px-3 py-1.5 text-[12.5px] text-muted-foreground transition-colors hover:border-foreground/30", active && "border-foreground bg-foreground text-background hover:border-foreground")}
+      className={cn("inline-flex items-center rounded-full border px-3 py-1.5 text-[13px] max-md:min-h-10 text-muted-foreground transition-colors hover:border-foreground/30", active && "border-foreground bg-foreground text-background hover:border-foreground")}
     >
       {label}
     </Link>

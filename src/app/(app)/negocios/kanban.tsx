@@ -143,7 +143,7 @@ function Column({
         {deals.map((d) => (
           <DraggableCard key={d.id} deal={d} dimmed={activeId === d.id} />
         ))}
-        {!deals.length && <p className="px-2 py-6 text-center text-[12px] text-muted-foreground/70">Arraste negócios para cá</p>}
+        {!deals.length && <p className="px-2 py-6 text-center text-[12px] text-muted-foreground">Coluna vazia. Arraste um negócio para cá.</p>}
       </div>
     </section>
   );
@@ -187,7 +187,7 @@ function Card({ deal, overlay }: { deal: BoardDeal; overlay?: boolean }) {
           {deal.company}
         </p>
       )}
-      <div className="mt-2.5 flex items-center gap-2 text-[11.5px] text-muted-foreground">
+      <div className="mt-2.5 flex items-center gap-2 text-xs text-muted-foreground">
         <span className="num text-[13px] text-foreground">{deal.valueCents ? money(deal.valueCents) : "—"}</span>
         {deal.location && (
           <span className="flex min-w-0 items-center gap-0.5 truncate">
@@ -198,14 +198,14 @@ function Card({ deal, overlay }: { deal: BoardDeal; overlay?: boolean }) {
         {deal.ownerName && (
           <span
             title={deal.ownerName}
-            className="ml-auto grid size-5 shrink-0 place-items-center rounded-full bg-secondary text-[9.5px] font-medium text-foreground"
+            className="ml-auto grid size-6 shrink-0 place-items-center rounded-full bg-secondary text-xs font-medium text-foreground"
           >
             {initials(deal.ownerName)}
           </span>
         )}
       </div>
       {deal.expectedClose && (
-        <p className={cn("mt-1.5 flex items-center gap-1 text-[11px] text-muted-foreground", late && "text-destructive")}>
+        <p className={cn("mt-1.5 flex items-center gap-1 text-xs text-muted-foreground", late && "text-destructive")}>
           <CalendarClock className="size-3" /> {fmtDate(deal.expectedClose, "dd/MM")}
         </p>
       )}

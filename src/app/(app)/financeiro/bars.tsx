@@ -19,7 +19,7 @@ export function HBars({ items, tone, empty = "Sem dados neste período." }: { it
               {i.label}
             </span>
             <span className="num shrink-0">{money(i.value)}</span>
-            <span className="w-9 shrink-0 text-right text-[11.5px] text-muted-foreground tabular-nums">{Math.round((i.value / total) * 100)}%</span>
+            <span className="w-9 shrink-0 text-right text-xs text-muted-foreground tabular-nums">{Math.round((i.value / total) * 100)}%</span>
           </div>
           <div className="h-2 rounded-full bg-muted" role="img" aria-label={`${i.label}: ${money(i.value)}`}>
             <div className="h-full rounded-r-[4px] rounded-l-[2px]" style={{ width: `${Math.max(2, (i.value / max) * 100)}%`, background: color, opacity: tone === "neutral" ? 0.72 : 1 }} />

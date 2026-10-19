@@ -86,7 +86,7 @@ export function FinanceTable({ rows, today, deals, contacts, canEdit = true, can
                       <span className="size-2 shrink-0 rounded-full" style={{ background: r.kind === "receita" ? "var(--fin-in)" : "var(--fin-out)" }} aria-hidden />
                       <span className="truncate">{r.description}</span>
                     </span>
-                    <span className={cn("mt-0.5 truncate text-[11.5px] text-muted-foreground", late && "text-destructive")}>
+                    <span className={cn("mt-0.5 truncate text-xs text-muted-foreground", late && "text-destructive")}>
                       {fmtDate(r.dueDate, "dd/MM")} · {r.paidAt ? (r.kind === "receita" ? "recebido" : "pago") : late ? "atrasado" : "em aberto"}
                       {r.category ? " · " + r.category : ""}
                     </span>
@@ -103,7 +103,7 @@ export function FinanceTable({ rows, today, deals, contacts, canEdit = true, can
         <div className="hidden overflow-x-auto rounded-xl border bg-card md:block">
         <table className="w-full min-w-[720px] text-[13px]">
           <thead>
-            <tr className="border-b text-left text-[11.5px] text-muted-foreground">
+            <tr className="border-b text-left text-xs text-muted-foreground">
               <th className="w-10 px-4 py-2.5 font-medium">Pago</th>
               <th className="px-2 py-2.5 font-medium">Vencimento</th>
               <th className="px-4 py-2.5 font-medium">Descrição</th>
@@ -131,7 +131,7 @@ export function FinanceTable({ rows, today, deals, contacts, canEdit = true, can
                   </td>
                   <td className={cn("px-2 py-2.5 tabular-nums", late ? "text-destructive" : "text-muted-foreground")}>
                     {fmtDate(r.dueDate, "dd/MM")}
-                    {late && <span className="ml-1.5 text-[11px]">atrasado</span>}
+                    {late && <span className="ml-1.5 text-xs">atrasado</span>}
                   </td>
                   <td className="px-4 py-2.5">
                     <div className="flex items-center gap-2">
@@ -143,7 +143,7 @@ export function FinanceTable({ rows, today, deals, contacts, canEdit = true, can
                       <div className="grid leading-tight">
                         <span className={cn(r.paidAt && "text-muted-foreground")}>{r.description}</span>
                         {(r.dealTitle || r.contactName) && (
-                          <span className="text-[11.5px] text-muted-foreground">
+                          <span className="text-xs text-muted-foreground">
                             {r.dealId ? (
                               <Link href={`/negocios/${r.dealId}`} onClick={(e) => e.stopPropagation()} className="hover:underline">
                                 {r.dealTitle}
@@ -178,7 +178,7 @@ export function TransactionDialogLauncher({ deals, contacts, openWith }: { deals
   return (
     <>
       <Button onClick={() => setOpen(true)}>
-        <Plus /> Lançamento
+        <Plus /> Novo lançamento
       </Button>
       <TransactionDialog open={open} onClose={() => setOpen(false)} preset={openWith} deals={deals} contacts={contacts} />
     </>

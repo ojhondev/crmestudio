@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { eq, max } from "drizzle-orm";
+import { and, eq, max } from "drizzle-orm";
 import { db, schema } from "@/lib/db";
 import { has, requireAccess, requireUser, type SessionUser } from "@/lib/auth";
 import { audit } from "@/lib/audit";
@@ -200,7 +200,12 @@ async function assertTaskAccess(user: SessionUser, taskId: string) {
 
 export async function toggleTask(taskId: string, done: boolean) {
   await assertTaskAccess(await requireUser(), taskId);
-  await db.update(schema.tasks).set({ doneAt: done ? new Date() : null }).where(eq(schema.tasks.id, taskId));
+  // doneAt continua sendo a fonte de "concluída"; o status do módulo Tarefas acompanha
+  if (done) await db.update(schema.tasks).set({ doneAt: new Date(), status: "concluida" }).where(eq(schema.tasks.id, taskId));
+  else {
+    await db.update(schema.tasks).set({ doneAt: null }).where(eq(schema.tasks.id, taskId));
+    await db.update(schema.tasks).set({ status: "a_fazer" }).where(and(eq(schema.tasks.id, taskId), eq(schema.tasks.status, "concluida")));
+  }
   revalidatePath("/", "layout");
 }
 

@@ -117,7 +117,7 @@ export function AgendaView({
           )}
           <div className="ml-auto flex items-center gap-3">
             {!isPartner && (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 max-md:min-h-10">
                 <Switch id="mine" checked={mine} onCheckedChange={setMine} />
                 <Label htmlFor="mine" className="text-[12.5px] font-normal text-muted-foreground">
                   Só os meus
@@ -126,7 +126,7 @@ export function AgendaView({
             )}
             {canEdit && (
               <Button onClick={() => show({ date: today })}>
-                <Plus /> Evento
+                <Plus /> Novo evento
               </Button>
             )}
           </div>
@@ -135,7 +135,7 @@ export function AgendaView({
         <div data-tour="agenda-grid" className="overflow-hidden rounded-xl border bg-card">
           <div className="grid grid-cols-7 border-b bg-muted/40">
             {WEEK.map((w) => (
-              <div key={w} className="px-2 py-2 text-center text-[11px] tracking-wider text-muted-foreground uppercase">
+              <div key={w} className="px-2 py-2 text-center text-xs tracking-wider text-muted-foreground uppercase">
                 {w}
               </div>
             ))}
@@ -157,8 +157,8 @@ export function AgendaView({
                     <span
                       className={cn(
                         "grid size-6 place-items-center rounded-full text-[12px]",
-                        outside && "text-muted-foreground/60",
-                        d === today && "bg-brand font-medium text-white",
+                        outside && "text-muted-foreground/80",
+                        d === today && "bg-brand font-medium text-on-brand",
                       )}
                     >
                       {Number(d.slice(8))}
@@ -173,7 +173,7 @@ export function AgendaView({
                           ev.stopPropagation();
                           show({ event: e });
                         }}
-                        className="flex items-center gap-1 truncate rounded px-1 py-0.5 text-left text-[11px] leading-tight hover:bg-muted"
+                        className="flex items-center gap-1 truncate rounded px-1 py-0.5 text-left text-xs leading-tight hover:bg-muted"
                         style={{ background: `${EVENT_TYPES[e.type]?.color ?? "#776157"}14` }}
                       >
                         <span className="size-1.5 shrink-0 rounded-full" style={{ background: EVENT_TYPES[e.type]?.color }} />
@@ -181,7 +181,7 @@ export function AgendaView({
                         <span className="truncate">{e.title}</span>
                       </button>
                     ))}
-                    {list.length > 3 && <span className="px-1 text-[10.5px] text-muted-foreground">+{list.length - 3} mais</span>}
+                    {list.length > 3 && <span className="px-1 text-xs text-muted-foreground">+{list.length - 3} mais</span>}
                   </div>
                 </div>
               );
@@ -195,20 +195,20 @@ export function AgendaView({
         {upcoming.length ? (
           upcoming.map((e) => (
             <button key={e.id} onClick={() => show({ event: e })} className="grid gap-0.5 rounded-lg border bg-card p-3 text-left hover:border-foreground/20">
-              <span className="flex items-center gap-1.5 text-[11.5px] text-muted-foreground">
+              <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
                 <span className="size-1.5 rounded-full" style={{ background: EVENT_TYPES[e.type]?.color }} />
                 {fmtDate(e.startsAt, "EEE, dd/MM")} {e.allDay ? "· dia todo" : `· ${fmtTime(e.startsAt)}`}
               </span>
               <span className="text-[13px] font-medium">{e.title}</span>
               {e.location && (
-                <span className="flex items-center gap-1 text-[11.5px] text-muted-foreground">
+                <span className="flex items-center gap-1 text-xs text-muted-foreground">
                   <MapPin className="size-3" /> {e.location}
                 </span>
               )}
             </button>
           ))
         ) : (
-          <p className="text-[13px] text-muted-foreground">Nada marcado neste mês.</p>
+          <p className="text-[13px] text-muted-foreground">Nada marcado neste mês.{canEdit && " Toque em “Novo evento” ou em um dia do calendário para marcar visita, reunião ou entrega."}</p>
         )}
       </aside>
 

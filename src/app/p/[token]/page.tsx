@@ -78,7 +78,7 @@ export default async function PublicDocument({ params }: PageProps<"/p/[token]">
           </p>
         </section>
       )}
-      <p className="mx-auto mt-6 max-w-[794px] text-center text-[11.5px] text-[#6a6a6a]" style={{ fontFamily: "var(--sans)" }}>
+      <p className="mx-auto mt-6 max-w-[794px] text-center text-xs text-[#6a6a6a]" style={{ fontFamily: "var(--sans)" }}>
         {doc.number} · {studioName}
       </p>
     </div>

@@ -60,7 +60,7 @@ export default async function DocumentsPage({ searchParams }: PageProps<"/docume
   ]);
 
   const href = (k: string, s: string) => `/documentos${k || s ? `?${new URLSearchParams({ ...(k && { tipo: k }), ...(s && { status: s }) })}` : ""}`;
-  const pill = (active: boolean) => cn("rounded-full border px-3 py-1 text-[12.5px]", active ? "border-foreground bg-foreground text-background" : "bg-card hover:border-foreground/40");
+  const pill = (active: boolean) => cn("inline-flex items-center rounded-full border px-3 py-1.5 text-[13px] max-md:min-h-10", active ? "border-foreground bg-foreground text-background" : "bg-card hover:border-foreground/40");
 
   return (
     <>

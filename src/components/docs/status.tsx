@@ -14,7 +14,7 @@ export function DocStatusBadge({ status, className }: { status: DocStatus; class
   const s = MAP[status];
   const Icon = s.icon;
   return (
-    <span className={cn("inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11.5px] font-medium", s.cls, className)}>
+    <span className={cn("inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium", s.cls, className)}>
       <Icon className="size-3" /> {s.label}
     </span>
   );

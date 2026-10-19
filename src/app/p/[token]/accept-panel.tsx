@@ -80,7 +80,7 @@ export function AcceptPanel({ token, kind }: { token: string; kind: "contrato" |
             </Field>
           </div>
           <label className="flex items-start gap-2.5 text-[13.5px]">
-            <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} className="mt-0.5 size-4 accent-[#b75928]" />
+            <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} className="mt-0.5 size-4 accent-brand" />
             <span>{isContract ? "Li e concordo com todos os termos deste contrato." : "Li a proposta e quero seguir com o estúdio."}</span>
           </label>
           {error && (

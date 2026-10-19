@@ -173,7 +173,7 @@ export default async function DealPage({ params }: PageProps<"/negocios/[id]">) 
               dealId={deal.id}
               contactId={deal.contactId}
               compose={canEdit}
-              tasks={taskRows.map((t) => ({ id: t.id, title: t.title, dueAt: t.dueAt?.toISOString() ?? null, doneAt: t.doneAt?.toISOString() ?? null }))}
+              tasks={taskRows.map((t) => ({ id: t.id, title: t.title, dueAt: t.dueAt?.toISOString() ?? null, doneAt: t.doneAt?.toISOString() ?? null, status: t.status, priority: t.priority }))}
             />
           </Section>
 
@@ -196,7 +196,7 @@ export default async function DealPage({ params }: PageProps<"/negocios/[id]">) 
                     <span className="mt-1.5 size-1.5 shrink-0 rounded-full" style={{ background: EVENT_TYPES[e.type]?.color }} />
                     <span className="grid leading-tight">
                       <span>{e.title}</span>
-                      <span className="text-[11.5px] text-muted-foreground">{fmtDateTime(e.startsAt)}</span>
+                      <span className="text-xs text-muted-foreground">{fmtDateTime(e.startsAt)}</span>
                     </span>
                   </li>
                 ))}
@@ -250,7 +250,7 @@ export default async function DealPage({ params }: PageProps<"/negocios/[id]">) 
                         {t.kind === "despesa" && "−"}
                         {money(t.amountCents)}
                       </span>
-                      <span className="w-14 text-right text-[11px] text-muted-foreground">{t.paidAt ? "pago" : fmtDate(t.dueDate, "dd/MM")}</span>
+                      <span className="w-14 text-right text-xs text-muted-foreground">{t.paidAt ? "pago" : fmtDate(t.dueDate, "dd/MM")}</span>
                     </li>
                   ))}
                 </ul>

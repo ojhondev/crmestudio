@@ -303,7 +303,8 @@ export const articles: Article[] = [
           "Minhas tarefas: tudo o que está atribuído a você, em todos os quadros e negócios, separado em Atrasadas, Hoje, Próximos 7 dias, Depois e Sem prazo.",
         ],
       },
-      { t: "tip", text: "Tarefas criadas dentro de um negócio também aparecem em “Minhas tarefas” de quem é o responsável, com o nome do negócio ao lado." },
+      { t: "tip", text: "Tarefas criadas dentro de um negócio ou de um contato também aparecem em “Minhas tarefas” de quem é o responsável, com o nome do negócio ao lado. Marcar como concluída em qualquer lugar vale para todos: a situação “Concluída” e o visto no negócio são a mesma coisa." },
+      { t: "tip", text: "No Kanban, cartões vazios mostram onde soltar. No celular, os botões e campos têm tamanho de toque confortável; se uma coluna não couber, deslize para o lado." },
       { t: "warn", text: "Excluir quadros e grupos exige o nível Gerenciar em Tarefas. Parceiros só veem as tarefas atribuídas a eles." },
     ],
   },
@@ -572,7 +573,7 @@ export const tours: Record<string, { label: string; steps: TourStep[] }> = {
     label: "Tour de Tarefas",
     steps: [
       { target: ["task-boards"], title: "Quadros", body: "“Minhas tarefas” mostra tudo o que é seu. Os demais são quadros da equipe — crie um com “+ Quadro”." },
-      { target: ["task-filters"], title: "Filtros e visões", body: "Busque, filtre por responsável e alterne entre Tabela e Kanban." },
+      { target: ["task-filters"], title: "Filtros e visões", body: "Busque pelo título, filtre por responsável, oculte as concluídas e alterne entre Tabela e Kanban (no Kanban, arraste o cartão para mudar a situação)." },
       { target: ["task-groups", "task-quick"], title: "Grupos e tarefas", body: "Digite o título na última linha do grupo e tecle Enter. Clique na bolinha para concluir; nas etiquetas coloridas para mudar situação e prioridade." },
     ],
   },

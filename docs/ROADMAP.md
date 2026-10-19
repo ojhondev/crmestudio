@@ -59,6 +59,15 @@ Ajustes; CPF/CNPJ e endereço no contato. Ao enviar, o conteúdo é **congelado*
 Pendente (opcional): bloco "portfólio do site" nas apresentações (depende da Fase 6 / `SITE_DATABASE_URL`) e
 upload de imagens em Blob (hoje: imagem reduzida embutida ou URL https).
 
+## Passada de contraste e clareza ✅ (2026-10-19)
+- Contraste validado por cálculo (WCAG, ≥ 4,5:1 para texto) nos dois temas: acento `#a34c1f` (5,8:1 sobre branco), texto
+  secundário 7:1+, etiquetas de situação/prioridade com texto claro no tema claro e escuro no tema escuro (`--on-st`, `--on-brand`).
+- Texto mínimo de 12 px em todo o app; alvos de toque ≥ 40 px no celular (botões, campos, abas, menus, linhas de Tarefas).
+- Estados vazios com instrução (Negócios, Agenda, Atendimento, Tarefas, Kanban de tarefas, quadro sem grupos), descrições nos
+  cabeçalhos de Agenda e Ajustes, foco visível em tudo.
+- Tarefas dentro de negócios/contatos: concluir sincroniza `status` (`doneAt` segue como fonte de "concluída") e mostram
+  situação/prioridade; botão de excluir visível no toque.
+
 ## Fase 6 — CMS do site dentro do CRM
 Projetos, blog, vagas, seções/imagens, vídeo da home e configurações passam a ser editados aqui
 (`/site/...`). O CRM conecta ao banco e ao armazenamento de imagens do site; o `/admin` do site

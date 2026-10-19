@@ -11,6 +11,8 @@
   --font-serif: var(--font-lora), "Lora", Georgia, serif;
   --font-heading: var(--font-sans);
   --color-brand: var(--brand);
+  --color-on-brand: var(--on-brand);
+  --color-on-st: var(--on-st);
   --color-brand-soft: var(--brand-soft);
   --color-success: var(--success);
   --color-fin-in: var(--fin-in);
@@ -73,14 +75,15 @@
   --destructive: #c0392b;
   --border: #d6d3cf;
   --input: #c4c0bb;
-  --ring: #b75928;
-  --brand: #b75928;
+  --ring: #a34c1f;
+  --brand: #a34c1f;
+  --on-brand: #ffffff;
   --brand-soft: #f6e3d8;
   /* gráficos financeiros: azul × terracota (ΔE ≥ 25 sob protanopia) */
-  --fin-in: #2a78d6;
+  --fin-in: #1f64bd;
   --fin-out: #c8452c;
   --success: #2f6b4f;
-  --chart-1: #b75928;
+  --chart-1: #a34c1f;
   --chart-2: #193f32;
   --chart-3: #537179;
   --chart-4: #776157;
@@ -93,7 +96,7 @@
   --sidebar-accent: #f6e3d8;
   --sidebar-accent-foreground: #1c1c1c;
   --sidebar-border: #d6d3cf;
-  --sidebar-ring: #b75928;
+  --sidebar-ring: #a34c1f;
 }
 
 .dark {
@@ -116,6 +119,7 @@
   --input: rgb(255 255 255 / 24%);
   --ring: #e2683a;
   --brand: #e2683a;
+  --on-brand: #141312;
   --brand-soft: rgb(226 104 58 / 14%);
   --fin-in: #3d8fe0;
   --fin-out: #e2683a;
@@ -128,7 +132,7 @@
   --sidebar: #100f0e;
   --sidebar-foreground: #f1efec;
   --sidebar-primary: #e2683a;
-  --sidebar-primary-foreground: #ffffff;
+  --sidebar-primary-foreground: #141312;
   --sidebar-accent: #2d2420;
   --sidebar-accent-foreground: #f1efec;
   --sidebar-border: rgb(255 255 255 / 14%);
@@ -188,9 +192,9 @@
 }
 
 .label {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 500;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   color: color-mix(in srgb, currentColor 74%, transparent);
 }
@@ -216,6 +220,7 @@
   --pr-mid: #1f6fcf;
   --pr-high: #a85a00;
   --pr-urgent: #c0392b;
+  --on-st: #ffffff;
 }
 .dark {
   --st-todo: #8b857f;
@@ -226,4 +231,5 @@
   --pr-mid: #3d8fe0;
   --pr-high: #d68a2a;
   --pr-urgent: #ef6b5b;
+  --on-st: #141312;
 }

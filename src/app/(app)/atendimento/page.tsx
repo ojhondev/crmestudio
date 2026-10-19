@@ -139,7 +139,7 @@ export default async function InboxPage({ searchParams }: PageProps<"/atendiment
             <h1 className="h-display text-2xl">Atendimento</h1>
             <span
               className={cn(
-                "ml-auto rounded-full px-2 py-0.5 text-[11px]",
+                "ml-auto rounded-full px-2 py-0.5 text-xs",
                 whatsappConnected() ? "bg-success/10 text-success" : "bg-muted text-muted-foreground",
               )}
               title={whatsappConnected() ? "WhatsApp Cloud API conectada" : "Modo simulado: configure a Cloud API em Ajustes"}
@@ -152,13 +152,13 @@ export default async function InboxPage({ searchParams }: PageProps<"/atendiment
             <Input name="q" defaultValue={q} placeholder="Buscar conversa" className="pl-8" />
             {filter !== "abertas" && <input type="hidden" name="f" value={filter} />}
           </form>
-          <div className="flex gap-1">
+          <div className="flex flex-wrap gap-1">
             {FILTERS.map((f) => (
               <Link
                 key={f.key}
                 href={`/atendimento?${new URLSearchParams({ ...(f.key !== "abertas" ? { f: f.key } : {}), ...(q ? { q } : {}) })}`}
                 className={cn(
-                  "rounded-full px-2.5 py-1 text-[12px] text-muted-foreground transition-colors hover:text-foreground",
+                  "inline-flex items-center rounded-full px-3 py-1 text-[13px] text-muted-foreground transition-colors hover:text-foreground max-md:min-h-10",
                   filter === f.key && "bg-foreground text-background hover:text-background",
                 )}
               >
@@ -177,7 +177,7 @@ export default async function InboxPage({ searchParams }: PageProps<"/atendiment
                   selected === c.id && "bg-brand-soft/60 hover:bg-brand-soft/60",
                 )}
               >
-                <span className="grid size-9 shrink-0 place-items-center rounded-full bg-secondary text-[11.5px] font-medium">
+                <span className="grid size-9 shrink-0 place-items-center rounded-full bg-secondary text-xs font-medium">
                   {/^\d/.test(c.name) ? "#" : initials(c.name)}
                 </span>
                 <span className="grid min-w-0 flex-1 leading-tight">
@@ -185,14 +185,14 @@ export default async function InboxPage({ searchParams }: PageProps<"/atendiment
                     <span className={cn("truncate text-[13.5px]", c.unread > 0 && "font-semibold")}>
                       {/^\d+$/.test(c.name) ? fmtPhone(c.name) : c.name}
                     </span>
-                    <span className="ml-auto shrink-0 text-[11px] text-muted-foreground">{fmtRelativeShort(c.at)}</span>
+                    <span className="ml-auto shrink-0 text-xs text-muted-foreground">{fmtRelativeShort(c.at)}</span>
                   </span>
                   <span className="flex items-center gap-2">
                     <span className={cn("truncate text-[12.5px] text-muted-foreground", c.unread > 0 && "text-foreground/80")}>
                       {c.preview || c.company || "Sem mensagens"}
                     </span>
                     {c.unread > 0 && (
-                      <span className="ml-auto shrink-0 rounded-full bg-brand px-1.5 text-[10.5px] leading-[18px] font-medium text-white">
+                      <span className="ml-auto shrink-0 rounded-full bg-brand px-1.5 text-xs leading-[18px] font-medium text-on-brand">
                         {c.unread}
                       </span>
                     )}
@@ -201,11 +201,11 @@ export default async function InboxPage({ searchParams }: PageProps<"/atendiment
               </Link>
             </li>
           ))}
-          {!list.length && <li className="px-4 py-10 text-center text-[13px] text-muted-foreground">Nenhuma conversa aqui.</li>}
+          {!list.length && <li className="px-4 py-10 text-center text-[13px] text-muted-foreground">Nenhuma conversa aqui. Quando um cliente escrever no WhatsApp, ela aparece nesta lista; para começar uma, digite o telefone abaixo.</li>}
         </ul>
         <form action={startConversation} className="flex gap-2 border-t p-3">
-          <Input name="phone" defaultValue={novo} placeholder="Nova conversa: (11) 9…" inputMode="tel" className="h-8 text-[13px]" />
-          <button className="shrink-0 rounded-md bg-primary px-3 text-[12.5px] text-primary-foreground hover:bg-primary/85">Abrir</button>
+          <Input name="phone" defaultValue={novo} placeholder="Nova conversa: telefone com DDD" aria-label="Telefone para nova conversa" inputMode="tel" className="h-10 text-[13px] md:h-8" />
+          <button className="h-10 shrink-0 rounded-md bg-primary px-4 text-[13px] font-medium text-primary-foreground hover:bg-primary/85 md:h-8">Abrir</button>
         </form>
       </aside>
 

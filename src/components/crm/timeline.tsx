@@ -27,7 +27,7 @@ export function Timeline({ items }: { items: TimelineItem[] }) {
               <Icon className="size-3.5" />
             </span>
             <div className="min-w-0 flex-1 pt-0.5">
-              <p className="text-[11.5px] text-muted-foreground">
+              <p className="text-xs text-muted-foreground">
                 {ACTIVITY_TYPES[a.type] ?? a.type} · {a.userName ?? "Sistema"} · {fmtDateTime(a.createdAt)}
               </p>
               <p className={isStage ? "text-[13px] text-muted-foreground" : "mt-0.5 text-[13.5px] whitespace-pre-wrap"}>{a.body}</p>

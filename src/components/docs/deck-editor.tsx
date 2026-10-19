@@ -99,7 +99,7 @@ export function DeckEditor({
             className={cn("relative w-[132px] shrink-0 overflow-hidden rounded-lg border bg-card text-left", i === idx ? "ring-2 ring-brand" : "hover:border-foreground/30")}
           >
             <ScaledSlide slide={s} map={map} index={i} total={slides.length} studioName={studioName} />
-            <span className="absolute left-1 top-1 rounded bg-black/60 px-1.5 text-[10px] font-medium text-white">{i + 1}</span>
+            <span className="absolute left-1 top-1 rounded bg-black/60 px-1.5 text-xs font-medium text-white">{i + 1}</span>
           </button>
         ))}
         {!readOnly && (
@@ -119,7 +119,7 @@ export function DeckEditor({
             {LAYOUTS.map((l) => (
               <button key={l.key} type="button" onClick={() => add(l.key)} className="rounded-lg border px-3 py-2 text-left hover:border-brand hover:bg-brand-soft">
                 <span className="block text-[13px] font-medium">{l.label}</span>
-                <span className="block text-[11.5px] text-muted-foreground">{l.hint}</span>
+                <span className="block text-xs text-muted-foreground">{l.hint}</span>
               </button>
             ))}
           </div>
@@ -240,7 +240,7 @@ export function DeckEditor({
             </div>
           )}
 
-          <p className="text-[11.5px] text-muted-foreground">
+          <p className="text-xs text-muted-foreground">
             Dica: escreva <code className="rounded bg-muted px-1">{"{{cliente.nome}}"}</code>, <code className="rounded bg-muted px-1">{"{{negocio.valor}}"}</code> ou <code className="rounded bg-muted px-1">{"{{estudio.email}}"}</code> em qualquer texto — o sistema preenche com os dados do negócio.
           </p>
         </fieldset>

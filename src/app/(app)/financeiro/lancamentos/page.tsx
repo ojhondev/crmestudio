@@ -89,6 +89,7 @@ export default async function FinancePage({ searchParams }: PageProps<"/financei
       <PageHeader
         eyebrow="Financeiro"
         title="Fluxo de caixa"
+        description="Tudo o que entrou e saiu do caixa, mês a mês. Toque em “Novo lançamento” para registrar."
         actions={
           canEdit ? (
           <TransactionDialogLauncher
@@ -147,7 +148,7 @@ export default async function FinancePage({ searchParams }: PageProps<"/financei
               key={k}
               href={`/financeiro/lancamentos?${new URLSearchParams({ m: month, ...(k !== "todos" ? { v: k } : {}) })}`}
               className={cn(
-                "rounded-full border px-3 py-1 text-[12.5px] text-muted-foreground transition-colors hover:border-foreground/30",
+                "inline-flex items-center rounded-full border px-3 py-1.5 text-[13px] max-md:min-h-10 text-muted-foreground transition-colors hover:border-foreground/30",
                 view === k && "border-foreground bg-foreground text-background",
               )}
             >

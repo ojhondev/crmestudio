@@ -27,15 +27,15 @@ export function AskAna() {
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="Pergunte à Ana sobre clientes, funil, agenda ou caixa…"
-          className="h-9 w-full rounded-full border bg-card pr-10 pl-4 text-[13.5px] outline-none placeholder:text-muted-foreground focus:border-brand/40"
+          className="h-9 max-md:h-10 w-full rounded-full border bg-card pr-12 pl-4 text-[13.5px] outline-none placeholder:text-muted-foreground focus:border-brand/40"
         />
-        <button aria-label="Perguntar" className="absolute top-1/2 right-1.5 grid size-6 -translate-y-1/2 place-items-center rounded-full bg-brand text-white">
+        <button aria-label="Perguntar" className="absolute top-1/2 right-1.5 grid size-7 max-md:size-8 -translate-y-1/2 place-items-center rounded-full bg-brand text-on-brand">
           <ArrowUp className="size-3.5" />
         </button>
       </form>
       <div className="flex flex-wrap gap-1.5">
         {QUICK.map((s) => (
-          <button key={s} onClick={() => ana.open(s)} className="rounded-full border bg-card px-3 py-1.5 text-[12px] text-muted-foreground hover:text-foreground">
+          <button key={s} onClick={() => ana.open(s)} className="rounded-full border bg-card px-3 py-1.5 text-[13px] text-muted-foreground max-md:py-2.5 hover:text-foreground">
             {s}
           </button>
         ))}

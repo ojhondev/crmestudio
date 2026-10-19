@@ -56,7 +56,7 @@ function Pill({ value, options, onChange, disabled, label, wide }: { value: stri
         value={value}
         disabled={disabled}
         onChange={(e) => onChange(e.target.value)}
-        className={cn("h-7 cursor-pointer appearance-none rounded-md px-2.5 text-center text-[12px] font-semibold text-white outline-none disabled:cursor-default", wide ? "min-w-28" : "min-w-20")}
+        className={cn("h-7 max-md:h-10 cursor-pointer appearance-none rounded-md px-2.5 text-center text-[12px] font-semibold text-on-st max-md:text-[13px] outline-none disabled:cursor-default", wide ? "min-w-28" : "min-w-20")}
         style={{ background: cur.color }}
       >
         {Object.entries(options).map(([k, o]) => (
@@ -72,7 +72,7 @@ function Pill({ value, options, onChange, disabled, label, wide }: { value: stri
 const Person = ({ id, users }: { id: string | null; users: User[] }) => {
   const u = users.find((x) => x.id === id);
   return u ? (
-    <span className="grid size-6 place-items-center rounded-full bg-primary text-[10px] font-semibold text-primary-foreground" title={u.name}>
+    <span className="grid size-6 place-items-center rounded-full bg-primary text-xs font-semibold text-primary-foreground" title={u.name}>
       {initials(u.name)}
     </span>
   ) : (
@@ -93,7 +93,7 @@ function dueState(t: TaskDTO) {
 function DueInput({ t, onChange, disabled }: { t: TaskDTO; onChange: (v: string | null) => void; disabled?: boolean }) {
   const st = dueState(t);
   return (
-    <label className={cn("relative inline-flex h-7 items-center gap-1 rounded-md border px-2 text-[12px]", st === "late" && "border-destructive bg-destructive/10 font-medium text-destructive", st === "today" && "border-brand bg-brand-soft font-medium")}>
+    <label className={cn("relative inline-flex h-7 items-center gap-1 rounded-md border px-2 text-[12px] max-md:h-10 max-md:text-[13px]", st === "late" && "border-destructive bg-destructive/10 font-medium text-destructive", st === "today" && "border-brand bg-brand-soft font-medium")}>
       <CalendarDays className="size-3 shrink-0" />
       <span className="whitespace-nowrap">{t.dueAt ? `${fmtDate(t.dueAt, "dd/MM")}${st === "late" ? " · atrasada" : st === "today" ? " · hoje" : ""}` : "Prazo"}</span>
       <input
@@ -110,7 +110,7 @@ function DueInput({ t, onChange, disabled }: { t: TaskDTO; onChange: (v: string 
 
 function Assignee({ t, users, onChange, disabled }: { t: TaskDTO; users: User[]; onChange: (v: string | null) => void; disabled?: boolean }) {
   return (
-    <label className="relative inline-flex h-7 items-center gap-1.5 rounded-md border px-1.5 text-[12px]">
+    <label className="relative inline-flex h-7 items-center gap-1.5 rounded-md border px-1.5 text-[12px] max-md:h-10 max-md:text-[13px]">
       <Person id={t.assigneeId} users={users} />
       <span className="max-w-24 truncate">{users.find((u) => u.id === t.assigneeId)?.name.split(" ")[0] ?? "Atribuir"}</span>
       <select aria-label="Responsável" disabled={disabled} value={t.assigneeId ?? ""} onChange={(e) => onChange(e.target.value || null)} className="absolute inset-0 cursor-pointer opacity-0 disabled:cursor-default">
@@ -201,11 +201,11 @@ export function Tarefas(props: Props) {
     <div className="grid gap-4">
       {/* quadros */}
       <div data-tour="task-boards" className="thin-scroll flex items-center gap-1.5 overflow-x-auto pb-1" role="tablist" aria-label="Quadros">
-        <Link href="/tarefas?quadro=minhas" role="tab" aria-selected={mode === "minhas"} className={cn("inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-[13px]", mode === "minhas" ? "border-foreground bg-foreground font-medium text-background" : "bg-card hover:border-foreground/40")}>
+        <Link href="/tarefas?quadro=minhas" role="tab" aria-selected={mode === "minhas"} className={cn("inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-[13px] max-md:py-2.5", mode === "minhas" ? "border-foreground bg-foreground font-medium text-background" : "bg-card hover:border-foreground/40")}>
           <Check className="size-3.5" /> Minhas tarefas
         </Link>
         {boards.map((b) => (
-          <Link key={b.id} href={href(b.id, view)} role="tab" aria-selected={board?.id === b.id} className={cn("inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-[13px]", board?.id === b.id ? "border-foreground bg-foreground font-medium text-background" : "bg-card hover:border-foreground/40")}>
+          <Link key={b.id} href={href(b.id, view)} role="tab" aria-selected={board?.id === b.id} className={cn("inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-[13px] max-md:py-2.5", board?.id === b.id ? "border-foreground bg-foreground font-medium text-background" : "bg-card hover:border-foreground/40")}>
             <span className="size-2 rounded-full" style={{ background: b.color }} /> {b.name}
           </Link>
         ))}
@@ -241,7 +241,7 @@ export function Tarefas(props: Props) {
             <BoardTitle board={board} canEdit={canEdit} />
             <div className="ml-auto flex flex-wrap items-center gap-2" data-tour="task-filters">
               <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar tarefa…" aria-label="Buscar tarefa" className="h-8 w-40" />
-              <select value={who} onChange={(e) => setWho(e.target.value)} aria-label="Filtrar por responsável" className="h-8 rounded-lg border border-input bg-background px-2 text-[13px]">
+              <select value={who} onChange={(e) => setWho(e.target.value)} aria-label="Filtrar por responsável" className="h-8 rounded-lg border border-input bg-background px-2 text-[13px] max-md:h-10">
                 <option value="">Todos</option>
                 <option value="none">Sem responsável</option>
                 {users.map((u) => (
@@ -250,20 +250,21 @@ export function Tarefas(props: Props) {
                   </option>
                 ))}
               </select>
-              <label className="flex items-center gap-1.5 text-[13px]">
-                <input type="checkbox" checked={hideDone} onChange={(e) => setHideDone(e.target.checked)} className="size-4 accent-[#b75928]" /> Ocultar concluídas
+              <label className="flex items-center gap-1.5 text-[13px] max-md:min-h-10">
+                <input type="checkbox" checked={hideDone} onChange={(e) => setHideDone(e.target.checked)} className="size-4 accent-brand" /> Ocultar concluídas
               </label>
               <div className="flex rounded-lg border p-0.5" role="group" aria-label="Visão">
-                <Link href={href(board.id, "tabela")} aria-current={view === "tabela"} className={cn("inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-[12.5px]", view === "tabela" && "bg-foreground font-medium text-background")}>
+                <Link href={href(board.id, "tabela")} aria-current={view === "tabela"} className={cn("inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-[13px] max-md:py-2.5", view === "tabela" && "bg-foreground font-medium text-background")}>
                   <LayoutList className="size-3.5" /> Tabela
                 </Link>
-                <Link href={href(board.id, "kanban")} aria-current={view === "kanban"} className={cn("inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-[12.5px]", view === "kanban" && "bg-foreground font-medium text-background")}>
+                <Link href={href(board.id, "kanban")} aria-current={view === "kanban"} className={cn("inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-[13px] max-md:py-2.5", view === "kanban" && "bg-foreground font-medium text-background")}>
                   <Columns3 className="size-3.5" /> Kanban
                 </Link>
               </div>
             </div>
           </div>
 
+          {view === "kanban" && canEdit && <p className="-mt-2 text-[13px] text-muted-foreground">Arraste um cartão para outra coluna para mudar a situação (no celular, segure o cartão por um instante). Toque no cartão para ver detalhes.</p>}
           {view === "kanban" ? (
             <KanbanView tasks={visible} users={users} canEdit={canEdit} patch={patch} openTask={setOpen} />
           ) : (
@@ -294,6 +295,7 @@ export function Tarefas(props: Props) {
                   }}
                 />
               ))}
+              {groups.length === 0 && <p className="rounded-xl border border-dashed p-6 text-center text-[13px] text-muted-foreground">Este quadro não tem grupos. Crie um grupo (por exemplo “Esta semana”) para começar a adicionar tarefas.</p>}
               {canEdit && (
                 <form
                   className="flex gap-2"
@@ -307,7 +309,7 @@ export function Tarefas(props: Props) {
                     f.reset();
                   }}
                 >
-                  <Input name="name" placeholder="+ Novo grupo (ex.: Esta semana)" aria-label="Novo grupo" className="h-9 max-w-xs" />
+                  <Input name="name" placeholder="Nome do novo grupo (ex.: Esta semana)" aria-label="Novo grupo" className="h-9 max-w-xs" />
                   <Button type="submit" variant="outline" size="sm">
                     Adicionar grupo
                   </Button>
@@ -358,7 +360,7 @@ function BoardTitle({ board, canEdit }: { board: { id: string; name: string; col
         onChange={(e) => setName(e.target.value)}
         onBlur={() => name.trim() && name !== board.name && renameBoard(board.id, name)}
         onKeyDown={(e) => e.key === "Enter" && (e.currentTarget as HTMLInputElement).blur()}
-        className="h-9 min-w-0 rounded-md border border-transparent bg-transparent px-1 text-[20px] font-semibold hover:border-input focus:border-ring focus:outline-none"
+        className="h-9 max-md:h-10 min-w-0 rounded-md border border-transparent bg-transparent px-1 text-[20px] font-semibold hover:border-input focus:border-ring focus:outline-none"
       />
     </div>
   );
@@ -376,7 +378,7 @@ function GroupBlock({ group, tasks, total, users, canEdit, canManage, collapsed,
   return (
     <section className="rounded-xl border bg-card" style={{ borderLeft: `5px solid ${group.color}` }}>
       <header className="flex items-center gap-2 px-3 py-2.5">
-        <button type="button" onClick={toggle} aria-expanded={!collapsed} aria-label={collapsed ? "Expandir grupo" : "Recolher grupo"} className="grid size-6 place-items-center rounded hover:bg-muted">
+        <button type="button" onClick={toggle} aria-expanded={!collapsed} aria-label={collapsed ? "Expandir grupo" : "Recolher grupo"} className="grid size-6 place-items-center rounded hover:bg-muted max-md:size-10">
           {collapsed ? <ChevronRight className="size-4" /> : <ChevronDown className="size-4" />}
         </button>
         <input
@@ -386,10 +388,10 @@ function GroupBlock({ group, tasks, total, users, canEdit, canManage, collapsed,
           onChange={(e) => setName(e.target.value)}
           onBlur={() => name.trim() && name !== group.name && onRename(name)}
           onKeyDown={(e) => e.key === "Enter" && (e.currentTarget as HTMLInputElement).blur()}
-          className="h-8 min-w-0 flex-1 rounded border border-transparent bg-transparent px-1 text-[15px] font-semibold hover:border-input focus:border-ring focus:outline-none"
+          className="h-8 max-md:h-10 min-w-0 flex-1 rounded border border-transparent bg-transparent px-1 text-[15px] font-semibold hover:border-input focus:border-ring focus:outline-none"
           style={{ color: group.color }}
         />
-        <span className="text-[12px] text-muted-foreground">
+        <span className="text-[12px] text-muted-foreground max-md:hidden">
           {done}/{total} concluídas
         </span>
         {canManage && (
@@ -400,7 +402,7 @@ function GroupBlock({ group, tasks, total, users, canEdit, canManage, collapsed,
       </header>
       {!collapsed && (
         <>
-          <div className="hidden grid-cols-[minmax(0,1fr)_150px_120px_130px_110px] gap-3 border-y bg-muted/60 px-4 py-1.5 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase md:grid">
+          <div className="hidden grid-cols-[minmax(0,1fr)_150px_120px_130px_110px] gap-3 border-y bg-muted/60 px-4 py-1.5 text-xs font-semibold tracking-wide text-muted-foreground uppercase md:grid">
             <span>Tarefa</span>
             <span>Responsável</span>
             <span>Prazo</span>
@@ -423,7 +425,7 @@ function GroupBlock({ group, tasks, total, users, canEdit, canManage, collapsed,
               }}
             >
               <Plus className="size-4 text-muted-foreground" />
-              <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Adicionar tarefa — digite e tecle Enter" aria-label={`Nova tarefa em ${group.name}`} className="h-8 min-w-0 flex-1 bg-transparent text-[14px] placeholder:text-muted-foreground focus:outline-none" />
+              <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Adicionar tarefa — digite e tecle Enter" aria-label={`Nova tarefa em ${group.name}`} className="h-8 min-w-0 flex-1 bg-transparent text-[14px] placeholder:text-muted-foreground focus:outline-none max-md:h-10" />
             </form>
           )}
         </>
@@ -448,7 +450,7 @@ function TaskRow({ t, users, canEdit, patch, openTask, boardName }: { t: TaskDTO
           disabled={!canEdit}
           onClick={() => patch(t.id, { status: done ? "a_fazer" : "concluida" })}
           aria-label={done ? "Reabrir tarefa" : "Marcar como concluída"}
-          className={cn("grid size-5 shrink-0 place-items-center rounded-full border-2", done ? "border-[var(--st-done)] bg-[var(--st-done)] text-white" : "border-muted-foreground/60 hover:border-[var(--st-done)]")}
+          className={cn("relative grid size-5 shrink-0 place-items-center rounded-full border-2 after:absolute after:-inset-2.5 after:content-['']", done ? "border-[var(--st-done)] bg-[var(--st-done)] text-on-st" : "border-muted-foreground/60 hover:border-[var(--st-done)]")}
         >
           {done && <Check className="size-3" strokeWidth={3} />}
         </button>
@@ -460,10 +462,10 @@ function TaskRow({ t, users, canEdit, patch, openTask, boardName }: { t: TaskDTO
             onChange={(e) => setTitle(e.target.value)}
             onBlur={() => title.trim() && title !== t.title && patch(t.id, { title })}
             onKeyDown={(e) => e.key === "Enter" && (e.currentTarget as HTMLInputElement).blur()}
-            className={cn("h-8 w-full min-w-0 rounded border border-transparent bg-transparent px-1 text-[14px] hover:border-input focus:border-ring focus:outline-none", done && "text-muted-foreground line-through")}
+            className={cn("h-8 max-md:h-10 w-full min-w-0 rounded border border-transparent bg-transparent px-1 text-[14px] hover:border-input focus:border-ring focus:outline-none", done && "text-muted-foreground line-through")}
           />
           {(t.dealTitle || boardName) && (
-            <p className="flex items-center gap-1 px-1 text-[11.5px] text-muted-foreground">
+            <p className="flex items-center gap-1 px-1 text-xs text-muted-foreground">
               {t.dealTitle && (
                 <Link href={`/negocios/${t.dealId}`} className="inline-flex items-center gap-1 hover:underline">
                   <Link2 className="size-3" /> {t.dealTitle}
@@ -519,6 +521,7 @@ function KColumn({ status, tasks, users, openTask, canEdit }: { status: TaskStat
       {tasks.map((t) => (
         <KCard key={t.id} t={t} users={users} openTask={openTask} canEdit={canEdit} />
       ))}
+      {tasks.length === 0 && <p className="rounded-lg border border-dashed px-2 py-6 text-center text-[13px] text-muted-foreground">{canEdit ? "Vazio. Arraste uma tarefa para cá para mudar a situação." : "Nenhuma tarefa."}</p>}
     </section>
   );
 }
@@ -574,8 +577,8 @@ function Minhas({ tasks, all, users, meId, canEdit, boardNames, patch, openTask,
         <span className="text-[13px] text-muted-foreground">{openCount} em aberto</span>
         <div className="ml-auto flex flex-wrap items-center gap-2">
           <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar…" aria-label="Buscar tarefa" className="h-8 w-40" />
-          <label className="flex items-center gap-1.5 text-[13px]">
-            <input type="checkbox" checked={hideDone} onChange={(e) => setHideDone(e.target.checked)} className="size-4 accent-[#b75928]" /> Ocultar concluídas
+          <label className="flex items-center gap-1.5 text-[13px] max-md:min-h-10">
+            <input type="checkbox" checked={hideDone} onChange={(e) => setHideDone(e.target.checked)} className="size-4 accent-brand" /> Ocultar concluídas
           </label>
         </div>
       </div>
@@ -594,7 +597,7 @@ function Minhas({ tasks, all, users, meId, canEdit, boardNames, patch, openTask,
           }}
         >
           <Plus className="size-4 text-muted-foreground" />
-          <input ref={ref} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="O que você precisa fazer? Digite e tecle Enter" aria-label="Nova tarefa" className="h-9 min-w-0 flex-1 bg-transparent text-[14px] focus:outline-none" />
+          <input ref={ref} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="O que você precisa fazer? Digite e tecle Enter" aria-label="Nova tarefa" className="h-9 max-md:h-10 min-w-0 flex-1 bg-transparent text-[14px] focus:outline-none" />
           <Input type="date" value={due} onChange={(e) => setDue(e.target.value)} aria-label="Prazo da nova tarefa" className="h-8 w-36" />
           <Button type="submit" size="sm" disabled={!title.trim()}>
             Adicionar
@@ -662,7 +665,7 @@ function TaskSheet({ task, users, canEdit, boardName, groups, onClose, patch, re
               </Field>
               {task.boardId && groups.some((g) => g.boardId === task.boardId) && (
                 <Field label="Grupo">
-                  <select value={task.groupId ?? ""} disabled={!canEdit} onChange={(e) => patch(task.id, { groupId: e.target.value })} className="h-9 rounded-lg border border-input bg-background px-2 text-[14px]">
+                  <select value={task.groupId ?? ""} disabled={!canEdit} onChange={(e) => patch(task.id, { groupId: e.target.value })} className="h-9 max-md:h-10 rounded-lg border border-input bg-background px-2 text-[14px]">
                     {groups.filter((g) => g.boardId === task.boardId).map((g) => (
                       <option key={g.id} value={g.id}>
                         {g.name}

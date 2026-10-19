@@ -29,7 +29,7 @@ export default async function SettingsPage() {
 
   return (
     <>
-      <PageHeader eyebrow="Ajustes" title="Ajustes" />
+      <PageHeader eyebrow="Ajustes" title="Ajustes" description="Seu perfil, aparência e as conexões do sistema (WhatsApp, Ana, calendário)." />
       <PageBody className="grid max-w-5xl gap-5 lg:grid-cols-2">
         <Section title="Meu perfil">
           <ProfileForm name={me.name} phone={me.phone} email={user.email} />
@@ -57,7 +57,7 @@ export default async function SettingsPage() {
               >
                 <p>
                   Webhook para o painel da Meta:
-                  <code className="mt-1 block rounded bg-muted px-1.5 py-1 text-[11px] break-all">{origin}/api/whatsapp/webhook</code>
+                  <code className="mt-1 block rounded bg-muted px-1.5 py-1 text-xs break-all">{origin}/api/whatsapp/webhook</code>
                 </p>
                 <p className="mt-1.5">
                   Variáveis: <code>WHATSAPP_TOKEN</code>, <code>WHATSAPP_PHONE_NUMBER_ID</code>, <code>WHATSAPP_VERIFY_TOKEN</code>,{" "}
@@ -119,7 +119,7 @@ function Integration({
         <span className="text-[13px] font-medium">{title}</span>
         <span
           className={cn(
-            "ml-auto rounded-full px-2 py-0.5 text-[11px]",
+            "ml-auto rounded-full px-2 py-0.5 text-xs",
             on ? "bg-success/10 text-success" : "bg-amber-50 text-amber-800 dark:bg-amber-500/10 dark:text-amber-200",
           )}
         >

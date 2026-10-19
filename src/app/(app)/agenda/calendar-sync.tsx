@@ -24,7 +24,7 @@ export function CalendarSync({ token, origin }: { token: string; origin: string 
           “Abrir no Calendário”). Os eventos aparecem lá e se atualizam sozinhos.
         </p>
         <div className="flex gap-1.5">
-          <Input value={url} readOnly className="h-8 text-[11.5px]" onFocus={(e) => e.currentTarget.select()} />
+          <Input value={url} readOnly className="h-8 text-xs" onFocus={(e) => e.currentTarget.select()} />
           <Button
             size="icon"
             variant="outline"
@@ -37,7 +37,7 @@ export function CalendarSync({ token, origin }: { token: string; origin: string 
         <Button asChild size="sm" variant="secondary">
           <a href={webcal}>Abrir no Calendário (iPhone/Mac)</a>
         </Button>
-        <p className="text-[11.5px] text-muted-foreground">
+        <p className="text-xs text-muted-foreground">
           O link é pessoal — não compartilhe. O Google atualiza assinaturas a cada algumas horas.
         </p>
       </PopoverContent>

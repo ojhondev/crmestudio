@@ -223,7 +223,7 @@ export function ContractEditor({
                     className="w-full rounded-lg border bg-card px-3 py-2 text-left hover:border-brand hover:bg-brand-soft disabled:opacity-50"
                   >
                     <span className="block text-[13px] font-medium">{c.name}</span>
-                    {c.description && <span className="block text-[11.5px] text-muted-foreground">{c.description}</span>}
+                    {c.description && <span className="block text-xs text-muted-foreground">{c.description}</span>}
                   </button>
                 </li>
               ))}
