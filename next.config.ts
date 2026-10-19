@@ -8,8 +8,8 @@ const nextConfig: NextConfig = {
   // PDF dos documentos: Chromium enxuto roda dentro da função (Vercel)
   serverExternalPackages: ["@sparticuz/chromium", "puppeteer-core"],
   outputFileTracingIncludes: {
-    "/documentos/[id]/pdf": CHROMIUM,
-    "/p/[token]/pdf": CHROMIUM,
+    "/documentos/*/pdf": CHROMIUM,
+    "/p/*/pdf": CHROMIUM,
   },
   // imagens de apresentações vão dentro do documento (já comprimidas no navegador)
   experimental: { serverActions: { bodySizeLimit: "8mb" } },
