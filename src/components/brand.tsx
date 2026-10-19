@@ -19,7 +19,7 @@ export function BrandLogo({ className, light }: { className?: string; light?: bo
     <img
       src={light ? "/logo-white.png" : "/logo.png"}
       alt="Estúdio Restaura"
-      className={cn("h-8 w-auto", className)}
+      className={cn("h-8 w-auto max-w-none object-contain", className)}
     />
   );
 }

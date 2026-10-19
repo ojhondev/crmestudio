@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { and, asc, eq, gte, lt, or } from "drizzle-orm";
 import { db, schema } from "@/lib/db";
-import { requireUser } from "@/lib/auth";
+import { has, requireAccess } from "@/lib/auth";
 import { dealScope } from "@/lib/deals";
 import { todayISO } from "@/lib/format";
 import { PageHeader } from "@/components/page-header";
@@ -20,7 +20,9 @@ function monthGrid(month: string) {
 }
 
 export default async function AgendaPage({ searchParams }: PageProps<"/agenda">) {
-  const user = await requireUser();
+  const user = await requireAccess("agenda");
+  const canEdit = has(user, "agenda", "edit");
+  const canSeeContacts = has(user, "contatos") && !user.ownOnly;
   const sp = await searchParams;
   const h = await headers();
   const today = todayISO();
@@ -28,7 +30,7 @@ export default async function AgendaPage({ searchParams }: PageProps<"/agenda">)
   const days = monthGrid(month);
   const from = new Date(`${days[0]}T00:00:00-03:00`);
   const to = new Date(new Date(`${days[41]}T00:00:00-03:00`).getTime() + 864e5);
-  const partner = user.role === "parceiro";
+  const partner = user.ownOnly;
 
   const [rows, deals, contacts, team, [me]] = await Promise.all([
     db
@@ -53,7 +55,7 @@ export default async function AgendaPage({ searchParams }: PageProps<"/agenda">)
       .where(and(lt(schema.events.startsAt, to), gte(schema.events.endsAt, from), partner ? eq(schema.events.userId, user.id) : undefined))
       .orderBy(asc(schema.events.startsAt)),
     db.select({ id: schema.deals.id, name: schema.deals.title }).from(schema.deals).where(dealScope(user)).orderBy(asc(schema.deals.title)),
-    partner ? [] : db.select({ id: schema.contacts.id, name: schema.contacts.name }).from(schema.contacts).orderBy(asc(schema.contacts.name)),
+    !canSeeContacts ? [] : db.select({ id: schema.contacts.id, name: schema.contacts.name }).from(schema.contacts).orderBy(asc(schema.contacts.name)),
     partner
       ? []
       : db
@@ -76,6 +78,7 @@ export default async function AgendaPage({ searchParams }: PageProps<"/agenda">)
         team={team}
         userId={user.id}
         isPartner={partner}
+        canEdit={canEdit}
         openNew={sp.novo === "1"}
         presetDeal={typeof sp.deal === "string" ? sp.deal : undefined}
       />

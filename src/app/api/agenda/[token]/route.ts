@@ -1,22 +1,23 @@
 import { and, eq, gte } from "drizzle-orm";
 import { db, schema } from "@/lib/db";
+import { resolvePermissions } from "@/lib/permissions";
 
 /** Feed iCalendar (RFC 5545) — assinatura no Google Agenda / Apple / Outlook. */
 export async function GET(_: Request, ctx: RouteContext<"/api/agenda/[token]">) {
   const { token } = await ctx.params;
   const clean = token.replace(/\.ics$/, "");
   const [user] = await db
-    .select({ id: schema.users.id, role: schema.users.role, active: schema.users.active })
+    .select({ id: schema.users.id, role: schema.users.role, active: schema.users.active, profile: schema.users.profile, permissions: schema.users.permissions, ownOnly: schema.users.ownOnly })
     .from(schema.users)
     .where(eq(schema.users.calendarToken, clean))
     .limit(1);
-  if (!user || !user.active) return new Response("Not found", { status: 404 });
+  if (!user || !user.active || resolvePermissions(user).agenda === "none") return new Response("Not found", { status: 404 });
 
   const since = new Date(Date.now() - 90 * 864e5);
   const rows = await db
     .select()
     .from(schema.events)
-    .where(and(gte(schema.events.endsAt, since), user.role === "parceiro" ? eq(schema.events.userId, user.id) : undefined));
+    .where(and(gte(schema.events.endsAt, since), user.ownOnly && user.role !== "admin" ? eq(schema.events.userId, user.id) : undefined));
 
   const esc = (s: string) => s.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/[,;]/g, (m) => `\\${m}`);
   const stamp = (d: Date) => d.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");

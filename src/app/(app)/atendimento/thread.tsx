@@ -38,6 +38,7 @@ export function Thread({
   team,
   deals,
   connected,
+  canEdit = true,
 }: {
   conv: {
     id: string;
@@ -56,6 +57,7 @@ export function Thread({
   team: { id: string; name: string }[];
   deals: { id: string; title: string; stage: string; color: string; valueLabel: string }[];
   connected: boolean;
+  canEdit?: boolean;
 }) {
   const router = useRouter();
   const [text, setText] = useState("");
@@ -117,7 +119,7 @@ export function Thread({
               {conv.company && ` · ${conv.company}`}
             </span>
           </div>
-          <div className="hidden w-40 sm:block">
+          <div className={cn("hidden w-40 sm:block", !canEdit && "sm:hidden")}>
             <SimpleSelect
               options={team.map((u) => ({ value: u.id, label: u.name }))}
               defaultValue={conv.assigneeId}
@@ -130,6 +132,7 @@ export function Thread({
           <Button
             variant="outline"
             size="sm"
+            disabled={!canEdit}
             onClick={() =>
               start(async () => {
                 await setStatus(conv.id, conv.status === "aberta" ? "resolvida" : "aberta");
@@ -167,7 +170,12 @@ export function Thread({
           </div>
         </div>
 
-        <div data-tour="thread-composer" className="safe-bottom border-t bg-card p-3">
+        {!canEdit && (
+          <div data-tour="thread-composer" className="safe-bottom border-t bg-card p-3 text-center text-[12.5px] text-muted-foreground">
+            Você tem acesso somente leitura ao Atendimento.
+          </div>
+        )}
+        <div data-tour="thread-composer" className={cn("safe-bottom border-t bg-card p-3", !canEdit && "hidden")}>
           {!conv.windowOpen && !note && (
             <p className="mb-2 flex items-center gap-1.5 rounded-md bg-amber-50 px-3 py-2 text-[12px] text-amber-800 dark:bg-amber-500/10 dark:text-amber-200">
               <Clock className="size-3.5" /> Passaram 24h desde a última mensagem do cliente: a Meta só libera texto livre depois que ele escrever de novo.

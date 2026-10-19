@@ -4,7 +4,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { eq, max } from "drizzle-orm";
 import { db, schema } from "@/lib/db";
-import { requireUser, type SessionUser } from "@/lib/auth";
+import { has, requireAccess, requireUser, type SessionUser } from "@/lib/auth";
+import { audit } from "@/lib/audit";
 import { normalizePhone, parseLocalInput, parseMoney } from "@/lib/format";
 
 const str = (v: FormDataEntryValue | null) => {
@@ -12,10 +13,13 @@ const str = (v: FormDataEntryValue | null) => {
   return s && s !== "__none" ? s : null;
 };
 
+const isPartnerAccount = (u: SessionUser) => u.role === "parceiro";
+
+/** Quem tem "só os próprios" acessa apenas negócios em que é dono ou parceiro indicado. */
 async function assertDealAccess(user: SessionUser, dealId: string) {
   const [d] = await db.select().from(schema.deals).where(eq(schema.deals.id, dealId)).limit(1);
   if (!d) throw new Error("Negócio não encontrado");
-  if (user.role === "parceiro" && d.partnerId !== user.id && d.ownerId !== user.id) throw new Error("Sem acesso");
+  if (user.ownOnly && d.partnerId !== user.id && d.ownerId !== user.id) throw new Error("Sem acesso");
   return d;
 }
 
@@ -31,7 +35,7 @@ async function resolveContact(form: FormData, user: SessionUser) {
         email: str(form.get("newContactEmail"))?.toLowerCase() ?? null,
         company: str(form.get("newContactCompany")),
         source: str(form.get("source")),
-        ownerId: user.role === "parceiro" ? null : user.id,
+        ownerId: isPartnerAccount(user) ? null : user.id,
       })
       .returning({ id: schema.contacts.id });
     return c.id;
@@ -54,7 +58,7 @@ function dealFields(form: FormData) {
 }
 
 export async function createDeal(_: unknown, form: FormData) {
-  const user = await requireUser();
+  const user = await requireAccess("negocios", "edit");
   const fields = dealFields(form);
   if (!fields.title) return { error: "Dê um nome ao negócio." };
   const stageId = Number(form.get("stageId"));
@@ -63,16 +67,12 @@ export async function createDeal(_: unknown, form: FormData) {
     .select({ top: max(schema.deals.position) })
     .from(schema.deals)
     .where(eq(schema.deals.stageId, stageId));
+  // quem só vê os próprios não escolhe responsável/parceiro: o negócio fica no nome dele
+  const ownerId = user.ownOnly ? (isPartnerAccount(user) ? null : user.id) : (fields.ownerId ?? user.id);
+  const partnerId = user.ownOnly ? (isPartnerAccount(user) ? user.id : null) : fields.partnerId;
   const [deal] = await db
     .insert(schema.deals)
-    .values({
-      ...fields,
-      ownerId: fields.ownerId ?? (user.role === "parceiro" ? null : user.id),
-      partnerId: user.role === "parceiro" ? user.id : fields.partnerId,
-      contactId,
-      stageId,
-      position: (top ?? 0) + 1,
-    })
+    .values({ ...fields, ownerId, partnerId, contactId, stageId, position: (top ?? 0) + 1 })
     .returning({ id: schema.deals.id });
   await db.insert(schema.activities).values({ dealId: deal.id, contactId, userId: user.id, type: "nota", body: "Negócio criado" });
   revalidatePath("/", "layout");
@@ -80,7 +80,7 @@ export async function createDeal(_: unknown, form: FormData) {
 }
 
 export async function updateDeal(_: unknown, form: FormData) {
-  const user = await requireUser();
+  const user = await requireAccess("negocios", "edit");
   const id = String(form.get("id"));
   const current = await assertDealAccess(user, id);
   const fields = dealFields(form);
@@ -91,8 +91,8 @@ export async function updateDeal(_: unknown, form: FormData) {
     .update(schema.deals)
     .set({
       ...fields,
-      ownerId: user.role === "parceiro" ? current.ownerId : fields.ownerId,
-      partnerId: user.role === "parceiro" ? current.partnerId : fields.partnerId,
+      ownerId: user.ownOnly ? current.ownerId : fields.ownerId,
+      partnerId: user.ownOnly ? current.partnerId : fields.partnerId,
       contactId,
       stageId,
       lostReason: str(form.get("lostReason")),
@@ -122,7 +122,7 @@ async function logStageChange(user: SessionUser, dealId: string, contactId: stri
 
 /** Arrastar no Kanban. */
 export async function moveDeal(dealId: string, stageId: number, position: number) {
-  const user = await requireUser();
+  const user = await requireAccess("negocios", "edit");
   const current = await assertDealAccess(user, dealId);
   await db.update(schema.deals).set({ stageId, position, updatedAt: new Date() }).where(eq(schema.deals.id, dealId));
   let kind: string | null = null;
@@ -132,24 +132,30 @@ export async function moveDeal(dealId: string, stageId: number, position: number
 }
 
 export async function deleteDeal(dealId: string) {
-  const user = await requireUser(["admin", "equipe"]);
-  await assertDealAccess(user, dealId);
+  const user = await requireAccess("negocios", "manage");
+  const deal = await assertDealAccess(user, dealId);
   await db.delete(schema.deals).where(eq(schema.deals.id, dealId));
+  await audit(user, "negocio_excluido", `Excluiu o negócio “${deal.title}”`, { entity: "negocio", entityId: dealId, meta: { valueCents: deal.valueCents } });
   revalidatePath("/", "layout");
   redirect("/negocios");
 }
 
+/** Registrar algo num negócio exige editar Negócios; só num contato, editar Contatos. */
 export async function addActivity(_: unknown, form: FormData) {
   const user = await requireUser();
   const dealId = str(form.get("dealId"));
   const contactId = str(form.get("contactId"));
   const body = String(form.get("body") || "").trim();
   if (!body) return { error: "Escreva algo." };
-  if (dealId) await assertDealAccess(user, dealId);
-  else if (user.role === "parceiro") return { error: "Sem acesso." };
+  if (dealId) {
+    if (!has(user, "negocios", "edit")) return { error: "Você não tem permissão para editar negócios." };
+    await assertDealAccess(user, dealId);
+  } else {
+    if (user.ownOnly || !has(user, "contatos", "edit")) return { error: "Você não tem permissão para editar contatos." };
+  }
   await db.insert(schema.activities).values({
     dealId,
-    contactId: user.role === "parceiro" ? null : contactId,
+    contactId: user.ownOnly ? null : contactId,
     userId: user.id,
     type: String(form.get("type") || "nota"),
     body,
@@ -165,25 +171,31 @@ export async function addTask(_: unknown, form: FormData) {
   if (!title) return { error: "Descreva a tarefa." };
   const due = str(form.get("dueAt"));
   const dealId = str(form.get("dealId"));
-  const partner = user.role === "parceiro";
-  if (dealId) await assertDealAccess(user, dealId);
+  const contactId = user.ownOnly ? null : str(form.get("contactId"));
+  if (dealId) {
+    if (!has(user, "negocios", "edit")) return { error: "Você não tem permissão para editar negócios." };
+    await assertDealAccess(user, dealId);
+  } else if (!has(user, "contatos", "edit") && !has(user, "negocios", "edit")) {
+    return { error: "Você não tem permissão para criar tarefas." };
+  }
   await db.insert(schema.tasks).values({
     title,
     dueAt: parseLocalInput(due),
     dealId,
-    contactId: partner ? null : str(form.get("contactId")),
-    assigneeId: partner ? user.id : (str(form.get("assigneeId")) ?? user.id),
+    contactId,
+    assigneeId: user.ownOnly ? user.id : (str(form.get("assigneeId")) ?? user.id),
     createdById: user.id,
   });
   revalidatePath("/", "layout");
   return { ok: true };
 }
 
-/** Parceiro só mexe nas tarefas dele. */
+/** Cada pessoa mexe nas próprias tarefas; nas dos outros, só quem edita Negócios ou Contatos (e não é "só os próprios"). */
 async function assertTaskAccess(user: SessionUser, taskId: string) {
-  if (user.role !== "parceiro") return;
   const [t] = await db.select({ assigneeId: schema.tasks.assigneeId }).from(schema.tasks).where(eq(schema.tasks.id, taskId));
-  if (!t || t.assigneeId !== user.id) throw new Error("Sem acesso");
+  if (!t) throw new Error("Tarefa não encontrada");
+  if (t.assigneeId === user.id) return;
+  if (user.ownOnly || (!has(user, "negocios", "edit") && !has(user, "contatos", "edit"))) throw new Error("Sem acesso");
 }
 
 export async function toggleTask(taskId: string, done: boolean) {

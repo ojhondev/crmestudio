@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { and, asc, desc, eq, gt, gte, isNull, lt, lte, sql } from "drizzle-orm";
-import { ArrowRight, CalendarDays, MessageCircle } from "lucide-react";
+import { ArrowRight, CalendarDays, Lock, MessageCircle } from "lucide-react";
 import { db, schema } from "@/lib/db";
-import { requireUser } from "@/lib/auth";
+import { has, requireUser } from "@/lib/auth";
 import { dealScope } from "@/lib/deals";
 import { EVENT_TYPES } from "@/lib/constants";
 import { fmtDate, fmtPhone, fmtRelativeShort, fmtTime, money, moneyShort, todayISO } from "@/lib/format";
@@ -11,9 +11,13 @@ import { Section } from "@/components/crm/section";
 import { TaskList } from "@/components/crm/tasks";
 import { AskAna } from "@/components/ana/ask-ana";
 
-export default async function Dashboard() {
+export default async function Dashboard({ searchParams }: PageProps<"/">) {
   const user = await requireUser();
-  const partner = user.role === "parceiro";
+  const sp = await searchParams;
+  const canDeals = has(user, "negocios");
+  const canAgenda = has(user, "agenda");
+  const canInbox = has(user, "atendimento");
+  const canFinance = has(user, "financeiro");
   const today = todayISO();
   const monthStart = new Date(`${today.slice(0, 7)}-01T00:00:00-03:00`);
   const dayStart = new Date(`${today}T00:00:00-03:00`);
@@ -21,7 +25,8 @@ export default async function Dashboard() {
   const in30 = new Date(dayStart.getTime() + 30 * 864e5).toISOString().slice(0, 10);
   const scope = dealScope(user);
 
-  const [funnel, [won], agenda, myTasks] = await Promise.all([
+  // cada bloco só consulta o banco se a pessoa tem acesso ao módulo correspondente
+  const funnelQ = () =>
     db
       .select({
         id: schema.stages.id,
@@ -34,12 +39,14 @@ export default async function Dashboard() {
       .from(schema.stages)
       .leftJoin(schema.deals, and(eq(schema.deals.stageId, schema.stages.id), scope))
       .groupBy(schema.stages.id)
-      .orderBy(asc(schema.stages.position)),
+      .orderBy(asc(schema.stages.position));
+  const wonQ = () =>
     db
       .select({ n: sql<number>`count(*)::int`, total: sql<number>`coalesce(sum(${schema.deals.valueCents}),0)::bigint` })
       .from(schema.deals)
       .innerJoin(schema.stages, eq(schema.deals.stageId, schema.stages.id))
-      .where(and(eq(schema.stages.kind, "ganho"), gte(schema.deals.closedAt, monthStart), scope)),
+      .where(and(eq(schema.stages.kind, "ganho"), gte(schema.deals.closedAt, monthStart), scope));
+  const agendaQ = () =>
     db
       .select({
         id: schema.events.id,
@@ -50,9 +57,10 @@ export default async function Dashboard() {
         location: schema.events.location,
       })
       .from(schema.events)
-      .where(and(gte(schema.events.endsAt, dayStart), lt(schema.events.startsAt, in7), partner ? eq(schema.events.userId, user.id) : undefined))
+      .where(and(gte(schema.events.endsAt, dayStart), lt(schema.events.startsAt, in7), user.ownOnly ? eq(schema.events.userId, user.id) : undefined))
       .orderBy(asc(schema.events.startsAt))
-      .limit(8),
+      .limit(8);
+  const tasksQ = () =>
     db
       .select({
         id: schema.tasks.id,
@@ -66,33 +74,38 @@ export default async function Dashboard() {
       .leftJoin(schema.deals, eq(schema.tasks.dealId, schema.deals.id))
       .where(and(eq(schema.tasks.assigneeId, user.id), isNull(schema.tasks.doneAt)))
       .orderBy(sql`${schema.tasks.dueAt} asc nulls last`)
-      .limit(8),
-  ]);
+      .limit(8);
+  const waitingQ = () =>
+    db
+      .select({
+        id: schema.conversations.id,
+        name: sql<string>`coalesce(${schema.contacts.name}, ${schema.conversations.profileName}, ${schema.conversations.phone})`,
+        preview: schema.conversations.preview,
+        unread: schema.conversations.unread,
+        at: schema.conversations.lastMessageAt,
+      })
+      .from(schema.conversations)
+      .leftJoin(schema.contacts, eq(schema.conversations.contactId, schema.contacts.id))
+      .where(and(gt(schema.conversations.unread, 0), eq(schema.conversations.status, "aberta")))
+      .orderBy(desc(schema.conversations.lastMessageAt))
+      .limit(5);
+  const receivableQ = () =>
+    db
+      .select({
+        total: sql<number>`coalesce(sum(${schema.transactions.amountCents}),0)::bigint`,
+        late: sql<number>`coalesce(sum(${schema.transactions.amountCents}) filter (where ${schema.transactions.dueDate} < ${today}),0)::bigint`,
+      })
+      .from(schema.transactions)
+      .where(and(eq(schema.transactions.kind, "receita"), isNull(schema.transactions.paidAt), lte(schema.transactions.dueDate, in30)));
 
-  const [waiting, [receivable]] = partner
-    ? [[], [undefined]]
-    : await Promise.all([
-        db
-          .select({
-            id: schema.conversations.id,
-            name: sql<string>`coalesce(${schema.contacts.name}, ${schema.conversations.profileName}, ${schema.conversations.phone})`,
-            preview: schema.conversations.preview,
-            unread: schema.conversations.unread,
-            at: schema.conversations.lastMessageAt,
-          })
-          .from(schema.conversations)
-          .leftJoin(schema.contacts, eq(schema.conversations.contactId, schema.contacts.id))
-          .where(and(gt(schema.conversations.unread, 0), eq(schema.conversations.status, "aberta")))
-          .orderBy(desc(schema.conversations.lastMessageAt))
-          .limit(5),
-        db
-          .select({
-            total: sql<number>`coalesce(sum(${schema.transactions.amountCents}),0)::bigint`,
-            late: sql<number>`coalesce(sum(${schema.transactions.amountCents}) filter (where ${schema.transactions.dueDate} < ${today}),0)::bigint`,
-          })
-          .from(schema.transactions)
-          .where(and(eq(schema.transactions.kind, "receita"), isNull(schema.transactions.paidAt), lte(schema.transactions.dueDate, in30))),
-      ]);
+  const [funnel, [won], agenda, myTasks, waiting, [receivable]] = await Promise.all([
+    canDeals ? funnelQ() : [],
+    canDeals ? wonQ() : [],
+    canAgenda ? agendaQ() : [],
+    tasksQ(),
+    canInbox ? waitingQ() : [],
+    canFinance ? receivableQ() : [],
+  ]);
 
   const open = funnel.filter((s) => s.kind === "aberto");
   const openTotal = open.reduce((s, x) => s + Number(x.total), 0);
@@ -111,27 +124,34 @@ export default async function Dashboard() {
       </header>
 
       <PageBody className="grid gap-5">
+        {sp.negado && (
+          <div className="flex items-center gap-2.5 rounded-xl border border-amber-300/60 bg-amber-50 px-4 py-3 text-[13px] text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200">
+            <Lock className="size-4 shrink-0" /> Você não tem acesso a essa área. Se precisar dela, peça a um administrador.
+          </div>
+        )}
+
         <div data-tour="dash-kpis" className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-          <Kpi label="No funil" value={moneyShort(openTotal)} sub={`${openCount} negócios em andamento`} href="/negocios" />
-          <Kpi label="Fechado no mês" value={moneyShort(Number(won?.total ?? 0))} sub={`${won?.n ?? 0} negócios ganhos`} href="/negocios" />
-          {!partner ? (
-            <>
-              <Kpi
-                label="A receber · 30 dias"
-                value={moneyShort(Number(receivable?.total ?? 0))}
-                sub={Number(receivable?.late) ? `${money(Number(receivable?.late))} em atraso` : "nada em atraso"}
-                alert={Number(receivable?.late) > 0}
-                href="/financeiro?v=abertos"
-              />
-              <Kpi
-                label="Aguardando resposta"
-                value={String(waiting.length)}
-                sub={waiting.length ? "conversas no WhatsApp" : "caixa de entrada em dia"}
-                alert={waiting.length > 0}
-                href="/atendimento?f=nao-lidas"
-              />
-            </>
-          ) : (
+          {canDeals && <Kpi label="No funil" value={moneyShort(openTotal)} sub={`${openCount} negócios em andamento`} href="/negocios" />}
+          {canDeals && <Kpi label="Fechado no mês" value={moneyShort(Number(won?.total ?? 0))} sub={`${won?.n ?? 0} negócios ganhos`} href="/negocios" />}
+          {canFinance && (
+            <Kpi
+              label="A receber · 30 dias"
+              value={moneyShort(Number(receivable?.total ?? 0))}
+              sub={Number(receivable?.late) ? `${money(Number(receivable?.late))} em atraso` : "nada em atraso"}
+              alert={Number(receivable?.late) > 0}
+              href="/financeiro?v=abertos"
+            />
+          )}
+          {canInbox && (
+            <Kpi
+              label="Aguardando resposta"
+              value={String(waiting.length)}
+              sub={waiting.length ? "conversas no WhatsApp" : "caixa de entrada em dia"}
+              alert={waiting.length > 0}
+              href="/atendimento?f=nao-lidas"
+            />
+          )}
+          {canAgenda && (!canDeals || !canFinance || !canInbox) && (
             <Kpi label="Próximos 7 dias" value={String(agenda.length)} sub="compromissos na agenda" href="/agenda" />
           )}
         </div>
@@ -139,33 +159,35 @@ export default async function Dashboard() {
         <AskAna />
 
         <div className="grid items-start gap-5 lg:grid-cols-3">
-          <Section
-            tour="dash-funnel"
-            title="Funil"
-            className="lg:col-span-2"
-            action={
-              <Link href="/negocios" className="flex items-center gap-1 text-[12px] text-muted-foreground hover:text-foreground">
-                Abrir quadro <ArrowRight className="size-3" />
-              </Link>
-            }
-          >
-            <div className="grid gap-2.5">
-              {open.map((s) => (
-                <div key={s.id} className="grid grid-cols-[140px_1fr_auto] items-center gap-3 text-[13px] sm:grid-cols-[170px_1fr_auto]">
-                  <span className="flex items-center gap-2 truncate">
-                    <span className="size-2 shrink-0 rounded-full" style={{ background: s.color }} />
-                    <span className="truncate">{s.name}</span>
-                  </span>
-                  <div className="h-2 overflow-hidden rounded-full bg-muted">
-                    <div className="h-full rounded-full" style={{ width: `${(Number(s.total) / maxStage) * 100}%`, background: s.color }} />
+          {canDeals && (
+            <Section
+              tour="dash-funnel"
+              title="Funil"
+              className="lg:col-span-2"
+              action={
+                <Link href="/negocios" className="flex items-center gap-1 text-[12px] text-muted-foreground hover:text-foreground">
+                  Abrir quadro <ArrowRight className="size-3" />
+                </Link>
+              }
+            >
+              <div className="grid gap-2.5">
+                {open.map((s) => (
+                  <div key={s.id} className="grid grid-cols-[140px_1fr_auto] items-center gap-3 text-[13px] sm:grid-cols-[170px_1fr_auto]">
+                    <span className="flex items-center gap-2 truncate">
+                      <span className="size-2 shrink-0 rounded-full" style={{ background: s.color }} />
+                      <span className="truncate">{s.name}</span>
+                    </span>
+                    <div className="h-2 overflow-hidden rounded-full bg-muted">
+                      <div className="h-full rounded-full" style={{ width: `${(Number(s.total) / maxStage) * 100}%`, background: s.color }} />
+                    </div>
+                    <span className="num w-28 text-right text-[12.5px] text-muted-foreground">
+                      {s.n} · {moneyShort(Number(s.total))}
+                    </span>
                   </div>
-                  <span className="num w-28 text-right text-[12.5px] text-muted-foreground">
-                    {s.n} · {moneyShort(Number(s.total))}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </Section>
+                ))}
+              </div>
+            </Section>
+          )}
 
           <Section title="Minhas tarefas">
             <TaskList
@@ -175,37 +197,39 @@ export default async function Dashboard() {
             />
           </Section>
 
-          <Section
-            title="Próximos 7 dias"
-            className={partner ? "lg:col-span-3" : "lg:col-span-1"}
-            action={
-              <Link href="/agenda" className="text-muted-foreground hover:text-foreground" aria-label="Agenda">
-                <CalendarDays className="size-4" />
-              </Link>
-            }
-          >
-            {agenda.length ? (
-              <ul className="grid gap-3">
-                {agenda.map((e) => (
-                  <li key={e.id} className="flex gap-3 text-[13px]">
-                    <span className="w-12 shrink-0 text-[11.5px] leading-tight text-muted-foreground">
-                      <span className="block capitalize">{fmtDate(e.startsAt, "EEE")}</span>
-                      {e.allDay ? "dia" : fmtTime(e.startsAt)}
-                    </span>
-                    <span className="mt-1.5 size-1.5 shrink-0 rounded-full" style={{ background: EVENT_TYPES[e.type]?.color }} />
-                    <span className="grid leading-tight">
-                      <span>{e.title}</span>
-                      {e.location && <span className="text-[11.5px] text-muted-foreground">{e.location}</span>}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="text-[13px] text-muted-foreground">Agenda livre.</p>
-            )}
-          </Section>
+          {canAgenda && (
+            <Section
+              title="Próximos 7 dias"
+              className={canDeals ? "lg:col-span-1" : "lg:col-span-2"}
+              action={
+                <Link href="/agenda" className="text-muted-foreground hover:text-foreground" aria-label="Agenda">
+                  <CalendarDays className="size-4" />
+                </Link>
+              }
+            >
+              {agenda.length ? (
+                <ul className="grid gap-3">
+                  {agenda.map((e) => (
+                    <li key={e.id} className="flex gap-3 text-[13px]">
+                      <span className="w-12 shrink-0 text-[11.5px] leading-tight text-muted-foreground">
+                        <span className="block capitalize">{fmtDate(e.startsAt, "EEE")}</span>
+                        {e.allDay ? "dia" : fmtTime(e.startsAt)}
+                      </span>
+                      <span className="mt-1.5 size-1.5 shrink-0 rounded-full" style={{ background: EVENT_TYPES[e.type]?.color }} />
+                      <span className="grid leading-tight">
+                        <span>{e.title}</span>
+                        {e.location && <span className="text-[11.5px] text-muted-foreground">{e.location}</span>}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-[13px] text-muted-foreground">Agenda livre.</p>
+              )}
+            </Section>
+          )}
 
-          {!partner && (
+          {canInbox && (
             <Section
               title="Aguardando resposta"
               className="lg:col-span-2"

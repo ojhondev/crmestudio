@@ -3,7 +3,7 @@ import Link from "next/link";
 import { and, asc, eq, gte, isNull, lt, sql } from "drizzle-orm";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { db, schema } from "@/lib/db";
-import { access, requireUser } from "@/lib/auth";
+import { has, requireAccess } from "@/lib/auth";
 import { fmtDate, money, todayISO } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { PageBody, PageHeader } from "@/components/page-header";
@@ -18,7 +18,9 @@ function shift(month: string, delta: number) {
 }
 
 export default async function FinancePage({ searchParams }: PageProps<"/financeiro">) {
-  await requireUser(access.financeiro);
+  const user = await requireAccess("financeiro");
+  const canEdit = has(user, "financeiro", "edit");
+  const canDelete = has(user, "financeiro", "manage");
   const sp = await searchParams;
   const today = todayISO();
   const month = typeof sp.m === "string" && /^\d{4}-\d{2}$/.test(sp.m) ? sp.m : today.slice(0, 7);
@@ -88,6 +90,7 @@ export default async function FinancePage({ searchParams }: PageProps<"/financei
         eyebrow="Financeiro"
         title="Fluxo de caixa"
         actions={
+          canEdit ? (
           <TransactionDialogLauncher
             deals={deals.map(({ id, name }) => ({ id, name }))}
             contacts={contacts}
@@ -103,6 +106,7 @@ export default async function FinancePage({ searchParams }: PageProps<"/financei
                 : undefined
             }
           />
+          ) : undefined
         }
       />
       <PageBody className="grid gap-5">
@@ -157,6 +161,8 @@ export default async function FinancePage({ searchParams }: PageProps<"/financei
           today={today}
           deals={deals.map(({ id, name }) => ({ id, name }))}
           contacts={contacts}
+          canEdit={canEdit}
+          canDelete={canDelete}
         />
       </PageBody>
     </>

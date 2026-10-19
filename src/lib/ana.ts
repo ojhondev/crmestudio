@@ -2,7 +2,7 @@ import "server-only";
 import Anthropic from "@anthropic-ai/sdk";
 import { and, asc, desc, eq, gte, gt, isNull, lte, or, sql } from "drizzle-orm";
 import { db, schema } from "@/lib/db";
-import type { SessionUser } from "@/lib/auth";
+import { has, type SessionUser } from "@/lib/auth";
 import { fmtDate, fmtDateTime, fmtPhone, money, todayISO } from "@/lib/format";
 
 export const ANA_MODEL = "claude-opus-5-5";
@@ -29,8 +29,12 @@ export async function buildSnapshot(user: SessionUser) {
   const today = todayISO();
   const now = new Date();
   const in10 = new Date(now.getTime() + 10 * 864e5);
-  const partner = user.role === "parceiro";
-  const dealScope = partner ? or(eq(schema.deals.partnerId, user.id), eq(schema.deals.ownerId, user.id)) : undefined;
+  const own = user.ownOnly;
+  const canDeals = has(user, "negocios");
+  const canAgenda = has(user, "agenda");
+  const canInbox = has(user, "atendimento");
+  const canFinance = has(user, "financeiro");
+  const dealScope = own ? or(eq(schema.deals.partnerId, user.id), eq(schema.deals.ownerId, user.id)) : undefined;
 
   const [stageRows, recentDeals, upcoming, openTasks] = await Promise.all([
     db
@@ -62,51 +66,61 @@ export async function buildSnapshot(user: SessionUser) {
     db
       .select({ title: schema.events.title, startsAt: schema.events.startsAt, location: schema.events.location, type: schema.events.type })
       .from(schema.events)
-      .where(and(gte(schema.events.endsAt, now), lte(schema.events.startsAt, in10), partner ? eq(schema.events.userId, user.id) : undefined))
+      .where(and(gte(schema.events.endsAt, now), lte(schema.events.startsAt, in10), own ? eq(schema.events.userId, user.id) : undefined))
       .orderBy(asc(schema.events.startsAt))
       .limit(20),
     db
       .select({ title: schema.tasks.title, dueAt: schema.tasks.dueAt })
       .from(schema.tasks)
-      .where(and(isNull(schema.tasks.doneAt), partner ? eq(schema.tasks.assigneeId, user.id) : undefined))
+      .where(and(isNull(schema.tasks.doneAt), own ? eq(schema.tasks.assigneeId, user.id) : undefined))
       .orderBy(asc(schema.tasks.dueAt))
       .limit(15),
   ]);
 
-  const lines: string[] = [`Hoje é ${fmtDate(today, "EEEE, dd/MM/yyyy")}. Usuário: ${user.name} (${user.role}).`];
+  const lines: string[] = [`Hoje é ${fmtDate(today, "EEEE, dd/MM/yyyy")}. Usuário: ${user.name} (perfil ${user.profile}). Responda só com base nas seções abaixo; o que não aparece aqui a pessoa não tem acesso.`];
 
-  lines.push("", "FUNIL (etapa: qtd · valor):");
-  for (const s of stageRows) lines.push(`- ${s.name}${s.kind !== "aberto" ? ` [${s.kind}]` : ""}: ${s.n} · ${money(Number(s.total))}`);
+  if (canDeals) {
+    lines.push("", "FUNIL (etapa: qtd · valor):");
+    for (const s of stageRows) lines.push(`- ${s.name}${s.kind !== "aberto" ? ` [${s.kind}]` : ""}: ${s.n} · ${money(Number(s.total))}`);
 
-  lines.push("", "NEGÓCIOS ABERTOS (mais recentes):");
-  if (!recentDeals.length) lines.push("- nenhum");
-  for (const d of recentDeals)
-    lines.push(
-      `- ${d.title}${d.contact ? ` — ${d.contact}` : ""} · ${d.stage} · ${money(d.value)} · atualizado ${fmtDate(d.updatedAt)}${d.expectedClose ? ` · previsão ${fmtDate(d.expectedClose)}` : ""}`,
-    );
+    lines.push("", "NEGÓCIOS ABERTOS (mais recentes):");
+    if (!recentDeals.length) lines.push("- nenhum");
+    for (const d of recentDeals)
+      lines.push(
+        `- ${d.title}${d.contact ? ` — ${d.contact}` : ""} · ${d.stage} · ${money(d.value)} · atualizado ${fmtDate(d.updatedAt)}${d.expectedClose ? ` · previsão ${fmtDate(d.expectedClose)}` : ""}`,
+      );
+  }
 
-  lines.push("", "AGENDA (próximos 10 dias):");
-  if (!upcoming.length) lines.push("- nada marcado");
-  for (const e of upcoming) lines.push(`- ${fmtDateTime(e.startsAt)} · ${e.title} (${e.type})${e.location ? ` @ ${e.location}` : ""}`);
+  if (canAgenda) {
+    lines.push("", "AGENDA (próximos 10 dias):");
+    if (!upcoming.length) lines.push("- nada marcado");
+    for (const e of upcoming) lines.push(`- ${fmtDateTime(e.startsAt)} · ${e.title} (${e.type})${e.location ? ` @ ${e.location}` : ""}`);
+  }
 
   lines.push("", "TAREFAS PENDENTES:");
   if (!openTasks.length) lines.push("- nenhuma");
   for (const t of openTasks) lines.push(`- ${t.title}${t.dueAt ? ` · até ${fmtDateTime(t.dueAt)}` : ""}`);
 
-  if (!partner) {
-    const [unread, receivables, payables] = await Promise.all([
-      db
-        .select({
-          name: sql<string>`coalesce(${schema.contacts.name}, ${schema.conversations.profileName}, ${schema.conversations.phone})`,
-          unread: schema.conversations.unread,
-          preview: schema.conversations.preview,
-          at: schema.conversations.lastMessageAt,
-        })
-        .from(schema.conversations)
-        .leftJoin(schema.contacts, eq(schema.conversations.contactId, schema.contacts.id))
-        .where(and(gt(schema.conversations.unread, 0), eq(schema.conversations.status, "aberta")))
-        .orderBy(desc(schema.conversations.lastMessageAt))
-        .limit(15),
+  if (canInbox) {
+    const unread = await db
+      .select({
+        name: sql<string>`coalesce(${schema.contacts.name}, ${schema.conversations.profileName}, ${schema.conversations.phone})`,
+        unread: schema.conversations.unread,
+        preview: schema.conversations.preview,
+        at: schema.conversations.lastMessageAt,
+      })
+      .from(schema.conversations)
+      .leftJoin(schema.contacts, eq(schema.conversations.contactId, schema.contacts.id))
+      .where(and(gt(schema.conversations.unread, 0), eq(schema.conversations.status, "aberta")))
+      .orderBy(desc(schema.conversations.lastMessageAt))
+      .limit(15);
+    lines.push("", "WHATSAPP — CONVERSAS AGUARDANDO RESPOSTA:");
+    if (!unread.length) lines.push("- nenhuma");
+    for (const c of unread) lines.push(`- ${c.name} (${c.unread} não lidas, ${fmtDateTime(c.at)}): "${(c.preview || "").slice(0, 120)}"`);
+  }
+
+  if (canFinance) {
+    const [receivables, payables] = await Promise.all([
       db
         .select({ d: schema.transactions.description, v: schema.transactions.amountCents, due: schema.transactions.dueDate })
         .from(schema.transactions)
@@ -120,9 +134,6 @@ export async function buildSnapshot(user: SessionUser) {
         .orderBy(asc(schema.transactions.dueDate))
         .limit(15),
     ]);
-    lines.push("", "WHATSAPP — CONVERSAS AGUARDANDO RESPOSTA:");
-    if (!unread.length) lines.push("- nenhuma");
-    for (const c of unread) lines.push(`- ${c.name} (${c.unread} não lidas, ${fmtDateTime(c.at)}): "${(c.preview || "").slice(0, 120)}"`);
     lines.push("", "A RECEBER (em aberto):");
     if (!receivables.length) lines.push("- nada");
     for (const r of receivables) lines.push(`- ${fmtDate(r.due)}${r.due < today ? " (VENCIDO)" : ""} · ${r.d} · ${money(r.v)}`);

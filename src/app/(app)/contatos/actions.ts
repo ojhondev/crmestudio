@@ -4,7 +4,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { eq, max } from "drizzle-orm";
 import { db, schema } from "@/lib/db";
-import { requireUser } from "@/lib/auth";
+import { has, requireAccess } from "@/lib/auth";
+import { audit } from "@/lib/audit";
 import { normalizePhone, parseMoney } from "@/lib/format";
 
 const str = (v: FormDataEntryValue | null) => {
@@ -33,15 +34,17 @@ function contactFields(form: FormData) {
 
 /** Novo lead: cria o contato e (opcional) já abre um negócio na 1ª etapa. */
 export async function createContact(_: unknown, form: FormData) {
-  const user = await requireUser(["admin", "equipe"]);
+  const user = await requireAccess("contatos", "edit");
   const fields = contactFields(form);
   if (!fields.name) return { error: "Informe o nome." };
+  const wantsDeal = form.get("createDeal") === "on";
+  if (wantsDeal && !has(user, "negocios", "edit")) return { error: "Você não tem permissão para abrir negócios. Desmarque essa opção." };
   const [c] = await db
     .insert(schema.contacts)
     .values({ ...fields, ownerId: fields.ownerId ?? user.id })
     .returning({ id: schema.contacts.id });
 
-  if (form.get("createDeal") === "on") {
+  if (wantsDeal) {
     const [first] = await db.select().from(schema.stages).orderBy(schema.stages.position).limit(1);
     const [{ top }] = await db.select({ top: max(schema.deals.position) }).from(schema.deals).where(eq(schema.deals.stageId, first.id));
     const [deal] = await db
@@ -63,7 +66,7 @@ export async function createContact(_: unknown, form: FormData) {
 }
 
 export async function updateContact(_: unknown, form: FormData) {
-  await requireUser(["admin", "equipe"]);
+  await requireAccess("contatos", "edit");
   const id = String(form.get("id"));
   const fields = contactFields(form);
   if (!fields.name) return { error: "Informe o nome." };
@@ -80,8 +83,10 @@ export async function updateContact(_: unknown, form: FormData) {
 }
 
 export async function deleteContact(id: string) {
-  await requireUser(["admin", "equipe"]);
+  const user = await requireAccess("contatos", "manage");
+  const [c] = await db.select({ name: schema.contacts.name }).from(schema.contacts).where(eq(schema.contacts.id, id));
   await db.delete(schema.contacts).where(eq(schema.contacts.id, id));
+  await audit(user, "contato_excluido", `Excluiu o contato “${c?.name ?? id}”`, { entity: "contato", entityId: id });
   revalidatePath("/", "layout");
   redirect("/contatos");
 }

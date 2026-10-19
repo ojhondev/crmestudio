@@ -40,7 +40,7 @@ export const articles: Article[] = [
           "No celular, use a barra inferior: Painel, Negócios, Atendimento e Agenda. O botão “Mais” abre o resto do menu.",
           "No computador, use o menu lateral. O botão no topo recolhe o menu para só ícones (atalho: Ctrl+B).",
           "O botão “?” no topo abre o tour guiado, a Central de ajuda e as dúvidas mais comuns.",
-          "O ícone de sol/lua troca entre tema claro, escuro e automático.",
+          "O ícone de sol/lua troca entre o tema claro (padrão) e o escuro (opcional).",
         ],
       },
       {
@@ -249,23 +249,65 @@ export const articles: Article[] = [
     slug: "equipe-acessos",
     module: "Sistema",
     title: "Equipe e acessos",
-    summary: "Quem entra no sistema e o que cada pessoa pode ver.",
+    summary: "Perfis, permissões por módulo, contas e a trilha de atividade.",
     href: "/equipe",
     tour: "/equipe",
-    keywords: ["usuário", "permissão", "parceiro", "senha", "acesso"],
+    keywords: ["usuário", "permissão", "perfil", "parceiro", "senha", "acesso", "nível", "auditoria", "atividade"],
     body: [
-      { t: "p", text: "Somente administradores veem esta tela." },
+      { t: "p", text: "Aqui o estúdio decide quem entra no sistema e o que cada pessoa pode ver e fazer. Quem tiver o módulo “Equipe e acessos” liberado vê esta tela; para criar contas e mudar permissões é preciso o nível Gerenciar." },
       {
         t: "list",
-        title: "Níveis de acesso",
+        title: "Perfis prontos",
         items: [
-          "Administrador: acesso total, inclusive contas e ajustes.",
-          "Equipe: operação do dia a dia — negócios, contatos, atendimento, agenda e financeiro.",
-          "Parceiro comercial: vê apenas os negócios em que foi indicado e a própria agenda.",
+          "Administrador: acesso total, inclusive contas e configurações.",
+          "Gestor: toca a operação inteira (negócios, atendimento, agenda, financeiro, documentos); vê a equipe, mas não altera acessos.",
+          "Comercial: funil, contatos, atendimento, agenda e documentos. Sem financeiro.",
+          "Atendimento: responde clientes e cuida de contatos e agenda; consulta o funil sem alterar.",
+          "Financeiro: cuida do caixa e consulta negócios, contatos e agenda.",
+          "Parceiro comercial: externo; vê e atualiza só os negócios em que foi indicado e a própria agenda.",
         ],
       },
-      { t: "steps", title: "Adicionar uma pessoa", items: ["Toque em “Adicionar pessoa”.", "Preencha nome, e-mail e papel.", "Copie a senha provisória e envie por um canal privado. A pessoa troca a senha em Ajustes."] },
-      { t: "tip", text: "Para tirar o acesso de alguém sem apagar o histórico, desative a conta." },
+      {
+        t: "list",
+        title: "Os quatro níveis de cada módulo",
+        items: [
+          "Nenhum: o módulo nem aparece no menu e o endereço direto é bloqueado.",
+          "Ver: só consulta.",
+          "Editar: cria e altera.",
+          "Gerenciar: também exclui e mexe em configurações sensíveis.",
+        ],
+      },
+      {
+        t: "steps",
+        title: "Adicionar uma pessoa",
+        items: [
+          "Toque em “Adicionar pessoa” e preencha nome, e-mail e perfil.",
+          "Copie o acesso gerado (senha provisória) e envie por um canal privado.",
+          "No primeiro login a pessoa é obrigada a criar a própria senha.",
+        ],
+      },
+      {
+        t: "steps",
+        title: "Ajustar o acesso de alguém",
+        items: [
+          "Toque na pessoa na lista.",
+          "Escolha outro perfil ou ajuste módulo a módulo. Se a combinação não bate com um perfil pronto, ela vira “Personalizado”.",
+          "Use “Ver só os próprios” para limitar a pessoa aos negócios dela e à própria agenda.",
+          "Toque em Salvar. A mudança vale na hora, sem a pessoa precisar sair e entrar de novo.",
+        ],
+      },
+      {
+        t: "list",
+        title: "Regras de segurança",
+        items: [
+          "Ninguém concede mais acesso do que tem, e só administrador altera outro administrador.",
+          "Você não altera o seu próprio nível de acesso, nem desativa a própria conta.",
+          "O último administrador ativo não pode ser rebaixado nem desativado.",
+          "Desativar uma conta ou gerar nova senha desconecta a pessoa de todos os aparelhos na hora.",
+          "Depois de 8 tentativas de login erradas seguidas, o e-mail fica bloqueado por 15 minutos.",
+        ],
+      },
+      { t: "tip", text: "Na aba Atividade fica a trilha do que aconteceu: acessos, mudanças de permissão, lançamentos financeiros e exclusões, com quem fez e quando." },
     ],
   },
   {
@@ -313,10 +355,11 @@ export const articles: Article[] = [
 export const articleBySlug = (slug: string) => articles.find((a) => a.slug === slug);
 
 export const faq: { q: string; a: string }[] = [
-  { q: "Esqueci minha senha. E agora?", a: "Peça a um administrador para gerar uma nova senha provisória em Equipe e acessos → Nova senha. Depois troque a sua em Ajustes." },
+  { q: "Esqueci minha senha. E agora?", a: "Peça a um administrador para gerar uma nova senha provisória em Equipe e acessos (toque na sua pessoa → Gerar nova senha). No próximo login você cria uma senha nova só sua." },
   { q: "Por que não consigo enviar mensagem no WhatsApp?", a: "Provavelmente passaram 24 horas desde a última mensagem do cliente. A Meta só permite texto livre dentro dessa janela. Aguarde o cliente escrever ou use um modelo aprovado." },
   { q: "A agenda do Google não mostra um evento que criei.", a: "O Google atualiza assinaturas de calendário a cada algumas horas. No iPhone costuma ser mais rápido. Confira também se o link de sincronização é o seu." },
   { q: "Apaguei um negócio sem querer.", a: "A exclusão é definitiva. Por isso o sistema sempre pede confirmação. Se aconteceu, avise um administrador para tentar recuperar pelo banco." },
+  { q: "Por que não vejo um módulo no menu (ex.: Financeiro)?", a: "Cada pessoa vê só os módulos liberados no seu perfil de acesso. Se precisar de outro, peça a um administrador em Equipe e acessos." },
   { q: "Posso usar no computador e no celular ao mesmo tempo?", a: "Sim. Os dados são os mesmos em qualquer aparelho." },
 ];
 
@@ -340,7 +383,7 @@ export const tours: Record<string, { label: string; steps: TourStep[] }> = {
       { target: ["nav-financeiro", "nav-mais"], title: "Financeiro e mais", body: "Receitas, despesas e o caixa do mês ficam no menu. No celular, toque em “Mais” para ver tudo." },
       { target: ["ana", "ana-top"], title: "Ana, a copiloto", body: "Pergunte sobre o funil, peça um resumo de conversa ou um rascunho de e-mail. Atalho no computador: Ctrl+J." },
       { target: ["sidebar-toggle"], title: "Menu recolhível", body: "No computador, este botão recolhe o menu lateral para deixar só os ícones e abrir mais espaço." },
-      { target: ["theme-toggle"], title: "Tema claro ou escuro", body: "Escolha o que for mais confortável para os seus olhos — ou deixe automático, seguindo o aparelho." },
+      { target: ["theme-toggle"], title: "Tema claro ou escuro", body: "O visual padrão é claro. Se preferir, troque para o escuro aqui — a escolha fica salva neste aparelho." },
       { target: ["help-button"], title: "Ajuda sempre à mão", body: "Aqui você revê este tour, faz o tour de cada tela e abre a Central de ajuda com o passo a passo de tudo." },
     ],
   },
@@ -394,8 +437,9 @@ export const tours: Record<string, { label: string; steps: TourStep[] }> = {
   "/equipe": {
     label: "Tour de Equipe e acessos",
     steps: [
-      { target: ["page-actions"], title: "Adicionar pessoa", body: "Crie contas para funcionários e parceiros. A senha provisória aparece uma única vez." },
-      { target: ["page-header"], title: "Níveis de acesso", body: "Administrador, Equipe e Parceiro comercial — cada um vê só o que precisa." },
+      { target: ["page-actions"], title: "Adicionar pessoa", body: "Crie a conta escolhendo um perfil. A senha provisória aparece uma única vez e a pessoa cria a própria no primeiro acesso." },
+      { target: ["team-list"], title: "Pessoas e perfis", body: "Cada cartão mostra o perfil e o último acesso. Toque em uma pessoa para ajustar permissões módulo a módulo, desativar a conta ou gerar nova senha." },
+      { target: ["team-tabs"], title: "Atividade", body: "Na aba Atividade fica a trilha de acessos, mudanças de permissão, lançamentos financeiros e exclusões." },
     ],
   },
   "/ajustes": {

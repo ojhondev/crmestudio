@@ -23,7 +23,7 @@ import type { Stage } from "@/lib/db/schema";
 import type { BoardDeal } from "@/lib/deals";
 import { moveDeal } from "./actions";
 
-export function Kanban({ stages, deals: initial }: { stages: Stage[]; deals: BoardDeal[] }) {
+export function Kanban({ stages, deals: initial, canEdit = true, canLaunch = true }: { stages: Stage[]; deals: BoardDeal[]; canEdit?: boolean; canLaunch?: boolean }) {
   const [deals, setDeals] = useState(initial);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [, startTransition] = useTransition();
@@ -82,7 +82,8 @@ export function Kanban({ stages, deals: initial }: { stages: Stage[]; deals: Boa
     startTransition(async () => {
       try {
         const { kind } = await moveDeal(dealId, stageId, position);
-        if (kind === "ganho")
+        if (kind === "ganho" && !canLaunch) toast.success("Negócio fechado! 🎉");
+        else if (kind === "ganho")
           toast.success("Negócio fechado! 🎉", {
             description: "Quer lançar o valor no financeiro?",
             action: { label: "Lançar", onClick: () => router.push(`/financeiro?novo=receita&deal=${dealId}`) },
@@ -95,7 +96,7 @@ export function Kanban({ stages, deals: initial }: { stages: Stage[]; deals: Boa
   }
 
   return (
-    <DndContext id="deals-board" sensors={sensors} onDragStart={onDragStart} onDragEnd={onDragEnd} onDragCancel={() => setActiveId(null)}>
+    <DndContext id="deals-board" sensors={canEdit ? sensors : []} onDragStart={onDragStart} onDragEnd={onDragEnd} onDragCancel={() => setActiveId(null)}>
       <div data-tour="kanban" className="thin-scroll flex min-h-0 flex-1 snap-x snap-proximity gap-3 overflow-x-auto scroll-px-5 px-5 pb-6 sm:px-8 lg:px-10">
         {stages.map((s) => {
           const list = byStage.get(s.id) ?? [];

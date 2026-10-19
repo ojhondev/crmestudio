@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { eq } from "drizzle-orm";
 import { db, schema } from "@/lib/db";
-import { requireUser } from "@/lib/auth";
+import { requireAccess } from "@/lib/auth";
 import { parseLocalInput } from "@/lib/format";
 
 const str = (v: FormDataEntryValue | null) => {
@@ -12,7 +12,7 @@ const str = (v: FormDataEntryValue | null) => {
 };
 
 export async function saveEvent(_: unknown, form: FormData) {
-  const user = await requireUser();
+  const user = await requireAccess("agenda", "edit");
   const id = str(form.get("id"));
   const title = String(form.get("title") || "").trim();
   if (!title) return { error: "Dê um título ao evento." };
@@ -25,7 +25,7 @@ export async function saveEvent(_: unknown, form: FormData) {
   if (allDay) endsAt = new Date(endsAt.getTime() + 864e5 - 1000); // até 23:59:59 do último dia
   if (endsAt < startsAt) return { error: "O fim precisa ser depois do início." };
 
-  const partner = user.role === "parceiro";
+  const partner = user.ownOnly; // só os próprios: não escolhe responsável nem contato
   const values = {
     title,
     type: String(form.get("type") || "reuniao"),
@@ -58,10 +58,10 @@ export async function saveEvent(_: unknown, form: FormData) {
 }
 
 export async function deleteEvent(id: string) {
-  const user = await requireUser();
+  const user = await requireAccess("agenda", "edit");
   const [ev] = await db.select().from(schema.events).where(eq(schema.events.id, id));
   if (!ev) return;
-  if (user.role === "parceiro" && ev.userId !== user.id) return;
+  if (user.ownOnly && ev.userId !== user.id) return;
   await db.delete(schema.events).where(eq(schema.events.id, id));
   revalidatePath("/", "layout");
 }

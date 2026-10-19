@@ -3,7 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { eq } from "drizzle-orm";
 import { db, schema } from "@/lib/db";
-import { access, requireUser } from "@/lib/auth";
+import { requireAccess } from "@/lib/auth";
+import { audit } from "@/lib/audit";
 import { parseMoney, todayISO } from "@/lib/format";
 
 const str = (v: FormDataEntryValue | null) => {
@@ -20,7 +21,7 @@ function addMonths(iso: string, n: number) {
 }
 
 export async function saveTransaction(_: unknown, form: FormData) {
-  await requireUser(access.financeiro);
+  const user = await requireAccess("financeiro", "edit");
   const id = str(form.get("id"));
   const kind = form.get("kind") === "despesa" ? "despesa" : "receita";
   const description = String(form.get("description") || "").trim();
@@ -43,6 +44,7 @@ export async function saveTransaction(_: unknown, form: FormData) {
       .update(schema.transactions)
       .set({ ...base, description, amountCents, dueDate, paidAt: paid ? (str(form.get("paidAt")) ?? todayISO()) : null })
       .where(eq(schema.transactions.id, id));
+    await audit(user, "lancamento_alterado", `Alterou o lançamento “${description}” (${kind}, ${(amountCents / 100).toFixed(2)})`, { entity: "lancamento", entityId: id, meta: { kind, amountCents, dueDate, paid } });
   } else {
     // parcelamento: divide o valor em N meses (centavos que sobram vão na 1ª)
     const n = Math.min(Math.max(Number(form.get("installments")) || 1, 1), 48);
@@ -54,23 +56,34 @@ export async function saveTransaction(_: unknown, form: FormData) {
       dueDate: addMonths(dueDate, i),
       paidAt: paid && i === 0 ? todayISO() : null,
     }));
-    await db.insert(schema.transactions).values(rows);
+    const created = await db.insert(schema.transactions).values(rows).returning({ id: schema.transactions.id });
+    await audit(user, "lancamento_criado", `Lançou ${kind === "receita" ? "receita" : "despesa"} “${description}” de R$ ${(amountCents / 100).toFixed(2)}${n > 1 ? ` em ${n}x` : ""}`, {
+      entity: "lancamento",
+      entityId: created[0]?.id,
+      meta: { kind, amountCents, installments: n, dueDate },
+    });
   }
   revalidatePath("/", "layout");
   return { ok: true };
 }
 
 export async function togglePaid(id: string, paid: boolean) {
-  await requireUser(access.financeiro);
-  await db
+  const user = await requireAccess("financeiro", "edit");
+  const [t] = await db
     .update(schema.transactions)
     .set({ paidAt: paid ? todayISO() : null })
-    .where(eq(schema.transactions.id, id));
+    .where(eq(schema.transactions.id, id))
+    .returning({ description: schema.transactions.description, kind: schema.transactions.kind, amountCents: schema.transactions.amountCents });
+  if (t) await audit(user, paid ? "lancamento_baixado" : "lancamento_reaberto", `${paid ? "Marcou como pago/recebido" : "Reabriu"} “${t.description}”`, { entity: "lancamento", entityId: id, meta: { amountCents: t.amountCents } });
   revalidatePath("/", "layout");
 }
 
 export async function deleteTransaction(id: string) {
-  await requireUser(access.financeiro);
-  await db.delete(schema.transactions).where(eq(schema.transactions.id, id));
+  const user = await requireAccess("financeiro", "manage");
+  const [t] = await db
+    .delete(schema.transactions)
+    .where(eq(schema.transactions.id, id))
+    .returning({ description: schema.transactions.description, kind: schema.transactions.kind, amountCents: schema.transactions.amountCents });
+  if (t) await audit(user, "lancamento_excluido", `Excluiu o lançamento “${t.description}”`, { entity: "lancamento", entityId: id, meta: { kind: t.kind, amountCents: t.amountCents } });
   revalidatePath("/", "layout");
 }

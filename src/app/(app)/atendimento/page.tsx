@@ -3,7 +3,7 @@ import Link from "next/link";
 import { and, asc, desc, eq, gt, ilike, or, sql } from "drizzle-orm";
 import { MessageCircle, Search } from "lucide-react";
 import { db, schema } from "@/lib/db";
-import { access, requireUser } from "@/lib/auth";
+import { has, requireAccess } from "@/lib/auth";
 import { insideWindow, whatsappConnected } from "@/lib/whatsapp";
 import { fmtPhone, fmtRelativeShort, initials, money } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -22,7 +22,7 @@ const FILTERS = [
 ];
 
 export default async function InboxPage({ searchParams }: PageProps<"/atendimento">) {
-  const user = await requireUser(access.atendimento);
+  const user = await requireAccess("atendimento");
   const sp = await searchParams;
   const selected = typeof sp.c === "string" && /^[0-9a-f-]{36}$/.test(sp.c) ? sp.c : null;
   const filter = typeof sp.f === "string" ? sp.f : "abertas";
@@ -120,6 +120,7 @@ export default async function InboxPage({ searchParams }: PageProps<"/atendiment
         team,
         deals: deals.map((d) => ({ ...d, valueLabel: money(d.value) })),
         connected: whatsappConnected(),
+        canEdit: has(user, "atendimento", "edit"),
       };
     }
   }

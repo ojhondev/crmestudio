@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { requireUser } from "@/lib/auth";
+import { has, requireAccess } from "@/lib/auth";
 import { getBoard } from "@/lib/deals";
 import { getFormOptions } from "@/lib/options";
 import { money } from "@/lib/format";
@@ -10,8 +10,9 @@ import { NewDealButton } from "./deal-form";
 export const metadata: Metadata = { title: "Negócios" };
 
 export default async function DealsPage() {
-  const user = await requireUser();
+  const user = await requireAccess("negocios");
   const [{ stages, deals }, options] = await Promise.all([getBoard(user), getFormOptions(user)]);
+  const canEdit = has(user, "negocios", "edit");
   const openIds = new Set(stages.filter((s) => s.kind === "aberto").map((s) => s.id));
   const open = deals.filter((d) => openIds.has(d.stageId));
   const pipeline = open.reduce((s, d) => s + d.valueCents, 0);
@@ -24,11 +25,12 @@ export default async function DealsPage() {
         description={
           <>
             {open.length} em andamento · <span className="text-foreground">{money(pipeline)}</span> no funil
+            {!canEdit && " · somente leitura"}
           </>
         }
-        actions={<NewDealButton options={options} isPartner={user.role === "parceiro"} />}
+        actions={canEdit ? <NewDealButton options={options} isPartner={user.ownOnly} /> : undefined}
       />
-      <Kanban stages={stages} deals={deals} />
+      <Kanban stages={stages} deals={deals} canEdit={canEdit} canLaunch={has(user, "financeiro", "edit")} />
     </div>
   );
 }

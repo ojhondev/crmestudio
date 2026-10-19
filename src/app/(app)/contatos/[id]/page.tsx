@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { asc, desc, eq } from "drizzle-orm";
 import { ArrowLeft, Mail, MessageCircle, Phone } from "lucide-react";
 import { db, schema } from "@/lib/db";
-import { access, requireUser } from "@/lib/auth";
+import { has, requireAccess } from "@/lib/auth";
 import { getFormOptions } from "@/lib/options";
 import { fmtPhone, money } from "@/lib/format";
 import { Badge } from "@/components/ui/badge";
@@ -25,7 +25,11 @@ export const metadata: Metadata = { title: "Contato" };
 
 export default async function ContactPage({ params }: PageProps<"/contatos/[id]">) {
   const { id } = await params;
-  const user = await requireUser(access.contatos);
+  const user = await requireAccess("contatos");
+  const canEdit = has(user, "contatos", "edit");
+  const canDelete = has(user, "contatos", "manage");
+  const canDeal = has(user, "negocios", "edit");
+  const canInbox = has(user, "atendimento", "edit");
   if (!/^[0-9a-f-]{36}$/.test(id)) notFound();
   const [contact] = await db.select().from(schema.contacts).where(eq(schema.contacts.id, id)).limit(1);
   if (!contact) notFound();
@@ -78,19 +82,21 @@ export default async function ContactPage({ params }: PageProps<"/contatos/[id]"
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            {contact.phone && (
+            {canInbox && contact.phone && (
               <Button asChild variant="outline">
                 <Link href={conv ? `/atendimento?c=${conv.id}` : `/atendimento/abrir?phone=${contact.phone}`}>
                   <MessageCircle /> WhatsApp
                 </Link>
               </Button>
             )}
-            <NewDealButton options={options} defaultContactId={contact.id} label="Negócio" variant="outline" />
+            {canDeal && <NewDealButton options={options} defaultContactId={contact.id} label="Negócio" variant="outline" />}
+            {canDelete && (
             <ConfirmButton
               action={deleteContact.bind(null, contact.id)}
               title="Excluir este contato?"
               description="Negócios, conversas, eventos e lançamentos ligados a ele também serão apagados."
             />
+            )}
           </div>
         </div>
       </div>
@@ -99,15 +105,17 @@ export default async function ContactPage({ params }: PageProps<"/contatos/[id]"
         <Tabs defaultValue="historico" className="min-w-0">
           <TabsList>
             <TabsTrigger value="historico">Histórico</TabsTrigger>
-            <TabsTrigger value="dados">Dados</TabsTrigger>
+            {canEdit && <TabsTrigger value="dados">Dados</TabsTrigger>}
           </TabsList>
           <TabsContent value="historico" className="mt-4 grid gap-6">
-            <ActivityComposer contactId={contact.id} />
+            {canEdit && <ActivityComposer contactId={contact.id} />}
             <Timeline items={activities} />
           </TabsContent>
-          <TabsContent value="dados" className="mt-4 rounded-xl border bg-card p-5">
-            <EditContactForm contact={contact} team={options.team} />
-          </TabsContent>
+          {canEdit && (
+            <TabsContent value="dados" className="mt-4 rounded-xl border bg-card p-5">
+              <EditContactForm contact={contact} team={options.team} />
+            </TabsContent>
+          )}
         </Tabs>
 
         <div className="grid gap-4">
@@ -151,6 +159,7 @@ export default async function ContactPage({ params }: PageProps<"/contatos/[id]"
           <Section title="Tarefas">
             <TaskList
               contactId={contact.id}
+              compose={canEdit}
               tasks={taskRows.map((t) => ({ id: t.id, title: t.title, dueAt: t.dueAt?.toISOString() ?? null, doneAt: t.doneAt?.toISOString() ?? null }))}
             />
           </Section>

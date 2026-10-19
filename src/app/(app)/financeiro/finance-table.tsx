@@ -38,7 +38,7 @@ type Row = {
 type Opt = { id: string; name: string };
 type Preset = { kind: "receita" | "despesa"; dealId?: string; contactId?: string; amountCents?: number; description?: string };
 
-export function FinanceTable({ rows, today, deals, contacts }: { rows: Row[]; today: string; deals: Opt[]; contacts: Opt[] }) {
+export function FinanceTable({ rows, today, deals, contacts, canEdit = true, canDelete = true }: { rows: Row[]; today: string; deals: Opt[]; contacts: Opt[]; canEdit?: boolean; canDelete?: boolean }) {
   const [editing, setEditing] = useState<Row | null>(null);
   const [optimistic, setPaid] = useOptimistic(rows, (state, { id, paid }: { id: string; paid: boolean }) =>
     state.map((r) => (r.id === id ? { ...r, paidAt: paid ? today : null } : r)),
@@ -69,10 +69,11 @@ export function FinanceTable({ rows, today, deals, contacts }: { rows: Row[]; to
             {optimistic.map((r) => {
               const late = !r.paidAt && r.dueDate < today;
               return (
-                <tr key={r.id} className="cursor-pointer border-b last:border-0 hover:bg-muted/50" onClick={() => setEditing(r)}>
+                <tr key={r.id} className={cn("border-b last:border-0", canEdit && "cursor-pointer hover:bg-muted/50")} onClick={canEdit ? () => setEditing(r) : undefined}>
                   <td className="px-4 py-2.5" onClick={(e) => e.stopPropagation()}>
                     <Checkbox
                       checked={!!r.paidAt}
+                      disabled={!canEdit}
                       aria-label="Marcar como pago"
                       onCheckedChange={(v) =>
                         start(async () => {
@@ -120,7 +121,7 @@ export function FinanceTable({ rows, today, deals, contacts }: { rows: Row[]; to
           </tbody>
         </table>
       </div>
-      <TransactionDialog open={!!editing} onClose={() => setEditing(null)} row={editing ?? undefined} deals={deals} contacts={contacts} />
+      <TransactionDialog open={!!editing} onClose={() => setEditing(null)} row={editing ?? undefined} deals={deals} contacts={contacts} canDelete={canDelete} />
     </>
   );
 }
@@ -144,6 +145,7 @@ function TransactionDialog({
   preset,
   deals,
   contacts,
+  canDelete = true,
 }: {
   open: boolean;
   onClose: () => void;
@@ -151,6 +153,7 @@ function TransactionDialog({
   preset?: Preset;
   deals: Opt[];
   contacts: Opt[];
+  canDelete?: boolean;
 }) {
   const router = useRouter();
   const [kind, setKind] = useState<"receita" | "despesa">(row?.kind ?? preset?.kind ?? "receita");
@@ -259,7 +262,7 @@ function TransactionDialog({
           </Field>
           {state?.error && <p className="text-sm text-destructive">{state.error}</p>}
           <div className="flex items-center gap-2">
-            {row && (
+            {row && canDelete && (
               <ConfirmButton
                 title="Excluir lançamento?"
                 action={async () => {

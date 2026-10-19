@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { db, schema } from "@/lib/db";
-import { access, requireUser } from "@/lib/auth";
+import { requireAccess } from "@/lib/auth";
 import { insideWindow, sendText, whatsappConnected } from "@/lib/whatsapp";
 import { recordInbound } from "@/lib/inbox";
 import { normalizePhone } from "@/lib/format";
@@ -16,7 +16,7 @@ async function getConv(id: string) {
 }
 
 export async function sendMessage(conversationId: string, text: string, asNote = false) {
-  const user = await requireUser(access.atendimento);
+  const user = await requireAccess("atendimento", "edit");
   const body = text.trim();
   if (!body) return { error: "Mensagem vazia." };
   const conv = await getConv(conversationId);
@@ -54,26 +54,26 @@ export async function sendMessage(conversationId: string, text: string, asNote =
 }
 
 export async function markRead(conversationId: string) {
-  await requireUser(access.atendimento);
+  await requireAccess("atendimento", "view");
   await db.update(schema.conversations).set({ unread: 0 }).where(eq(schema.conversations.id, conversationId));
   revalidatePath("/", "layout");
 }
 
 export async function setStatus(conversationId: string, status: "aberta" | "resolvida") {
-  await requireUser(access.atendimento);
+  await requireAccess("atendimento", "edit");
   await db.update(schema.conversations).set({ status, unread: 0 }).where(eq(schema.conversations.id, conversationId));
   revalidatePath("/", "layout");
 }
 
 export async function assignConversation(conversationId: string, userId: string | null) {
-  await requireUser(access.atendimento);
+  await requireAccess("atendimento", "edit");
   await db.update(schema.conversations).set({ assigneeId: userId }).where(eq(schema.conversations.id, conversationId));
   revalidatePath("/atendimento");
 }
 
 /** Abre (ou reabre) conversa com um número, a partir do CRM. */
 export async function startConversation(form: FormData) {
-  await requireUser(access.atendimento);
+  await requireAccess("atendimento", "edit");
   const phone = normalizePhone(String(form.get("phone") || ""));
   if (!phone) redirect("/atendimento");
   let [conv] = await db.select().from(schema.conversations).where(eq(schema.conversations.phone, phone)).limit(1);
@@ -93,7 +93,7 @@ export async function startConversation(form: FormData) {
 
 /** Só no modo simulado: finge que o cliente respondeu (para testar o fluxo e a Ana). */
 export async function simulateInbound(conversationId: string, text: string) {
-  await requireUser(access.atendimento);
+  await requireAccess("atendimento", "edit");
   if (whatsappConnected()) return { error: "WhatsApp real conectado — simulação desativada." };
   const conv = await getConv(conversationId);
   await recordInbound({ phone: conv.phone, name: conv.profileName, body: text.trim() || "Olá!" });

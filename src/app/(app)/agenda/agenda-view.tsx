@@ -55,6 +55,7 @@ export function AgendaView({
   isPartner,
   openNew,
   presetDeal,
+  canEdit = true,
 }: {
   month: string;
   days: string[];
@@ -67,10 +68,14 @@ export function AgendaView({
   isPartner: boolean;
   openNew?: boolean;
   presetDeal?: string;
+  canEdit?: boolean;
 }) {
   const [dialog, setDialog] = useState<{ event?: Ev; date?: string; dealId?: string } | null>(
-    openNew ? { date: today, dealId: presetDeal } : null,
+    openNew && canEdit ? { date: today, dealId: presetDeal } : null,
   );
+  const show = (v: { event?: Ev; date?: string; dealId?: string }) => {
+    if (canEdit) setDialog(v);
+  };
   const [mine, setMine] = useState(false);
 
   const byDay = useMemo(() => {
@@ -119,9 +124,11 @@ export function AgendaView({
                 </Label>
               </div>
             )}
-            <Button onClick={() => setDialog({ date: today })}>
-              <Plus /> Evento
-            </Button>
+            {canEdit && (
+              <Button onClick={() => show({ date: today })}>
+                <Plus /> Evento
+              </Button>
+            )}
           </div>
         </div>
 
@@ -140,7 +147,7 @@ export function AgendaView({
               return (
                 <div
                   key={d}
-                  onClick={() => setDialog({ date: d })}
+                  onClick={() => show({ date: d })}
                   className={cn(
                     "group min-h-[92px] cursor-pointer border-r border-b p-1.5 transition-colors last:border-r-0 hover:bg-muted/40 sm:min-h-[112px] [&:nth-child(7n)]:border-r-0",
                     outside && "bg-muted/25",
@@ -164,7 +171,7 @@ export function AgendaView({
                         key={e.id}
                         onClick={(ev) => {
                           ev.stopPropagation();
-                          setDialog({ event: e });
+                          show({ event: e });
                         }}
                         className="flex items-center gap-1 truncate rounded px-1 py-0.5 text-left text-[11px] leading-tight hover:bg-muted"
                         style={{ background: `${EVENT_TYPES[e.type]?.color ?? "#776157"}14` }}
@@ -187,7 +194,7 @@ export function AgendaView({
         <h3 className="label">Próximos</h3>
         {upcoming.length ? (
           upcoming.map((e) => (
-            <button key={e.id} onClick={() => setDialog({ event: e })} className="grid gap-0.5 rounded-lg border bg-card p-3 text-left hover:border-foreground/20">
+            <button key={e.id} onClick={() => show({ event: e })} className="grid gap-0.5 rounded-lg border bg-card p-3 text-left hover:border-foreground/20">
               <span className="flex items-center gap-1.5 text-[11.5px] text-muted-foreground">
                 <span className="size-1.5 rounded-full" style={{ background: EVENT_TYPES[e.type]?.color }} />
                 {fmtDate(e.startsAt, "EEE, dd/MM")} {e.allDay ? "· dia todo" : `· ${fmtTime(e.startsAt)}`}

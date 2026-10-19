@@ -1,14 +1,14 @@
 import { NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import { db, schema } from "@/lib/db";
-import { getUser } from "@/lib/auth";
+import { getUser, has } from "@/lib/auth";
 import { normalizePhone } from "@/lib/format";
 
 /** /atendimento/abrir?phone=55119… → acha ou cria a conversa e abre. */
 export async function GET(req: Request) {
   const url = new URL(req.url);
   const user = await getUser();
-  if (!user || user.role === "parceiro") return NextResponse.redirect(new URL("/", url));
+  if (!user || user.mustChangePassword || !has(user, "atendimento", "edit")) return NextResponse.redirect(new URL("/", url));
   const phone = normalizePhone(url.searchParams.get("phone"));
   if (!phone) return NextResponse.redirect(new URL("/atendimento", url));
 

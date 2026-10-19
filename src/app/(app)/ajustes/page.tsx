@@ -3,7 +3,7 @@ import { headers } from "next/headers";
 import { asc, count, eq } from "drizzle-orm";
 import { CalendarDays, MessageCircle, Sparkles } from "lucide-react";
 import { db, schema } from "@/lib/db";
-import { requireUser } from "@/lib/auth";
+import { has, requireUser } from "@/lib/auth";
 import { anaEnabled } from "@/lib/ana";
 import { whatsappConnected } from "@/lib/whatsapp";
 import { PageBody, PageHeader } from "@/components/page-header";
@@ -15,7 +15,8 @@ export const metadata: Metadata = { title: "Ajustes" };
 
 export default async function SettingsPage() {
   const user = await requireUser();
-  const admin = user.role === "admin";
+  const canView = has(user, "configuracoes", "view");
+  const canManage = has(user, "configuracoes", "manage");
   const [[me], stages, [demo]] = await Promise.all([
     db.select({ name: schema.users.name, phone: schema.users.phone }).from(schema.users).where(eq(schema.users.id, user.id)),
     db.select().from(schema.stages).orderBy(asc(schema.stages.position)),
@@ -35,7 +36,7 @@ export default async function SettingsPage() {
           <PasswordForm />
         </Section>
 
-        {admin && (
+        {canView && (
           <Section title="Integrações" className="lg:col-span-2">
             <div className="grid gap-3 md:grid-cols-3">
               <Integration
@@ -66,13 +67,13 @@ export default async function SettingsPage() {
           </Section>
         )}
 
-        {admin && (
+        {canManage && (
           <Section title="Etapas do funil" className="lg:col-span-2">
             <StagesEditor stages={stages} />
           </Section>
         )}
 
-        {admin && demo.n > 0 && (
+        {canManage && demo.n > 0 && (
           <Section title="Dados de exemplo" className="lg:col-span-2">
             <div className="flex flex-wrap items-center gap-3 text-[13px] text-muted-foreground">
               <p className="flex-1">

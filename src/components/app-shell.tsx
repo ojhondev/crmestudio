@@ -21,6 +21,7 @@ import { cn } from "@/lib/utils";
 import { initials } from "@/lib/format";
 import { logout } from "@/app/login/actions";
 import type { SessionUser } from "@/lib/auth";
+import { PROFILES, atLeast } from "@/lib/permissions";
 import { useAna } from "@/components/ana/ana-provider";
 import { HelpMenu } from "@/components/help/help-menu";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -48,31 +49,26 @@ import {
 type Item = { key: string; href: string; label: string; icon: React.ElementType; badge?: number };
 type Group = { label: string; items: Item[] };
 
-const ROLE_LABEL = { admin: "Administrador", equipe: "Equipe", parceiro: "Parceiro comercial" } as const;
+const has = (u: SessionUser, m: keyof SessionUser["perms"]) => atLeast(u.perms[m], "view");
+const profileLabel = (u: SessionUser) => (u.profile in PROFILES ? PROFILES[u.profile as keyof typeof PROFILES].label : "Equipe");
 
 function groups(user: SessionUser, unread: number): Group[] {
-  const staff = user.role !== "parceiro";
-  const g: Group[] = [
-    {
-      label: "Operação",
-      items: [
-        { key: "painel", href: "/", label: "Painel", icon: LayoutDashboard },
-        { key: "negocios", href: "/negocios", label: "Negócios", icon: KanbanSquare },
-        ...(staff
-          ? [
-              { key: "contatos", href: "/contatos", label: "Leads e contatos", icon: Users },
-              { key: "atendimento", href: "/atendimento", label: "Atendimento", icon: MessageCircle, badge: unread },
-            ]
-          : []),
-        { key: "agenda", href: "/agenda", label: "Agenda", icon: CalendarDays },
-      ],
-    },
-  ];
-  if (staff) g.push({ label: "Gestão", items: [{ key: "financeiro", href: "/financeiro", label: "Financeiro", icon: Wallet }] });
-  const admin: Item[] = [];
-  if (user.role === "admin") admin.push({ key: "equipe", href: "/equipe", label: "Equipe e acessos", icon: UserCog });
-  admin.push({ key: "ajustes", href: "/ajustes", label: "Ajustes", icon: Settings });
-  g.push({ label: "Sistema", items: admin });
+  const g: Group[] = [];
+  const operacao: Item[] = [{ key: "painel", href: "/", label: "Painel", icon: LayoutDashboard }];
+  if (has(user, "negocios")) operacao.push({ key: "negocios", href: "/negocios", label: "Negócios", icon: KanbanSquare });
+  if (has(user, "contatos")) operacao.push({ key: "contatos", href: "/contatos", label: "Leads e contatos", icon: Users });
+  if (has(user, "atendimento")) operacao.push({ key: "atendimento", href: "/atendimento", label: "Atendimento", icon: MessageCircle, badge: unread });
+  if (has(user, "agenda")) operacao.push({ key: "agenda", href: "/agenda", label: "Agenda", icon: CalendarDays });
+  g.push({ label: "Operação", items: operacao });
+
+  const gestao: Item[] = [];
+  if (has(user, "financeiro")) gestao.push({ key: "financeiro", href: "/financeiro", label: "Financeiro", icon: Wallet });
+  if (gestao.length) g.push({ label: "Gestão", items: gestao });
+
+  const sistema: Item[] = [];
+  if (has(user, "equipe")) sistema.push({ key: "equipe", href: "/equipe", label: "Equipe e acessos", icon: UserCog });
+  sistema.push({ key: "ajustes", href: "/ajustes", label: "Ajustes", icon: Settings });
+  g.push({ label: "Sistema", items: sistema });
   return g;
 }
 
@@ -177,7 +173,7 @@ function AppSidebar({ user, unread }: { user: SessionUser; unread: number }) {
               </Avatar>
               <span className="grid min-w-0 flex-1 leading-tight group-data-[collapsible=icon]:hidden">
                 <span className="truncate text-[13px] font-medium">{user.name}</span>
-                <span className="truncate text-[11.5px] text-muted-foreground">{ROLE_LABEL[user.role]}</span>
+                <span className="truncate text-[11.5px] text-muted-foreground">{profileLabel(user)}</span>
               </span>
               <ChevronsUpDown className="size-4 text-muted-foreground group-data-[collapsible=icon]:hidden" />
             </button>
@@ -237,12 +233,11 @@ function TopBar() {
 function BottomNav({ user, unread }: { user: SessionUser; unread: number }) {
   const pathname = usePathname();
   const { setOpenMobile } = useSidebar();
-  const staff = user.role !== "parceiro";
   const tabs: Item[] = [
     { key: "painel", href: "/", label: "Painel", icon: LayoutDashboard },
-    { key: "negocios", href: "/negocios", label: "Negócios", icon: KanbanSquare },
-    ...(staff ? [{ key: "atendimento", href: "/atendimento", label: "Atendimento", icon: MessageCircle, badge: unread }] : []),
-    { key: "agenda", href: "/agenda", label: "Agenda", icon: CalendarDays },
+    ...(has(user, "negocios") ? [{ key: "negocios", href: "/negocios", label: "Negócios", icon: KanbanSquare }] : []),
+    ...(has(user, "atendimento") ? [{ key: "atendimento", href: "/atendimento", label: "Atendimento", icon: MessageCircle, badge: unread }] : []),
+    ...(has(user, "agenda") ? [{ key: "agenda", href: "/agenda", label: "Agenda", icon: CalendarDays }] : []),
   ];
   return (
     <nav

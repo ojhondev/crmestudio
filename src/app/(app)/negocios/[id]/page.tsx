@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { asc, desc, eq } from "drizzle-orm";
 import { ArrowLeft, CalendarPlus, Mail, MessageCircle, Phone, Plus } from "lucide-react";
 import { db, schema } from "@/lib/db";
-import { requireUser } from "@/lib/auth";
+import { has, requireAccess } from "@/lib/auth";
 import { getFormOptions } from "@/lib/options";
 import { fmtDate, fmtDateTime, fmtPhone, money } from "@/lib/format";
 import { EVENT_TYPES } from "@/lib/constants";
@@ -26,12 +26,18 @@ export const metadata: Metadata = { title: "Negócio" };
 
 export default async function DealPage({ params }: PageProps<"/negocios/[id]">) {
   const { id } = await params;
-  const user = await requireUser();
+  const user = await requireAccess("negocios");
   if (!/^[0-9a-f-]{36}$/.test(id)) notFound();
   const [deal] = await db.select().from(schema.deals).where(eq(schema.deals.id, id)).limit(1);
   if (!deal) notFound();
-  const partner = user.role === "parceiro";
-  if (partner && deal.partnerId !== user.id && deal.ownerId !== user.id) notFound();
+  if (user.ownOnly && deal.partnerId !== user.id && deal.ownerId !== user.id) notFound();
+  const canEdit = has(user, "negocios", "edit");
+  const canDelete = has(user, "negocios", "manage");
+  const canFinance = has(user, "financeiro");
+  const canFinanceEdit = has(user, "financeiro", "edit");
+  const canContacts = has(user, "contatos") && !user.ownOnly;
+  const canInbox = has(user, "atendimento", "edit");
+  const canSchedule = has(user, "agenda", "edit");
 
   const [options, contact, activities, taskRows, eventRows, txRows, conv] = await Promise.all([
     getFormOptions(user),
@@ -52,8 +58,8 @@ export default async function DealPage({ params }: PageProps<"/negocios/[id]">) 
       .orderBy(desc(schema.activities.createdAt)),
     db.select().from(schema.tasks).where(eq(schema.tasks.dealId, id)).orderBy(asc(schema.tasks.doneAt), asc(schema.tasks.dueAt)),
     db.select().from(schema.events).where(eq(schema.events.dealId, id)).orderBy(desc(schema.events.startsAt)),
-    partner ? [] : db.select().from(schema.transactions).where(eq(schema.transactions.dealId, id)).orderBy(asc(schema.transactions.dueDate)),
-    deal.contactId && !partner
+    !canFinance ? [] : db.select().from(schema.transactions).where(eq(schema.transactions.dealId, id)).orderBy(asc(schema.transactions.dueDate)),
+    deal.contactId && canInbox
       ? db
           .select({ id: schema.conversations.id })
           .from(schema.conversations)
@@ -87,8 +93,8 @@ export default async function DealPage({ params }: PageProps<"/negocios/[id]">) 
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            {!partner && <EmailDraftButton dealId={deal.id} to={contact?.email} />}
-            {!partner && (
+            {canEdit && <EmailDraftButton dealId={deal.id} to={contact?.email} />}
+            {canDelete && (
               <ConfirmButton
                 action={deleteDeal.bind(null, deal.id)}
                 title="Excluir este negócio?"
@@ -106,11 +112,15 @@ export default async function DealPage({ params }: PageProps<"/negocios/[id]">) 
             <TabsTrigger value="detalhes">Detalhes</TabsTrigger>
           </TabsList>
           <TabsContent value="historico" className="mt-4 grid gap-6">
-            <ActivityComposer dealId={deal.id} contactId={deal.contactId} />
+            {canEdit && <ActivityComposer dealId={deal.id} contactId={deal.contactId} />}
             <Timeline items={activities} />
           </TabsContent>
           <TabsContent value="detalhes" className="mt-4 rounded-xl border bg-card p-5">
-            <EditDealForm options={options} deal={deal} isPartner={partner} />
+            {canEdit ? (
+              <EditDealForm options={options} deal={deal} isPartner={user.ownOnly} />
+            ) : (
+              <p className="text-[13px] text-muted-foreground">Você tem acesso somente leitura a Negócios. Peça a um administrador para liberar a edição.</p>
+            )}
           </TabsContent>
         </Tabs>
 
@@ -118,7 +128,7 @@ export default async function DealPage({ params }: PageProps<"/negocios/[id]">) 
           <Section title="Cliente">
             {contact ? (
               <div className="grid gap-2 text-[13px]">
-                <Link href={partner ? "#" : `/contatos/${contact.id}`} className="font-medium hover:underline">
+                <Link href={canContacts ? `/contatos/${contact.id}` : "#"} className="font-medium hover:underline">
                   {contact.name}
                 </Link>
                 {(contact.role || contact.company) && (
@@ -134,7 +144,7 @@ export default async function DealPage({ params }: PageProps<"/negocios/[id]">) 
                     <Mail className="size-3.5" /> {contact.email}
                   </a>
                 )}
-                {!partner && contact.phone && (
+                {canInbox && contact.phone && (
                   <Button asChild variant="outline" size="sm" className="mt-1 w-fit">
                     <Link href={conv ? `/atendimento?c=${conv.id}` : `/atendimento/abrir?phone=${contact.phone}`}>
                       <MessageCircle /> {conv ? "Abrir conversa" : "Iniciar conversa"}
@@ -151,6 +161,7 @@ export default async function DealPage({ params }: PageProps<"/negocios/[id]">) 
             <TaskList
               dealId={deal.id}
               contactId={deal.contactId}
+              compose={canEdit}
               tasks={taskRows.map((t) => ({ id: t.id, title: t.title, dueAt: t.dueAt?.toISOString() ?? null, doneAt: t.doneAt?.toISOString() ?? null }))}
             />
           </Section>
@@ -158,11 +169,13 @@ export default async function DealPage({ params }: PageProps<"/negocios/[id]">) 
           <Section
             title="Agenda"
             action={
-              <Button asChild variant="ghost" size="icon-sm" aria-label="Agendar">
-                <Link href={`/agenda?novo=1&deal=${deal.id}`}>
-                  <CalendarPlus />
-                </Link>
-              </Button>
+              canSchedule ? (
+                <Button asChild variant="ghost" size="icon-sm" aria-label="Agendar">
+                  <Link href={`/agenda?novo=1&deal=${deal.id}`}>
+                    <CalendarPlus />
+                  </Link>
+                </Button>
+              ) : undefined
             }
           >
             {eventRows.length ? (
@@ -182,15 +195,17 @@ export default async function DealPage({ params }: PageProps<"/negocios/[id]">) 
             )}
           </Section>
 
-          {!partner && (
+          {canFinance && (
             <Section
               title="Financeiro"
               action={
-                <Button asChild variant="ghost" size="icon-sm" aria-label="Lançar">
-                  <Link href={`/financeiro?novo=receita&deal=${deal.id}`}>
-                    <Plus />
-                  </Link>
-                </Button>
+                canFinanceEdit ? (
+                  <Button asChild variant="ghost" size="icon-sm" aria-label="Lançar">
+                    <Link href={`/financeiro?novo=receita&deal=${deal.id}`}>
+                      <Plus />
+                    </Link>
+                  </Button>
+                ) : undefined
               }
             >
               {txRows.length ? (

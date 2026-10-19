@@ -3,9 +3,9 @@ import { asc, desc, eq, or } from "drizzle-orm";
 import { db, schema } from "@/lib/db";
 import type { SessionUser } from "@/lib/auth";
 
-/** Filtro de visibilidade: parceiro só vê negócios dele. */
+/** Filtro de visibilidade: quem tem "só os próprios" vê apenas os negócios em que é dono ou parceiro. */
 export const dealScope = (user: SessionUser) =>
-  user.role === "parceiro" ? or(eq(schema.deals.partnerId, user.id), eq(schema.deals.ownerId, user.id)) : undefined;
+  user.ownOnly ? or(eq(schema.deals.partnerId, user.id), eq(schema.deals.ownerId, user.id)) : undefined;
 
 export async function getBoard(user: SessionUser) {
   const [stages, rows] = await Promise.all([

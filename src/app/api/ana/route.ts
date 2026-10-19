@@ -2,7 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
 import { and, eq, or } from "drizzle-orm";
 import { db, schema } from "@/lib/db";
-import { getUser } from "@/lib/auth";
+import { getUser, has, type SessionUser } from "@/lib/auth";
 import {
   ANA_MODEL,
   ANA_SYSTEM,
@@ -15,6 +15,13 @@ import {
 } from "@/lib/ana";
 
 export const maxDuration = 120;
+
+/** A Ana só lê o que a pessoa que pergunta pode ver. */
+async function canSeeDeal(user: SessionUser, dealId: string) {
+  if (!has(user, "negocios")) return false;
+  if (!user.ownOnly) return true;
+  return partnerCanSee(user.id, dealId);
+}
 
 async function partnerCanSee(userId: string, dealId: string) {
   const [d] = await db
@@ -83,7 +90,7 @@ function textStream(produce: (push: (s: string) => void) => Promise<void>) {
 
 export async function POST(req: Request) {
   const user = await getUser();
-  if (!user) return new Response("Não autenticado", { status: 401 });
+  if (!user || user.mustChangePassword) return new Response("Não autenticado", { status: 401 });
 
   const parsed = Body.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return new Response("Pedido inválido", { status: 400 });
@@ -94,7 +101,6 @@ export async function POST(req: Request) {
       push("Ainda não estou conectada. Peça ao administrador para configurar a chave **ANTHROPIC_API_KEY** no servidor e eu passo a responder por aqui."),
     );
 
-  const staff = user.role !== "parceiro";
   let messages: Anthropic.Beta.BetaMessageParam[];
   let effort: "low" | "medium" = "medium";
 
@@ -102,10 +108,9 @@ export async function POST(req: Request) {
     const snapshot = await buildSnapshot(user);
     let focusText = "";
     if (body.focus) {
-      if (body.focus.kind === "deal" && (staff || (await partnerCanSee(user.id, body.focus.id))))
-        focusText = (await dealContext(body.focus.id)) ?? "";
-      else if (staff && body.focus.kind === "contact") focusText = (await contactContext(body.focus.id)) ?? "";
-      else if (staff && body.focus.kind === "conversation") {
+      if (body.focus.kind === "deal" && (await canSeeDeal(user, body.focus.id))) focusText = (await dealContext(body.focus.id)) ?? "";
+      else if (body.focus.kind === "contact" && has(user, "contatos") && !user.ownOnly) focusText = (await contactContext(body.focus.id)) ?? "";
+      else if (body.focus.kind === "conversation" && has(user, "atendimento")) {
         const t = await conversationTranscript(body.focus.id);
         focusText = t ? `${t.header}\n${t.body}` : "";
       }
@@ -126,14 +131,15 @@ export async function POST(req: Request) {
       },
     ];
   } else {
-    if (!staff) return new Response("Sem acesso", { status: 403 });
     const parts: string[] = [];
     if ("conversationId" in body && body.conversationId) {
+      if (!has(user, "atendimento")) return new Response("Sem acesso ao Atendimento", { status: 403 });
       const t = await conversationTranscript(body.conversationId);
       if (!t) return new Response("Conversa não encontrada", { status: 404 });
       parts.push(`${t.header}\n${t.body}`);
     }
     if (body.mode === "email" && body.dealId) {
+      if (!(await canSeeDeal(user, body.dealId))) return new Response("Sem acesso ao negócio", { status: 403 });
       const d = await dealContext(body.dealId);
       if (d) parts.push(d);
     }

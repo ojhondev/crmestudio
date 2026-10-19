@@ -3,7 +3,7 @@ import Link from "next/link";
 import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
 import { Search, Users } from "lucide-react";
 import { db, schema } from "@/lib/db";
-import { requireUser, access } from "@/lib/auth";
+import { has, requireAccess } from "@/lib/auth";
 import { getFormOptions } from "@/lib/options";
 import { fmtDate, fmtPhone, money } from "@/lib/format";
 import { SOURCES } from "@/lib/constants";
@@ -15,7 +15,8 @@ import { NewContactButton } from "./contact-form";
 export const metadata: Metadata = { title: "Leads e contatos" };
 
 export default async function ContactsPage({ searchParams }: PageProps<"/contatos">) {
-  const user = await requireUser(access.contatos);
+  const user = await requireAccess("contatos");
+  const canEdit = has(user, "contatos", "edit");
   const sp = await searchParams;
   const q = typeof sp.q === "string" ? sp.q.trim() : "";
   const origem = typeof sp.origem === "string" ? sp.origem : "";
@@ -78,7 +79,7 @@ export default async function ContactsPage({ searchParams }: PageProps<"/contato
         eyebrow="CRM"
         title="Leads e contatos"
         description={`${rows.length} ${rows.length === 1 ? "registro" : "registros"}${q || origem ? " encontrados" : ""}`}
-        actions={<NewContactButton team={options.team} />}
+        actions={canEdit ? <NewContactButton team={options.team} /> : undefined}
       />
       <PageBody className="grid gap-4">
         <form data-tour="contacts-search" className="flex flex-wrap items-center gap-2">

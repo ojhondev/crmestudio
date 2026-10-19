@@ -11,7 +11,7 @@ export default async function LoginPage() {
   return (
     <div className="grid min-h-svh lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]">
       <div className="flex flex-col justify-between px-6 py-8 sm:px-12 lg:px-16">
-        <BrandLogo className="h-9" />
+        <BrandLogo className="h-9 w-auto self-start object-contain" />
         <div className="w-full max-w-sm py-12">
           <p className="label mb-3">Restaura · gestão</p>
           <h1 className="h-display mb-2 text-4xl">Bem-vinda de volta.</h1>
