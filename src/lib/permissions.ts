@@ -12,7 +12,7 @@ export const LEVELS: Level[] = ["none", "view", "edit", "manage"];
 export const LEVEL_LABEL: Record<Level, string> = { none: "Sem acesso", view: "Ver", edit: "Editar", manage: "Gerenciar" };
 const RANK: Record<Level, number> = { none: 0, view: 1, edit: 2, manage: 3 };
 
-export type ModuleKey = "negocios" | "contatos" | "atendimento" | "agenda" | "financeiro" | "documentos" | "site" | "equipe" | "configuracoes";
+export type ModuleKey = "negocios" | "tarefas" | "contatos" | "atendimento" | "agenda" | "financeiro" | "documentos" | "site" | "equipe" | "configuracoes";
 
 export const MODULES: {
   key: ModuleKey;
@@ -23,6 +23,7 @@ export const MODULES: {
   soon?: boolean;
 }[] = [
   { key: "negocios", label: "Negócios", help: "Ver: consulta o funil · Editar: cria, move e registra · Gerenciar: exclui negócios" },
+  { key: "tarefas", label: "Tarefas", help: "Ver: consulta quadros · Editar: cria e altera tarefas · Gerenciar: exclui quadros e grupos" },
   { key: "contatos", label: "Leads e contatos", help: "Ver: consulta · Editar: cadastra e altera · Gerenciar: exclui contatos" },
   { key: "atendimento", label: "Atendimento", help: "Ver: lê conversas · Editar: responde, atribui e resolve" },
   { key: "agenda", label: "Agenda", help: "Ver: consulta · Editar: cria e altera eventos" },
@@ -58,7 +59,7 @@ export const PROFILES: Record<
     description: "Toca a operação inteira: negócios, atendimento, agenda, financeiro e documentos. Vê a equipe, mas não altera acessos.",
     type: "equipe",
     ownOnly: false,
-    perms: make({ negocios: "manage", contatos: "manage", atendimento: "manage", agenda: "manage", financeiro: "manage", documentos: "manage", site: "edit", equipe: "view", configuracoes: "view" }),
+    perms: make({ negocios: "manage", tarefas: "manage", contatos: "manage", atendimento: "manage", agenda: "manage", financeiro: "manage", documentos: "manage", site: "edit", equipe: "view", configuracoes: "view" }),
     color: "#193f32",
   },
   comercial: {
@@ -66,7 +67,7 @@ export const PROFILES: Record<
     description: "Vende: funil, contatos, atendimento, agenda e documentos. Sem financeiro.",
     type: "equipe",
     ownOnly: false,
-    perms: make({ negocios: "edit", contatos: "edit", atendimento: "edit", agenda: "edit", documentos: "edit" }),
+    perms: make({ negocios: "edit", tarefas: "edit", contatos: "edit", atendimento: "edit", agenda: "edit", documentos: "edit" }),
     color: "#537179",
   },
   atendimento: {
@@ -74,7 +75,7 @@ export const PROFILES: Record<
     description: "Responde clientes (WhatsApp e e-mail) e cuida de contatos e agenda. Consulta o funil, sem alterar.",
     type: "equipe",
     ownOnly: false,
-    perms: make({ negocios: "view", contatos: "edit", atendimento: "edit", agenda: "edit" }),
+    perms: make({ negocios: "view", tarefas: "edit", contatos: "edit", atendimento: "edit", agenda: "edit" }),
     color: "#776157",
   },
   financeiro: {
@@ -82,7 +83,7 @@ export const PROFILES: Record<
     description: "Cuida do caixa. Consulta negócios, contatos e agenda.",
     type: "equipe",
     ownOnly: false,
-    perms: make({ negocios: "view", contatos: "view", agenda: "view", financeiro: "manage", documentos: "view" }),
+    perms: make({ negocios: "view", tarefas: "edit", contatos: "view", agenda: "view", financeiro: "manage", documentos: "view" }),
     color: "#002934",
   },
   parceiro: {
@@ -90,7 +91,7 @@ export const PROFILES: Record<
     description: "Externo. Vê e atualiza só os negócios em que foi indicado e a própria agenda.",
     type: "parceiro",
     ownOnly: true,
-    perms: make({ negocios: "edit", agenda: "edit" }),
+    perms: make({ negocios: "edit", tarefas: "edit", agenda: "edit" }),
     color: "#8a8279",
   },
   personalizado: {

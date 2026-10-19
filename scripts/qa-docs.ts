@@ -42,6 +42,7 @@ async function main() {
     await db.delete(schema.deals).where(like(schema.deals.title, "QA —%"));
     await db.delete(schema.contacts).where(eq(schema.contacts.source, "qa-docs"));
     await db.delete(schema.auditLog).where(like(schema.auditLog.actorName, "QA Documentos"));
+    await db.delete(schema.taskBoards).where(like(schema.taskBoards.name, "QA%"));
     await db.delete(schema.users).where(eq(schema.users.email, EMAIL));
     if (fs.existsSync(FILE)) fs.unlinkSync(FILE);
     console.log("QA removido:", docs.length, "documento(s)");

@@ -116,6 +116,29 @@ export const activities = pgTable(
   (t) => [index("activities_deal_idx").on(t.dealId), index("activities_contact_idx").on(t.contactId)],
 );
 
+export type TaskStatus = "a_fazer" | "em_andamento" | "travada" | "concluida";
+export type TaskPriority = "baixa" | "media" | "alta" | "urgente";
+
+/** Quadros de tarefas (estilo Monday): cada quadro tem grupos e itens. */
+export const taskBoards = pgTable("task_boards", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: text("name").notNull(),
+  color: text("color").notNull().default("#b75928"),
+  position: integer("position").notNull().default(0),
+  createdById: uuid("created_by_id").references(() => users.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const taskGroups = pgTable("task_groups", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  boardId: uuid("board_id")
+    .notNull()
+    .references(() => taskBoards.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  color: text("color").notNull().default("#537179"),
+  position: integer("position").notNull().default(0),
+});
+
 export const tasks = pgTable("tasks", {
   id: uuid("id").primaryKey().defaultRandom(),
   title: text("title").notNull(),
@@ -126,6 +149,13 @@ export const tasks = pgTable("tasks", {
   assigneeId: uuid("assignee_id").references(() => users.id, { onDelete: "set null" }),
   createdById: uuid("created_by_id").references(() => users.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  /** quadro e grupo (null = tarefa solta, ligada a um negócio ou contato) */
+  boardId: uuid("board_id").references(() => taskBoards.id, { onDelete: "cascade" }),
+  groupId: uuid("group_id").references(() => taskGroups.id, { onDelete: "set null" }),
+  status: text("status").$type<TaskStatus>().notNull().default("a_fazer"),
+  priority: text("priority").$type<TaskPriority>().notNull().default("media"),
+  description: text("description"),
+  position: doublePrecision("position").notNull().default(0),
 });
 
 /** Uma conversa por número de WhatsApp. */
@@ -313,3 +343,7 @@ export type Conversation = typeof conversations.$inferSelect;
 export type Message = typeof messages.$inferSelect;
 export type CalendarEvent = typeof events.$inferSelect;
 export type Transaction = typeof transactions.$inferSelect;
+
+export type TaskRow = typeof tasks.$inferSelect;
+export type TaskBoard = typeof taskBoards.$inferSelect;
+export type TaskGroup = typeof taskGroups.$inferSelect;

@@ -275,6 +275,39 @@ export const articles: Article[] = [
     ],
   },
   {
+    slug: "tarefas",
+    module: "Operação",
+    title: "Tarefas",
+    summary: "Quadros de tarefas com grupos, responsável, prazo, situação e prioridade — em tabela ou Kanban.",
+    href: "/tarefas",
+    tour: "/tarefas",
+    keywords: ["tarefa", "quadro", "monday", "prazo", "responsável", "kanban", "projeto", "pendência", "atrasada", "checklist"],
+    body: [
+      { t: "p", text: "Tarefas é onde a equipe organiza o trabalho do dia a dia. Cada quadro representa um assunto (por exemplo “Rotina do estúdio” ou “Obra da Matriz”) e se divide em grupos; cada tarefa tem responsável, prazo, situação e prioridade." },
+      {
+        t: "steps",
+        title: "Começar",
+        items: [
+          "Abra Tarefas e toque em “+ Quadro”. Dê um nome e confirme.",
+          "No grupo, digite o título na linha “Adicionar tarefa” e tecle Enter.",
+          "Em cada linha, escolha o responsável, o prazo, a situação (A fazer, Em andamento, Travada, Concluída) e a prioridade.",
+          "Toque em “Detalhes” para escrever anotações, trocar de grupo ou excluir.",
+        ],
+      },
+      {
+        t: "list",
+        title: "Visões",
+        items: [
+          "Tabela: grupos que podem ser recolhidos, com tudo editável na própria linha.",
+          "Kanban: colunas por situação; arraste o cartão para mudar (no celular, segure um instante antes de arrastar).",
+          "Minhas tarefas: tudo o que está atribuído a você, em todos os quadros e negócios, separado em Atrasadas, Hoje, Próximos 7 dias, Depois e Sem prazo.",
+        ],
+      },
+      { t: "tip", text: "Tarefas criadas dentro de um negócio também aparecem em “Minhas tarefas” de quem é o responsável, com o nome do negócio ao lado." },
+      { t: "warn", text: "Excluir quadros e grupos exige o nível Gerenciar em Tarefas. Parceiros só veem as tarefas atribuídas a eles." },
+    ],
+  },
+  {
     slug: "documentos",
     module: "Gestão",
     title: "Contratos e apresentações",
@@ -533,6 +566,14 @@ export const tours: Record<string, { label: string; steps: TourStep[] }> = {
       { target: ["sheet-period"], title: "Período", body: "Veja um mês, só o que está em aberto ou tudo. A planilha mostra e edita exatamente esses lançamentos." },
       { target: ["sheet-toolbar"], title: "Linha, Importar e Exportar", body: "Adicione linhas, importe um CSV do Excel/Sheets e exporte nos dois formatos. Só grava quando você toca em Salvar." },
       { target: ["sheet-grid"], title: "A grade", body: "Toque numa célula e digite. Enter desce. Você também pode copiar células do Excel ou do Sheets e colar aqui — as linhas viram lançamentos." },
+    ],
+  },
+  "/tarefas": {
+    label: "Tour de Tarefas",
+    steps: [
+      { target: ["task-boards"], title: "Quadros", body: "“Minhas tarefas” mostra tudo o que é seu. Os demais são quadros da equipe — crie um com “+ Quadro”." },
+      { target: ["task-filters"], title: "Filtros e visões", body: "Busque, filtre por responsável e alterne entre Tabela e Kanban." },
+      { target: ["task-groups", "task-quick"], title: "Grupos e tarefas", body: "Digite o título na última linha do grupo e tecle Enter. Clique na bolinha para concluir; nas etiquetas coloridas para mudar situação e prioridade." },
     ],
   },
   "/documentos": {

@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   CalendarDays,
   FileSignature,
+  ListChecks,
   ChevronsUpDown,
   KanbanSquare,
   LayoutDashboard,
@@ -57,6 +58,7 @@ function groups(user: SessionUser, unread: number): Group[] {
   const g: Group[] = [];
   const operacao: Item[] = [{ key: "painel", href: "/", label: "Painel", icon: LayoutDashboard }];
   if (has(user, "negocios")) operacao.push({ key: "negocios", href: "/negocios", label: "Negócios", icon: KanbanSquare });
+  if (has(user, "tarefas")) operacao.push({ key: "tarefas", href: "/tarefas", label: "Tarefas", icon: ListChecks });
   if (has(user, "contatos")) operacao.push({ key: "contatos", href: "/contatos", label: "Leads e contatos", icon: Users });
   if (has(user, "atendimento")) operacao.push({ key: "atendimento", href: "/atendimento", label: "Atendimento", icon: MessageCircle, badge: unread });
   if (has(user, "agenda")) operacao.push({ key: "agenda", href: "/agenda", label: "Agenda", icon: CalendarDays });
@@ -238,6 +240,7 @@ function BottomNav({ user, unread }: { user: SessionUser; unread: number }) {
   const tabs: Item[] = [
     { key: "painel", href: "/", label: "Painel", icon: LayoutDashboard },
     ...(has(user, "negocios") ? [{ key: "negocios", href: "/negocios", label: "Negócios", icon: KanbanSquare }] : []),
+    ...(has(user, "tarefas") ? [{ key: "tarefas", href: "/tarefas", label: "Tarefas", icon: ListChecks }] : []),
     ...(has(user, "atendimento") ? [{ key: "atendimento", href: "/atendimento", label: "Atendimento", icon: MessageCircle, badge: unread }] : []),
     ...(has(user, "agenda") ? [{ key: "agenda", href: "/agenda", label: "Agenda", icon: CalendarDays }] : []),
   ];

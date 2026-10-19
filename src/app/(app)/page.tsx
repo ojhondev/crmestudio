@@ -130,6 +130,30 @@ export default async function Dashboard({ searchParams }: PageProps<"/">) {
           </div>
         )}
 
+        <section aria-labelledby="start-title" className="rounded-xl border bg-card p-4 sm:p-5">
+          <h2 id="start-title" className="text-[15px] font-semibold">
+            Por onde começar
+          </h2>
+          <p className="mt-0.5 text-[13px] text-muted-foreground">Atalhos para o que mais se faz no dia a dia. Dúvidas? O botão “?” no topo faz um tour e abre a ajuda.</p>
+          <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+            {(
+              [
+                has(user, "contatos", "edit") && { href: "/contatos", t: "Cadastrar um lead", d: "Guarde nome, contato e origem de quem pediu um orçamento." },
+                has(user, "tarefas", "edit") && { href: "/tarefas", t: "Criar uma tarefa", d: "Organize o que precisa ser feito, com responsável e prazo." },
+                has(user, "negocios") && { href: "/negocios", t: "Acompanhar o funil", d: "Arraste os negócios entre as etapas conforme avançam." },
+                has(user, "documentos", "edit") && { href: "/documentos", t: "Gerar um contrato", d: "Escolha um modelo; os dados do cliente entram sozinhos." },
+              ].filter(Boolean) as { href: string; t: string; d: string }[]
+            ).map((a) => (
+              <Link key={a.href} href={a.href} className="group rounded-lg border bg-background p-3 hover:border-brand hover:bg-brand-soft">
+                <span className="flex items-center justify-between text-[13.5px] font-semibold">
+                  {a.t} <ArrowRight className="size-3.5 text-brand transition-transform group-hover:translate-x-0.5" />
+                </span>
+                <span className="mt-1 block text-[12.5px] text-muted-foreground">{a.d}</span>
+              </Link>
+            ))}
+          </div>
+        </section>
+
         <div data-tour="dash-kpis" className="grid grid-cols-2 gap-3 xl:grid-cols-4">
           {canDeals && <Kpi label="No funil" value={moneyShort(openTotal)} sub={`${openCount} negócios em andamento`} href="/negocios" />}
           {canDeals && <Kpi label="Fechado no mês" value={moneyShort(Number(won?.total ?? 0))} sub={`${won?.n ?? 0} negócios ganhos`} href="/negocios" />}
