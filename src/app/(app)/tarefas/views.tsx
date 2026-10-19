@@ -2,6 +2,7 @@
 
 /** Visões do quadro de tarefas: Tabela/Lista (com arrastar para ordenar), Kanban, Calendário e Linha do tempo. */
 import { useState } from "react";
+import { useIsMobile } from "@/hooks/use-mobile";
 import Link from "next/link";
 import { DndContext, DragOverlay, PointerSensor, TouchSensor, useDraggable, useDroppable, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
 import { Check, ChevronDown, ChevronLeft, ChevronRight, Copy, GripVertical, Link2, Plus, Trash2 } from "lucide-react";
@@ -79,7 +80,7 @@ export function TableView(p: TableProps) {
   return (
     <DndContext id="tasks-table" sensors={sensors} onDragStart={(e) => setActive(p.sections.flatMap((s) => s.tasks).find((t) => t.id === String(e.active.id)) ?? null)} onDragEnd={onEnd} onDragCancel={() => setActive(null)}>
       <div data-tour="task-groups" className="thin-scroll overflow-x-auto pb-2">
-        <div className="grid gap-4" style={{ "--cols": cols, minWidth: undefined } as React.CSSProperties}>
+        <div className="grid grid-cols-[minmax(0,1fr)] gap-4" style={{ "--cols": cols } as React.CSSProperties}>
           {sections.map((s) => (
             <SectionBlock key={s.key} s={s} p={p} minW={minW} draggable={draggable} group={p.groups.find((g) => g.id === s.key)} />
           ))}
@@ -100,9 +101,9 @@ function SectionBlock({ s, p, minW, draggable, group }: { s: Section; p: TablePr
   const allSel = s.tasks.length > 0 && s.tasks.every((t) => p.selected.has(t.id));
   const real = p.realGroups && !!group;
   return (
-    <section ref={setDropRef} className={cn("rounded-xl border bg-card", dropOver && "ring-2 ring-brand")} style={{ borderLeft: `5px solid ${s.color}`, minWidth: minW }}>
+    <section ref={setDropRef} className={cn("rounded-xl border bg-card md:min-w-(--minw)", dropOver && "ring-2 ring-brand")} style={{ borderLeft: `5px solid ${s.color}`, "--minw": `${minW}px` } as React.CSSProperties}>
       <header className="flex items-center gap-2 px-3 py-2">
-        <button type="button" onClick={() => setCollapsed((c) => !c)} aria-expanded={!collapsed} aria-label={collapsed ? "Expandir grupo" : "Recolher grupo"} className="grid size-6 place-items-center rounded hover:bg-muted max-md:size-10">
+        <button type="button" onClick={() => setCollapsed((c) => !c)} aria-expanded={!collapsed} aria-label={collapsed ? "Expandir grupo" : "Recolher grupo"} className="grid size-6 place-items-center rounded hover:bg-muted max-md:size-11">
           {collapsed ? <ChevronRight className="size-4" /> : <ChevronDown className="size-4" />}
         </button>
         {real && p.canEdit ? (
@@ -112,7 +113,7 @@ function SectionBlock({ s, p, minW, draggable, group }: { s: Section; p: TablePr
             onChange={(e) => setName(e.target.value)}
             onBlur={() => name.trim() && name !== group.name && p.onRenameGroup(group.id, name)}
             onKeyDown={(e) => e.key === "Enter" && (e.currentTarget as HTMLInputElement).blur()}
-            className="h-8 min-w-0 flex-1 rounded border border-transparent bg-transparent px-1 text-[15px] font-semibold hover:border-input focus:border-ring focus:outline-none max-md:h-10"
+            className="h-8 min-w-0 flex-1 rounded border border-transparent bg-transparent px-1 text-[15px] font-semibold hover:border-input focus:border-ring focus:outline-none max-md:h-11 max-md:text-base"
             style={{ color: s.color }}
           />
         ) : (
@@ -120,8 +121,8 @@ function SectionBlock({ s, p, minW, draggable, group }: { s: Section; p: TablePr
             {s.label}
           </h3>
         )}
-        <span className="text-[12px] text-muted-foreground max-md:hidden">
-          {done}/{p.totals[s.key] ?? s.tasks.length} concluídas
+        <span className="shrink-0 text-[12px] text-muted-foreground">
+          {done}/{p.totals[s.key] ?? s.tasks.length}<span className="max-md:hidden"> concluídas</span>
         </span>
         {real && p.canEdit && (
           <Button type="button" variant="ghost" size="icon-sm" aria-label="Duplicar grupo" title="Duplicar grupo com as tarefas" onClick={() => p.onDuplicateGroup(group.id)} className="text-muted-foreground">
@@ -174,7 +175,7 @@ function SectionBlock({ s, p, minW, draggable, group }: { s: Section; p: TablePr
               }}
             >
               <Plus className="size-4 text-muted-foreground" />
-              <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Adicionar tarefa — digite e tecle Enter" aria-label={`Nova tarefa em ${s.label}`} className="h-8 min-w-0 flex-1 bg-transparent text-[14px] placeholder:text-muted-foreground focus:outline-none max-md:h-10" />
+              <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Adicionar tarefa — digite e tecle Enter" aria-label={`Nova tarefa em ${s.label}`} className="h-8 min-w-0 flex-1 bg-transparent text-[14px] placeholder:text-muted-foreground focus:outline-none max-md:h-11 max-md:text-base" />
             </form>
           )}
         </>
@@ -217,17 +218,23 @@ function Row({ t, p, draggable }: { t: TaskDTO; p: TableProps; draggable: boolea
           ) : (
             <span className="w-5 max-md:hidden" />
           )}
-          {p.canEdit ? <input type="checkbox" aria-label={`Selecionar ${t.title}`} checked={sel} onChange={(e) => p.select([t.id], e.target.checked)} className="size-4 accent-brand" /> : <span className="w-4" />}
+          {p.canEdit ? (
+            <label className="grid place-items-center max-md:size-11">
+              <input type="checkbox" aria-label={`Selecionar ${t.title}`} checked={sel} onChange={(e) => p.select([t.id], e.target.checked)} className="size-4 accent-brand max-md:size-5" />
+            </label>
+          ) : (
+            <span className="w-4" />
+          )}
         </span>
-        <div className="flex min-w-0 flex-1 items-center gap-2">
+        <div className="flex min-w-0 flex-1 items-center gap-1 md:gap-2">
           <button
             type="button"
             disabled={!p.canEdit}
             onClick={() => p.patch(t.id, { status: done ? "a_fazer" : "concluida" })}
             aria-label={done ? "Reabrir tarefa" : "Marcar como concluída"}
-            className={cn("relative grid size-5 shrink-0 place-items-center rounded-full border-2 after:absolute after:-inset-2.5 after:content-['']", done ? "border-[var(--st-done)] bg-[var(--st-done)] text-on-st" : "border-muted-foreground/60 hover:border-[var(--st-done)]")}
+            className="group/chk relative grid size-5 shrink-0 place-items-center after:absolute after:-inset-2.5 after:content-[''] max-md:size-11 max-md:after:hidden"
           >
-            {done && <Check className="size-3" strokeWidth={3} />}
+            <span className={cn("grid size-5 place-items-center rounded-full border-2", done ? "border-[var(--st-done)] bg-[var(--st-done)] text-on-st" : "border-muted-foreground/60 group-hover/chk:border-[var(--st-done)]")}>{done && <Check className="size-3" strokeWidth={3} />}</span>
           </button>
           <div className="min-w-0 flex-1">
             <div className="flex min-w-0 items-center gap-1.5">
@@ -238,8 +245,12 @@ function Row({ t, p, draggable }: { t: TaskDTO; p: TableProps; draggable: boolea
                 onChange={(e) => setTitle(e.target.value)}
                 onBlur={() => title.trim() && title !== t.title && p.patch(t.id, { title })}
                 onKeyDown={(e) => e.key === "Enter" && (e.currentTarget as HTMLInputElement).blur()}
-                className={cn("h-8 min-w-0 flex-1 rounded border border-transparent bg-transparent px-1 text-[14px] hover:border-input focus:border-ring focus:outline-none max-md:h-10", p.compact && "h-7", done && "text-muted-foreground line-through")}
+                className={cn("h-8 min-w-0 flex-1 rounded border border-transparent bg-transparent px-1 text-[14px] hover:border-input focus:border-ring focus:outline-none max-md:hidden", p.compact && "h-7", done && "text-muted-foreground line-through")}
               />
+              {/* celular: o título quebra em até 3 linhas e abre os detalhes ao tocar */}
+              <button type="button" onClick={() => p.openTask(t.id)} className={cn("flex min-h-11 min-w-0 flex-1 items-center py-1 text-left text-[15px] leading-snug break-words md:hidden", done && "text-muted-foreground line-through")}>
+                <span className="line-clamp-3">{t.title}</span>
+              </button>
               <SubtaskProgress t={t} />
               {t.recur && (
                 <span title="Tarefa recorrente" className="text-[11px] text-muted-foreground">
@@ -260,16 +271,16 @@ function Row({ t, p, draggable }: { t: TaskDTO; p: TableProps; draggable: boolea
               </div>
             )}
           </div>
-          <Button type="button" variant="ghost" size="sm" className="shrink-0 text-muted-foreground md:hidden" onClick={() => p.openTask(t.id)}>
-            Abrir
+          <Button type="button" variant="ghost" size="icon" aria-label="Abrir detalhes" className="shrink-0 text-muted-foreground max-md:size-11 md:hidden" onClick={() => p.openTask(t.id)}>
+            <ChevronRight />
           </Button>
         </div>
       </div>
-      <div className="flex flex-wrap items-center gap-2 md:contents">
+      <div className="flex flex-wrap items-center gap-2 max-md:pb-1 max-md:pl-1 md:contents">
         {p.compact ? (
-          <label className="relative inline-flex">
+          <label className="relative inline-flex max-md:size-11 max-md:items-center max-md:justify-center max-md:rounded-md max-md:border">
             <Person id={t.assigneeId} users={p.users} />
-            <select aria-label="Responsável" disabled={!p.canEdit} value={t.assigneeId ?? ""} onChange={(e) => p.patch(t.id, { assigneeId: e.target.value || null })} className="absolute inset-0 cursor-pointer opacity-0">
+            <select aria-label="Responsável" disabled={!p.canEdit} value={t.assigneeId ?? ""} onChange={(e) => p.patch(t.id, { assigneeId: e.target.value || null })} className="absolute inset-0 cursor-pointer opacity-0 max-md:text-base">
               <option value="">Sem responsável</option>
               {p.users.map((u) => (
                 <option key={u.id} value={u.id}>
@@ -312,7 +323,7 @@ type KanbanProps = {
   onAdd: (key: string, title: string) => void;
 };
 
-function KCard({ t, users, openTask, canEdit }: { t: TaskDTO; users: User[]; openTask: (id: string) => void; canEdit: boolean }) {
+function KCard({ t, users, openTask, canEdit, curKey, targets, moveTo }: { t: TaskDTO; users: User[]; openTask: (id: string) => void; canEdit: boolean; curKey: string; targets: { key: string; label: string }[]; moveTo: (id: string, key: string) => void }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: t.id, disabled: !canEdit });
   const st = dueState(t);
   return (
@@ -321,7 +332,7 @@ function KCard({ t, users, openTask, canEdit }: { t: TaskDTO; users: User[]; ope
       {...attributes}
       {...listeners}
       onClick={() => openTask(t.id)}
-      className={cn("cursor-grab rounded-lg border border-black/15 bg-white p-3 shadow-sm active:cursor-grabbing dark:border-white/15 dark:bg-[#232120]", isDragging && "opacity-40")}
+      className={cn("cursor-grab rounded-lg border border-black/15 bg-white p-3 shadow-sm active:cursor-grabbing max-md:cursor-pointer dark:border-white/15 dark:bg-[#232120]", isDragging && "opacity-40")}
       style={{ borderLeft: `4px solid ${PRIORITY[t.priority].color}` }}
     >
       <p className={cn("text-[13.5px] leading-snug font-semibold", t.status === "concluida" && "text-muted-foreground line-through")}>{t.title}</p>
@@ -337,22 +348,34 @@ function KCard({ t, users, openTask, canEdit }: { t: TaskDTO; users: User[]; ope
         {t.dueAt && <span className={cn(st === "late" && "font-semibold text-destructive", st === "today" && "font-semibold text-brand")}>{fmtDate(t.dueAt, "dd/MM")}</span>}
         <span>{PRIORITY[t.priority].label}</span>
         <SubtaskProgress t={t} />
+        {canEdit && (
+          <label className="relative ml-auto inline-flex h-11 items-center gap-1 rounded-md border px-2.5 text-[13px] md:hidden" onClick={(e) => e.stopPropagation()}>
+            Mover <ChevronDown className="size-3.5" />
+            <select aria-label={`Mover "${t.title}" para outra coluna`} value={curKey} onChange={(e) => moveTo(t.id, e.target.value)} className="absolute inset-0 cursor-pointer opacity-0 max-md:text-base">
+              {targets.map((o) => (
+                <option key={o.key} value={o.key}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
       </div>
     </div>
   );
 }
 
-function KColumn({ s, by, p }: { s: Section; by: KanbanProps["by"]; p: KanbanProps }) {
+function KColumn({ s, by, p }: { s: Section; by: KanbanProps["by"]; p: KanbanProps & { targets: { key: string; label: string }[]; moveTo: (id: string, key: string) => void } }) {
   const { setNodeRef, isOver } = useDroppable({ id: `col-${s.key}` });
   const [title, setTitle] = useState("");
   return (
-    <section ref={setNodeRef} className={cn("flex w-72 shrink-0 flex-col gap-2 rounded-xl border border-black/15 bg-[#e1ded9] p-2.5 md:w-auto md:min-w-56 md:flex-1 dark:border-white/15 dark:bg-[#0a0909]", isOver && "ring-2 ring-brand")}>
+    <section ref={setNodeRef} className={cn("flex w-72 shrink-0 flex-col gap-2 rounded-xl border border-black/15 bg-[#e1ded9] p-2.5 max-md:w-[84vw] max-md:snap-center md:w-auto md:min-w-56 md:flex-1 dark:border-white/15 dark:bg-[#0a0909]", isOver && "ring-2 ring-brand")}>
       <h3 className="flex items-center gap-2 px-1 text-[13px] font-bold">
         <span className="size-2.5 rounded-full" style={{ background: s.color }} /> <span className="truncate">{s.label}</span>
         <span className="font-normal text-muted-foreground">{s.tasks.length}</span>
       </h3>
       {s.tasks.map((t) => (
-        <KCard key={t.id} t={t} users={p.users} openTask={p.openTask} canEdit={p.canEdit} />
+        <KCard key={t.id} t={t} users={p.users} openTask={p.openTask} canEdit={p.canEdit} curKey={s.key} targets={p.targets} moveTo={p.moveTo} />
       ))}
       {s.tasks.length === 0 && <p className="rounded-lg border border-dashed border-foreground/25 px-2 py-5 text-center text-[12.5px] text-muted-foreground">{p.canEdit ? "Vazio. Arraste uma tarefa para cá." : "Nenhuma tarefa."}</p>}
       {p.canEdit && (
@@ -365,7 +388,7 @@ function KColumn({ s, by, p }: { s: Section; by: KanbanProps["by"]; p: KanbanPro
           }}
         >
           <Plus className="size-4 shrink-0 text-muted-foreground" />
-          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Nova tarefa" aria-label={`Nova tarefa em ${s.label} (${by})`} className="h-8 min-w-0 flex-1 bg-transparent text-[13px] placeholder:text-muted-foreground focus:outline-none" />
+          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Nova tarefa" aria-label={`Nova tarefa em ${s.label} (${by})`} className="h-8 min-w-0 flex-1 bg-transparent text-[13px] placeholder:text-muted-foreground focus:outline-none max-md:h-11 max-md:text-base" />
         </form>
       )}
     </section>
@@ -376,12 +399,7 @@ export function KanbanView(p: KanbanProps) {
   const sensors = useDndSensors();
   const [active, setActive] = useState<string | null>(null);
   const all = p.sections.flatMap((s) => s.tasks);
-  const onEnd = (e: DragEndEvent) => {
-    setActive(null);
-    const id = String(e.active.id);
-    const over = e.over?.id ? String(e.over.id) : null;
-    if (!over?.startsWith("col-")) return;
-    const key = over.slice(4);
+  const moveTo = (id: string, key: string) => {
     const cur = all.find((t) => t.id === id);
     if (!cur) return;
     if (p.by === "situacao" && cur.status !== key) p.patch(id, { status: key });
@@ -391,12 +409,19 @@ export function KanbanView(p: KanbanProps) {
       if (cur.assigneeId !== to) p.patch(id, { assigneeId: to });
     }
   };
+  const targets = p.sections.map((s) => ({ key: s.key, label: s.label }));
+  const onEnd = (e: DragEndEvent) => {
+    setActive(null);
+    const over = e.over?.id ? String(e.over.id) : null;
+    if (!over?.startsWith("col-")) return;
+    moveTo(String(e.active.id), over.slice(4));
+  };
   const a = all.find((t) => t.id === active);
   return (
     <DndContext id="tasks-kanban" sensors={sensors} onDragStart={(e) => setActive(String(e.active.id))} onDragEnd={onEnd} onDragCancel={() => setActive(null)}>
-      <div className="thin-scroll flex items-start gap-3 overflow-x-auto pb-3">
+      <div className="thin-scroll flex items-start gap-3 overflow-x-auto pb-3 max-md:-mx-3 max-md:snap-x max-md:snap-mandatory max-md:scroll-px-3 max-md:px-3">
         {p.sections.map((s) => (
-          <KColumn key={s.key} s={s} by={p.by} p={p} />
+          <KColumn key={s.key} s={s} by={p.by} p={{ ...p, targets, moveTo }} />
         ))}
       </div>
       <DragOverlay>{a && <div className="rounded-lg border bg-card p-3 text-[13.5px] font-semibold shadow-lg">{a.title}</div>}</DragOverlay>
@@ -461,6 +486,54 @@ function CalDay({ day, outside, today, tasks, p, tall }: { day: string; outside:
   );
 }
 
+/** Celular: agenda em lista (dia a dia) no lugar da grade de 7 colunas. */
+function Agenda({ days, today, byDay, p, mode, anchor }: { days: string[]; today: string; byDay: Map<string, TaskDTO[]>; p: CalProps; mode: "mes" | "semana"; anchor: string }) {
+  const list = mode === "semana" ? days : days.filter((d) => d.slice(0, 7) === anchor.slice(0, 7) && (byDay.has(d) || d === today));
+  if (list.length === 0) return <p className="rounded-xl border border-dashed p-6 text-center text-[13px] text-muted-foreground">Nenhuma tarefa com prazo neste mês.</p>;
+  return (
+    <div className="grid gap-3">
+      {list.map((d) => {
+        const ts = byDay.get(d) ?? [];
+        return (
+          <section key={d} className={cn("overflow-hidden rounded-xl border bg-card", d === today && "border-brand")}>
+            <header className={cn("flex items-center gap-2 border-b px-3 py-1 text-[13px] font-semibold first-letter:uppercase", d === today ? "bg-brand-soft" : "bg-muted/50")}>
+              <span className="min-w-0 flex-1 truncate">
+                {fmtDate(d, "EEEE, dd/MM").toLowerCase()}
+                {d === today ? " · hoje" : ""}
+              </span>
+              {p.canEdit && (
+                <Button type="button" variant="ghost" size="icon" aria-label={`Nova tarefa em ${fmtDate(d, "dd/MM")}`} className="max-md:size-11" onClick={() => p.onCreate(d)}>
+                  <Plus />
+                </Button>
+              )}
+            </header>
+            {ts.length === 0 ? (
+              <p className="px-3 py-2.5 text-[13px] text-muted-foreground">Nada com prazo neste dia.</p>
+            ) : (
+              <ul>
+                {ts.map((t) => (
+                  <li key={t.id} className="border-b last:border-b-0">
+                    <button type="button" onClick={() => p.openTask(t.id)} className="flex min-h-11 w-full items-center gap-2.5 px-3 py-2 text-left">
+                      <span className="h-8 w-1.5 shrink-0 rounded-full" style={{ background: STATUS[t.status].color }} />
+                      <span className="min-w-0 flex-1">
+                        <span className={cn("block text-[14.5px] leading-snug break-words", t.status === "concluida" && "text-muted-foreground line-through")}>{t.title}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {STATUS[t.status].label} · {PRIORITY[t.priority].label}
+                        </span>
+                      </span>
+                      <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        );
+      })}
+    </div>
+  );
+}
+
 export function CalendarView(p: CalProps) {
   const sensors = useDndSensors();
   const today = todayISO();
@@ -490,25 +563,28 @@ export function CalendarView(p: CalProps) {
       onDragCancel={() => setDragging(null)}
     >
       <div className="mb-3 flex flex-wrap items-center gap-2">
-        <Button type="button" variant="outline" size="icon" aria-label="Anterior" onClick={() => shift(-1)}>
+        <Button type="button" variant="outline" size="icon" aria-label="Anterior" className="max-md:size-11" onClick={() => shift(-1)}>
           <ChevronLeft />
         </Button>
-        <Button type="button" variant="outline" size="icon" aria-label="Próximo" onClick={() => shift(1)}>
+        <Button type="button" variant="outline" size="icon" aria-label="Próximo" className="max-md:size-11" onClick={() => shift(1)}>
           <ChevronRight />
         </Button>
-        <h2 className="ml-1 min-w-40 text-lg font-light capitalize">{label}</h2>
-        <Button type="button" variant="ghost" size="sm" onClick={() => setAnchor(today)}>
+        <h2 className="ml-1 min-w-0 flex-1 text-lg font-light capitalize md:min-w-40 md:flex-none">{label}</h2>
+        <Button type="button" variant="ghost" size="sm" className="max-md:h-11" onClick={() => setAnchor(today)}>
           Hoje
         </Button>
-        <div className="ml-auto flex rounded-lg border p-0.5" role="group" aria-label="Escala">
+        <div className="flex rounded-lg border p-0.5 max-md:order-last max-md:w-full md:ml-auto" role="group" aria-label="Escala">
           {(["mes", "semana"] as const).map((m) => (
-            <button key={m} type="button" onClick={() => p.setMode(m)} aria-pressed={p.mode === m} className={cn("rounded-md px-3 py-1 text-[13px] max-md:py-2", p.mode === m && "bg-foreground font-medium text-background")}>
+            <button key={m} type="button" onClick={() => p.setMode(m)} aria-pressed={p.mode === m} className={cn("rounded-md px-3 py-1 text-[13px] max-md:min-h-11 max-md:flex-1", p.mode === m && "bg-foreground font-medium text-background")}>
               {m === "mes" ? "Mês" : "Semana"}
             </button>
           ))}
         </div>
       </div>
-      <div className="thin-scroll overflow-x-auto">
+      <div className="md:hidden">
+        <Agenda days={days} today={today} byDay={byDay} p={p} mode={p.mode} anchor={anchor} />
+      </div>
+      <div className="thin-scroll overflow-x-auto max-md:hidden">
         <div className="min-w-[640px] overflow-hidden rounded-xl border bg-card">
           <div className="grid grid-cols-7 border-b bg-muted/50">
             {WEEK.map((w) => (
@@ -539,27 +615,28 @@ export function CalendarView(p: CalProps) {
 const WINDOW = 42;
 
 export function TimelineView({ sections, openTask }: { sections: Section[]; openTask: (id: string) => void }) {
+  const mobile = useIsMobile();
   const today = todayISO();
   const [start, setStart] = useState(() => startOfWeek(addDays(todayISO(), -7)));
   const days = Array.from({ length: WINDOW }, (_, i) => addDays(start, i));
   const todayIdx = diffDays(start, today);
-  const colW = 34;
-  const nameW = 220;
+  const colW = mobile ? 32 : 34;
+  const nameW = mobile ? 128 : 220;
   const shown = sections.filter((s) => s.tasks.length);
   const noDue = shown.reduce((n, s) => n + s.tasks.filter((t) => !t.dueAt).length, 0);
   return (
     <div>
       <div className="mb-3 flex flex-wrap items-center gap-2">
-        <Button type="button" variant="outline" size="icon" aria-label="Voltar duas semanas" onClick={() => setStart((s) => addDays(s, -14))}>
+        <Button type="button" variant="outline" size="icon" aria-label="Voltar duas semanas" className="max-md:size-11" onClick={() => setStart((s) => addDays(s, -14))}>
           <ChevronLeft />
         </Button>
-        <Button type="button" variant="outline" size="icon" aria-label="Avançar duas semanas" onClick={() => setStart((s) => addDays(s, 14))}>
+        <Button type="button" variant="outline" size="icon" aria-label="Avançar duas semanas" className="max-md:size-11" onClick={() => setStart((s) => addDays(s, 14))}>
           <ChevronRight />
         </Button>
-        <Button type="button" variant="ghost" size="sm" onClick={() => setStart(startOfWeek(addDays(today, -7)))}>
+        <Button type="button" variant="ghost" size="sm" className="max-md:h-11" onClick={() => setStart(startOfWeek(addDays(today, -7)))}>
           Hoje
         </Button>
-        <span className="text-[13px] text-muted-foreground">
+        <span className="w-full text-[13px] text-muted-foreground md:w-auto">
           {fmtDate(days[0], "dd/MM")} – {fmtDate(days[WINDOW - 1], "dd/MM/yyyy")} · a barra vai da criação da tarefa até o prazo
         </span>
       </div>
@@ -585,8 +662,8 @@ export function TimelineView({ sections, openTask }: { sections: Section[]; open
                 const due = t.dueAt ? toDay(t.dueAt) : null;
                 const bar = due ? timelineBar(toDay(t.createdAt), due, start, WINDOW) : null;
                 return (
-                  <div key={t.id} className="relative flex h-9 items-center border-b hover:bg-muted/30">
-                    <button type="button" onClick={() => openTask(t.id)} className="sticky left-0 z-[1] flex h-full shrink-0 items-center gap-1.5 truncate border-r bg-card px-3 text-left text-[13px] hover:underline" style={{ width: nameW }} title={t.title}>
+                  <div key={t.id} className="relative flex h-11 items-center border-b hover:bg-muted/30 md:h-9">
+                    <button type="button" onClick={() => openTask(t.id)} className="sticky left-0 z-[1] flex h-full shrink-0 items-center gap-1.5 truncate border-r bg-card px-3 text-left text-[13px] hover:underline max-md:px-2" style={{ width: nameW }} title={t.title}>
                       <span className={cn("truncate", t.status === "concluida" && "text-muted-foreground line-through")}>{t.title}</span>
                     </button>
                     <div className="relative h-full" style={{ width: colW * WINDOW }}>
@@ -596,7 +673,7 @@ export function TimelineView({ sections, openTask }: { sections: Section[]; open
                           type="button"
                           onClick={() => openTask(t.id)}
                           title={`${t.title} · prazo ${fmtDate(due, "dd/MM")}`}
-                          className={cn("absolute top-1/2 h-5 -translate-y-1/2 text-left text-[11px] leading-5 font-semibold text-on-st", bar.clippedStart ? "rounded-r" : "rounded-l", !bar.clippedEnd && !bar.clippedStart && "rounded")}
+                          className={cn("absolute top-1/2 h-5 -translate-y-1/2 text-left text-[11px] leading-5 font-semibold text-on-st max-md:h-8 max-md:leading-8", bar.clippedStart ? "rounded-r" : "rounded-l", !bar.clippedEnd && !bar.clippedStart && "rounded")}
                           style={{ left: bar.from * colW + 2, width: bar.span * colW - 4, background: STATUS[t.status].color }}
                         >
                           <span className="block truncate px-1.5">{bar.span >= 3 ? fmtDate(due, "dd/MM") : ""}</span>

@@ -69,7 +69,7 @@ export default async function SheetsPage({ searchParams }: PageProps<"/planilhas
   const dealOpts = deals.map((d) => ({ value: d.id, label: d.title }));
   const href = (o: string, f: boolean) => ({ query: { ...(q ? { q } : {}), ...(o !== "recentes" ? { ordem: o } : {}), ...(f ? { fav: "1" } : {}) } });
   const chip = (active: boolean) =>
-    cn("inline-flex shrink-0 items-center rounded-full border px-3 py-1 text-[13px] whitespace-nowrap transition-colors max-md:min-h-10", active ? "border-foreground bg-foreground text-background" : "text-muted-foreground hover:border-foreground/30");
+    cn("inline-flex shrink-0 items-center rounded-full border px-3 py-1 text-[13px] whitespace-nowrap transition-colors max-md:min-h-11", active ? "border-foreground bg-foreground text-background" : "text-muted-foreground hover:border-foreground/30");
 
   return (
     <>
@@ -79,7 +79,7 @@ export default async function SheetsPage({ searchParams }: PageProps<"/planilhas
           <>
             <form data-tour="sheets-search" className="relative w-48 shrink-0 sm:w-64">
               <Search className="absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
-              <Input name="q" defaultValue={q} placeholder="Buscar planilha…" aria-label="Buscar planilhas" className="h-9 pl-8" />
+              <Input name="q" defaultValue={q} placeholder="Buscar planilha…" aria-label="Buscar planilhas" className="h-9 pl-8 max-md:h-11" />
               {ordem !== "recentes" && <input type="hidden" name="ordem" value={ordem} />}
               {fav && <input type="hidden" name="fav" value="1" />}
             </form>
@@ -114,7 +114,7 @@ export default async function SheetsPage({ searchParams }: PageProps<"/planilhas
             <ul data-tour="sheets-list" className="grid gap-2.5">
               {rows.map((r) => (
                 <li key={r.id} className="group flex items-center gap-2 rounded-xl border bg-card pr-2 hover:border-foreground/30">
-                  <Link href={`/planilhas/${r.id}`} className="grid min-w-0 flex-1 grid-cols-[auto_minmax(0,1fr)] items-center gap-x-3 px-4 py-3">
+                  <Link href={`/planilhas/${r.id}`} className="grid min-w-0 flex-1 grid-cols-[auto_minmax(0,1fr)] items-center gap-x-3 px-4 py-3 max-md:px-3">
                     <span className="grid size-9 place-items-center rounded-lg bg-brand-soft text-brand">
                       <Table2 className="size-4.5" />
                     </span>
@@ -123,7 +123,7 @@ export default async function SheetsPage({ searchParams }: PageProps<"/planilhas
                         <span className="truncate text-[14px] font-medium">{r.name}</span>
                         {r.favorite && <Star className="size-3.5 shrink-0 fill-amber-400 text-amber-400" aria-label="Favorita" />}
                       </span>
-                      <span className="block truncate text-[12px] text-muted-foreground">
+                      <span className="block text-[12px] text-muted-foreground max-md:line-clamp-2 md:truncate">
                         {r.tabs ?? 1} {(r.tabs ?? 1) === 1 ? "aba" : "abas"} · {r.owner ?? "—"} · editada {fromNow(r.updatedAt)} · criada em {fmtDate(r.createdAt)}
                         {(r.deal || r.contact) && ` · ${[r.deal, r.contact].filter(Boolean).join(" · ")}`}
                       </span>

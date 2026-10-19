@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { SheetCloseBtn } from "@/components/touch-close";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Field } from "@/components/form";
 import { cn } from "@/lib/utils";
@@ -34,11 +35,12 @@ export function TaskSheet(props: Props) {
   const { task, boardName, onClose } = props;
   return (
     <Sheet open={!!task} onOpenChange={(o) => !o && onClose()}>
-      <SheetContent className="w-full overflow-y-auto sm:max-w-lg">
+      <SheetContent className="overflow-y-auto overscroll-contain data-[side=right]:w-full data-[side=right]:sm:max-w-lg" showCloseButton={false}>
+        <SheetCloseBtn />
         {task && (
           <>
             <SheetHeader>
-              <SheetTitle className="pr-6 text-left">{task.title}</SheetTitle>
+              <SheetTitle className="pr-10 text-left break-words">{task.title}</SheetTitle>
               <SheetDescription>
                 {boardName ? `Quadro: ${boardName}` : "Tarefa avulsa"}
                 {task.dealTitle ? ` · Negócio: ${task.dealTitle}` : ""}
@@ -63,7 +65,7 @@ function Body({ task, users, canEdit, groups, columns, knownLabels, patch, remov
   const doneSubs = subs.filter((s) => s.done).length;
 
   return (
-    <div className="grid gap-5 px-4 pb-8">
+    <div className="grid gap-5 px-4 pb-[max(2rem,env(safe-area-inset-bottom))]">
       {canEdit && (
         <Input
           aria-label="Título da tarefa"
@@ -90,7 +92,7 @@ function Body({ task, users, canEdit, groups, columns, knownLabels, patch, remov
         </Field>
         {task.boardId && groups.some((g) => g.boardId === task.boardId) && (
           <Field label="Grupo">
-            <select value={task.groupId ?? ""} disabled={!canEdit} onChange={(e) => patch(task.id, { groupId: e.target.value })} className="h-9 w-full rounded-lg border border-input bg-background px-2 text-[14px] max-md:h-10">
+            <select value={task.groupId ?? ""} disabled={!canEdit} onChange={(e) => patch(task.id, { groupId: e.target.value })} className="h-9 w-full rounded-lg border border-input bg-background px-2 text-[14px] max-md:h-11 max-md:text-base">
               {groups
                 .filter((g) => g.boardId === task.boardId)
                 .map((g) => (
@@ -109,7 +111,7 @@ function Body({ task, users, canEdit, groups, columns, knownLabels, patch, remov
               value={task.recur ?? ""}
               disabled={!canEdit}
               onChange={(e) => patch(task.id, { recur: e.target.value || null })}
-              className="h-9 rounded-lg border border-input bg-background px-2 text-[14px] max-md:h-10"
+              className="h-9 rounded-lg border border-input bg-background px-2 text-[14px] max-md:h-11 max-md:text-base"
             >
               <option value="">Não repete</option>
               {(Object.keys(RECUR_LABEL) as TaskRecur[]).map((r) => (
@@ -152,7 +154,7 @@ function Body({ task, users, canEdit, groups, columns, knownLabels, patch, remov
                 setNewLabel("");
               }}
             >
-              <Input value={newLabel} onChange={(e) => setNewLabel(e.target.value)} list="task-labels" placeholder="Nova etiqueta" aria-label="Nova etiqueta" className="h-7 w-32 text-[12.5px]" />
+              <Input value={newLabel} onChange={(e) => setNewLabel(e.target.value)} list="task-labels" placeholder="Nova etiqueta" aria-label="Nova etiqueta" className="h-7 w-32 text-[12.5px] max-md:h-11 max-md:w-44 max-md:text-base" />
               <datalist id="task-labels">
                 {knownLabels
                   .filter((l) => !task.labels.includes(l))
@@ -181,19 +183,21 @@ function Body({ task, users, canEdit, groups, columns, knownLabels, patch, remov
         )}
         <ul className="grid gap-0.5">
           {subs.map((s) => (
-            <li key={s.id} className="group flex items-center gap-2 rounded px-1 py-1 hover:bg-muted/50">
-              <input
-                type="checkbox"
-                checked={s.done}
-                disabled={!canEdit}
-                aria-label={s.text}
-                onChange={(e) => patch(task.id, { subtasks: subs.map((x) => (x.id === s.id ? { ...x, done: e.target.checked } : x)) })}
-                className="size-4 shrink-0 accent-brand"
-              />
-              <span className={cn("min-w-0 flex-1 text-[13.5px]", s.done && "text-muted-foreground line-through")}>{s.text}</span>
+            <li key={s.id} className="group flex items-center gap-1 rounded px-1 py-1 hover:bg-muted/50 md:gap-2">
+              <label className="grid shrink-0 place-items-center max-md:size-11">
+                <input
+                  type="checkbox"
+                  checked={s.done}
+                  disabled={!canEdit}
+                  aria-label={s.text}
+                  onChange={(e) => patch(task.id, { subtasks: subs.map((x) => (x.id === s.id ? { ...x, done: e.target.checked } : x)) })}
+                  className="size-4 shrink-0 accent-brand max-md:size-6"
+                />
+              </label>
+              <span className={cn("min-w-0 flex-1 text-[13.5px] break-words max-md:text-[15px]", s.done && "text-muted-foreground line-through")}>{s.text}</span>
               {canEdit && (
-                <button type="button" aria-label="Remover item" onClick={() => patch(task.id, { subtasks: subs.filter((x) => x.id !== s.id) })} className="text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-destructive max-md:opacity-100">
-                  <X className="size-3.5" />
+                <button type="button" aria-label="Remover item" onClick={() => patch(task.id, { subtasks: subs.filter((x) => x.id !== s.id) })} className="grid size-6 place-items-center text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-destructive max-md:size-11 max-md:opacity-100">
+                  <X className="size-3.5 max-md:size-5" />
                 </button>
               )}
             </li>
@@ -210,7 +214,7 @@ function Body({ task, users, canEdit, groups, columns, knownLabels, patch, remov
             }}
           >
             <Plus className="size-4 text-muted-foreground" />
-            <input value={newSub} onChange={(e) => setNewSub(e.target.value)} placeholder="Adicionar item — digite e tecle Enter" aria-label="Novo item do checklist" className="h-8 min-w-0 flex-1 bg-transparent text-[13.5px] placeholder:text-muted-foreground focus:outline-none" />
+            <input value={newSub} onChange={(e) => setNewSub(e.target.value)} placeholder="Adicionar item — digite e tecle Enter" aria-label="Novo item do checklist" className="h-8 min-w-0 flex-1 bg-transparent text-[13.5px] placeholder:text-muted-foreground focus:outline-none max-md:h-11 max-md:text-base" />
           </form>
         )}
       </section>
@@ -219,14 +223,14 @@ function Body({ task, users, canEdit, groups, columns, knownLabels, patch, remov
         <h3 className="label">Anexos (links)</h3>
         <ul className="grid gap-1">
           {task.links.map((l) => (
-            <li key={l.id} className="group flex items-center gap-2 text-[13.5px]">
+            <li key={l.id} className="group flex items-center gap-2 text-[13.5px] max-md:min-h-11">
               <Link2 className="size-3.5 shrink-0 text-muted-foreground" />
               <a href={l.url} target="_blank" rel="noreferrer" className="min-w-0 flex-1 truncate text-brand underline-offset-2 hover:underline">
                 {l.name}
               </a>
               {canEdit && (
-                <button type="button" aria-label={`Remover ${l.name}`} onClick={() => patch(task.id, { links: task.links.filter((x) => x.id !== l.id) })} className="text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-destructive max-md:opacity-100">
-                  <X className="size-3.5" />
+                <button type="button" aria-label={`Remover ${l.name}`} onClick={() => patch(task.id, { links: task.links.filter((x) => x.id !== l.id) })} className="grid size-6 place-items-center text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-destructive max-md:size-11 max-md:opacity-100">
+                  <X className="size-3.5 max-md:size-5" />
                 </button>
               )}
             </li>
@@ -244,9 +248,9 @@ function Body({ task, users, canEdit, groups, columns, knownLabels, patch, remov
               setLinkName("");
             }}
           >
-            <Input value={linkUrl} onChange={(e) => setLinkUrl(e.target.value)} placeholder="Cole o link (Drive, foto, documento…)" aria-label="Link do anexo" className="h-8 min-w-40 flex-1 text-[13px]" />
-            <Input value={linkName} onChange={(e) => setLinkName(e.target.value)} placeholder="Nome (opcional)" aria-label="Nome do anexo" className="h-8 w-32 text-[13px]" />
-            <Button type="submit" size="sm" variant="outline" disabled={!linkUrl.trim()}>
+            <Input value={linkUrl} onChange={(e) => setLinkUrl(e.target.value)} placeholder="Cole o link (Drive, foto, documento…)" aria-label="Link do anexo" className="h-8 min-w-40 flex-1 text-[13px] max-md:h-11 max-md:text-base" />
+            <Input value={linkName} onChange={(e) => setLinkName(e.target.value)} placeholder="Nome (opcional)" aria-label="Nome do anexo" className="h-8 w-32 text-[13px] max-md:h-11 max-md:w-full max-md:text-base" />
+            <Button type="submit" size="sm" variant="outline" disabled={!linkUrl.trim()} className="max-md:h-11">
               Anexar
             </Button>
           </form>
@@ -261,19 +265,19 @@ function Body({ task, users, canEdit, groups, columns, knownLabels, patch, remov
 
       <div className="flex flex-wrap items-center gap-2 border-t pt-4">
         {task.dealId && (
-          <Button asChild variant="outline" size="sm">
+          <Button asChild variant="outline" size="sm" className="max-md:h-11">
             <Link href={`/negocios/${task.dealId}`}>
               <Link2 /> Abrir o negócio
             </Link>
           </Button>
         )}
         {canEdit && (
-          <Button type="button" variant="outline" size="sm" onClick={() => duplicate(task.id)}>
+          <Button type="button" variant="outline" size="sm" className="max-md:h-11" onClick={() => duplicate(task.id)}>
             <Copy /> Duplicar
           </Button>
         )}
         {canEdit && (
-          <Button type="button" variant="ghost" size="sm" className="ml-auto text-muted-foreground hover:text-destructive" onClick={() => window.confirm("Excluir esta tarefa?") && remove(task.id)}>
+          <Button type="button" variant="ghost" size="sm" className="ml-auto text-muted-foreground hover:text-destructive max-md:h-11" onClick={() => window.confirm("Excluir esta tarefa?") && remove(task.id)}>
             <Trash2 /> Excluir
           </Button>
         )}
@@ -315,7 +319,7 @@ function Feed({ taskId, canEdit, refreshKey }: { taskId: string; canEdit: boolea
       {canEdit && (
         <div className="grid gap-1.5">
           <Textarea rows={2} value={text} onChange={(e) => setText(e.target.value)} placeholder="Escreva um comentário…" aria-label="Novo comentário" />
-          <Button type="button" size="sm" className="w-fit" disabled={busy || !text.trim()} onClick={send}>
+          <Button type="button" size="sm" className="w-fit max-md:h-11" disabled={busy || !text.trim()} onClick={send}>
             {busy && <Loader2 className="animate-spin" />} Comentar
           </Button>
         </div>

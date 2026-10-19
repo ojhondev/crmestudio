@@ -8,7 +8,10 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, use
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { DialogCloseBtn } from "@/components/touch-close";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Field, SimpleSelect } from "@/components/form";
 import { Book, displayFormula, offsetFormula } from "@/lib/sheets/formula";
@@ -1090,12 +1093,25 @@ export function SheetEditor({ sheet, tabs: initialTabs, canEdit, deals, contacts
   };
 
   const readOnlyNote = !canEdit;
+  const isMobile = useIsMobile();
+  const [tools, setTools] = useState<boolean | null>(null);
+  const toolsShown = tools ?? !isMobile; // no celular a barra de formatação começa recolhida
+  const [selectMode, setSelectMode] = useState(false);
 
   return (
     <div className="flex h-[calc(100dvh-3.5rem-4.25rem-env(safe-area-inset-bottom))] min-w-0 flex-col overflow-hidden bg-background md:h-[calc(100dvh-3.5rem)]" data-tour="sheet-editor">
       <MenuBar api={api} name={name} status={status} backHref="/planilhas" />
-      <IconBar api={api} />
+      <div className={cn(!toolsShown && "max-md:hidden")}>
+        <IconBar api={api} />
+      </div>
       <FormulaBar
+        active={!!editing}
+        onCommit={() => finishEdit(true)}
+        onCancel={() => finishEdit(false)}
+        toolsOpen={toolsShown}
+        onToggleTools={() => setTools(!toolsShown)}
+        selectMode={selectMode}
+        onToggleSelect={() => setSelectMode((v) => !v)}
         nameBox={nameBox}
         onGoto={gotoText}
         value={barText}
@@ -1136,6 +1152,7 @@ export function SheetEditor({ sheet, tabs: initialTabs, canEdit, deals, contacts
       {readOnlyNote && <p className="border-b bg-muted/50 px-3 py-1 text-[12px] text-muted-foreground">Você pode ver e baixar esta planilha, mas não editar.</p>}
       <SheetGrid
         ref={gridRef}
+        selectMode={selectMode}
         tab={tab}
         tabIndex={ti}
         book={book}
@@ -1262,7 +1279,7 @@ export function SheetEditor({ sheet, tabs: initialTabs, canEdit, deals, contacts
             <DialogTitle>Esta planilha foi alterada em outro lugar</DialogTitle>
             <DialogDescription>Alguém (ou outra aba do navegador) salvou uma versão mais nova enquanto você editava. Escolha o que manter.</DialogDescription>
           </DialogHeader>
-          <DialogFooter className="gap-2 sm:flex-col sm:items-stretch">
+          <DialogFooter className="gap-2 sm:flex-col sm:items-stretch max-md:[&_button]:h-auto max-md:[&_button]:min-h-11 max-md:[&_button]:whitespace-normal">
             <Button
               onClick={() => {
                 versionRef.current = conflict ?? versionRef.current;
@@ -1284,12 +1301,13 @@ export function SheetEditor({ sheet, tabs: initialTabs, canEdit, deals, contacts
 
       {/* confirmações */}
       <Dialog open={!!confirm} onOpenChange={(o) => !o && setConfirm(null)}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
+        <DialogContent className="sm:max-w-md" showCloseButton={false}>
+          <DialogCloseBtn />
+          <DialogHeader className="pr-10">
             <DialogTitle>{confirm?.title}</DialogTitle>
             <DialogDescription>{confirm?.text}</DialogDescription>
           </DialogHeader>
-          <DialogFooter>
+          <DialogFooter className="max-md:[&_button]:h-11">
             <Button variant="ghost" onClick={() => setConfirm(null)}>
               Cancelar
             </Button>
@@ -1302,12 +1320,13 @@ export function SheetEditor({ sheet, tabs: initialTabs, canEdit, deals, contacts
 
       {/* histórico */}
       <Dialog open={dialog === "history"} onOpenChange={(o) => !o && setDialog("")}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
+        <DialogContent className="sm:max-w-lg" showCloseButton={false}>
+          <DialogCloseBtn />
+          <DialogHeader className="pr-10">
             <DialogTitle>Histórico de versões</DialogTitle>
             <DialogDescription>O sistema guarda instantâneos automaticamente (a cada ~10 minutos de edição). Restaurar substitui o conteúdo atual — o estado de agora também fica guardado.</DialogDescription>
           </DialogHeader>
-          <div className="thin-scroll max-h-72 overflow-y-auto rounded-lg border">
+          <div className="thin-scroll max-h-72 overflow-y-auto rounded-lg border max-md:max-h-[50dvh]">
             {versions === null && (
               <p className="flex items-center gap-2 p-4 text-sm text-muted-foreground">
                 <Loader2 className="size-4 animate-spin" /> Carregando…
@@ -1315,7 +1334,7 @@ export function SheetEditor({ sheet, tabs: initialTabs, canEdit, deals, contacts
             )}
             {versions?.length === 0 && <p className="p-4 text-sm text-muted-foreground">Ainda não há versões. Elas aparecem depois das primeiras edições.</p>}
             {versions?.map((v) => (
-              <div key={v.id} className="flex items-center justify-between gap-3 border-b px-3 py-2 text-[13px] last:border-0">
+              <div key={v.id} className="flex items-center justify-between gap-3 border-b px-3 py-2 text-[13px] last:border-0 max-md:py-2.5">
                 <div className="min-w-0">
                   <p className="font-medium">{fmtDateTime(v.at)}</p>
                   <p className="truncate text-xs text-muted-foreground">
@@ -1327,6 +1346,7 @@ export function SheetEditor({ sheet, tabs: initialTabs, canEdit, deals, contacts
                   <Button
                     size="sm"
                     variant="outline"
+                    className="max-md:h-11"
                     disabled={busy}
                     onClick={() =>
                       startBusy(async () => {
@@ -1346,7 +1366,7 @@ export function SheetEditor({ sheet, tabs: initialTabs, canEdit, deals, contacts
               </div>
             ))}
           </div>
-          <DialogFooter>
+          <DialogFooter className="max-md:[&_button]:h-11">
             {canEdit && (
               <Button
                 variant="outline"
@@ -1372,8 +1392,9 @@ export function SheetEditor({ sheet, tabs: initialTabs, canEdit, deals, contacts
 
       {/* vínculo */}
       <Dialog open={dialog === "link"} onOpenChange={(o) => !o && setDialog("")}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
+        <DialogContent className="sm:max-w-md" showCloseButton={false}>
+          <DialogCloseBtn />
+          <DialogHeader className="pr-10">
             <DialogTitle>Vincular a negócio ou contato</DialogTitle>
             <DialogDescription>Útil para custos e materiais de um projeto específico. Escolher um negócio vincula também o contato dele.</DialogDescription>
           </DialogHeader>
@@ -1383,7 +1404,7 @@ export function SheetEditor({ sheet, tabs: initialTabs, canEdit, deals, contacts
           <Field label="Contato">
             <SimpleSelect value={contactId} onValueChange={setContactId} options={[{ value: "", label: "Sem contato" }, ...contacts]} />
           </Field>
-          <DialogFooter>
+          <DialogFooter className="max-md:[&_button]:h-11">
             <Button
               disabled={busy}
               onClick={() =>

@@ -5,6 +5,7 @@ import { ArrowDownAZ, ArrowUpAZ, Check } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { PALETTE } from "./model";
 
 /* ------------------------------- seletor de cor ------------------------------- */
@@ -54,7 +55,7 @@ export function ColorPicker({
                     onPick(c);
                     setOpen(false);
                   }}
-                  className="size-5 rounded-sm border border-black/10 max-md:size-7"
+                  className="size-5 rounded-sm border border-black/10 max-md:size-9"
                   style={{ background: c }}
                 />
               ))}
@@ -67,6 +68,7 @@ export function ColorPicker({
               type="button"
               variant="ghost"
               size="sm"
+              className="max-md:h-11"
               onClick={() => {
                 onPick(null);
                 setOpen(false);
@@ -79,7 +81,7 @@ export function ColorPicker({
             Personalizada
             <input
               type="color"
-              className="h-6 w-8 cursor-pointer rounded border bg-transparent"
+              className="h-6 w-8 cursor-pointer rounded border bg-transparent max-md:h-11 max-md:w-14"
               onChange={(e) => onPick(e.target.value)}
               onBlur={() => setOpen(false)}
             />
@@ -108,6 +110,7 @@ export function FilterPopover({
   onSort: (asc: boolean) => void;
   onClose: () => void;
 }) {
+  const mobile = useIsMobile();
   const [q, setQ] = useState("");
   const [checked, setChecked] = useState<Set<string>>(() => new Set(allowed ?? values));
   const ref = useRef<HTMLDivElement>(null);
@@ -131,18 +134,25 @@ export function FilterPopover({
   const top = Math.min(anchor.bottom + 4, window.innerHeight - 380);
 
   return (
-    <div ref={ref} className="fixed z-[60] grid w-64 gap-2 rounded-lg bg-popover p-2.5 text-sm text-popover-foreground shadow-lg ring-1 ring-foreground/10" style={{ left: Math.max(8, left), top: Math.max(8, top) }} role="dialog" aria-label="Filtrar coluna">
+    <div
+      ref={ref}
+      className="fixed z-[60] grid w-64 gap-2 rounded-lg bg-popover p-2.5 text-sm text-popover-foreground shadow-lg ring-1 ring-foreground/10 max-md:w-auto max-md:rounded-b-none max-md:rounded-t-2xl max-md:p-4 max-md:pb-[max(1rem,env(safe-area-inset-bottom))]"
+      style={mobile ? { left: 0, right: 0, bottom: 0 } : { left: Math.max(8, left), top: Math.max(8, top) }}
+      role="dialog"
+      aria-label="Filtrar coluna"
+    >
       <div className="flex gap-1.5">
-        <Button type="button" variant="outline" size="sm" className="flex-1" onClick={() => { onSort(true); onClose(); }}>
+        <Button type="button" variant="outline" size="sm" className="flex-1 max-md:h-11" onClick={() => { onSort(true); onClose(); }}>
           <ArrowDownAZ /> A → Z
         </Button>
-        <Button type="button" variant="outline" size="sm" className="flex-1" onClick={() => { onSort(false); onClose(); }}>
+        <Button type="button" variant="outline" size="sm" className="flex-1 max-md:h-11" onClick={() => { onSort(false); onClose(); }}>
           <ArrowUpAZ /> Z → A
         </Button>
       </div>
-      <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar valores…" className="h-8" aria-label="Buscar valores" />
-      <label className="flex cursor-pointer items-center gap-2 px-1 text-[13px] font-medium">
+      <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar valores…" className="h-8 max-md:h-11" aria-label="Buscar valores" />
+      <label className="flex cursor-pointer items-center gap-2 px-1 text-[13px] font-medium max-md:min-h-11 max-md:text-[15px]">
         <input
+          className="max-md:size-5"
           type="checkbox"
           checked={allShown}
           onChange={() => {
@@ -156,10 +166,11 @@ export function FilterPopover({
         />
         Selecionar tudo
       </label>
-      <div className="thin-scroll max-h-52 overflow-y-auto">
+      <div className="thin-scroll max-h-52 overflow-y-auto max-md:max-h-[40dvh]">
         {shown.slice(0, 400).map((v) => (
-          <label key={v} className="flex cursor-pointer items-center gap-2 rounded px-1 py-1 text-[13px] hover:bg-muted max-md:py-2">
+          <label key={v} className="flex cursor-pointer items-center gap-2 rounded px-1 py-1 text-[13px] hover:bg-muted max-md:min-h-11 max-md:text-[15px]">
             <input
+              className="max-md:size-5"
               type="checkbox"
               checked={checked.has(v)}
               onChange={() => {
@@ -176,10 +187,10 @@ export function FilterPopover({
         {!shown.length && <p className="px-1 py-2 text-xs text-muted-foreground">Nenhum valor.</p>}
       </div>
       <div className="flex justify-between gap-2">
-        <Button type="button" variant="ghost" size="sm" onClick={() => { onApply(null); onClose(); }}>
+        <Button type="button" variant="ghost" size="sm" className="max-md:h-11" onClick={() => { onApply(null); onClose(); }}>
           Limpar
         </Button>
-        <Button type="button" size="sm" onClick={() => { onApply(checked.size >= values.length ? null : values.filter((v) => checked.has(v))); onClose(); }}>
+        <Button type="button" size="sm" className="max-md:h-11" onClick={() => { onApply(checked.size >= values.length ? null : values.filter((v) => checked.has(v))); onClose(); }}>
           <Check /> Aplicar
         </Button>
       </div>
@@ -193,6 +204,7 @@ export type CtxItem = { label: string; onClick: () => void; disabled?: boolean; 
 
 export function ContextMenu({ x, y, items, onClose }: { x: number; y: number; items: CtxItem[]; onClose: () => void }) {
   const ref = useRef<HTMLDivElement>(null);
+  const mobile = useIsMobile();
   const [pos, setPos] = useState({ left: x, top: y });
   useEffect(() => {
     const el = ref.current;
@@ -211,7 +223,12 @@ export function ContextMenu({ x, y, items, onClose }: { x: number; y: number; it
     };
   }, [x, y, onClose]);
   return (
-    <div ref={ref} role="menu" className="fixed z-[70] min-w-52 rounded-lg bg-popover p-1 text-sm text-popover-foreground shadow-lg ring-1 ring-foreground/10" style={pos}>
+    <div
+      ref={ref}
+      role="menu"
+      className="fixed z-[70] min-w-52 rounded-lg bg-popover p-1 text-sm text-popover-foreground shadow-lg ring-1 ring-foreground/10 max-md:max-h-[70dvh] max-md:overflow-y-auto max-md:rounded-b-none max-md:rounded-t-2xl max-md:p-2 max-md:pb-[max(0.5rem,env(safe-area-inset-bottom))]"
+      style={mobile ? { left: 0, right: 0, bottom: 0 } : pos}
+    >
       {items.map((it, i) =>
         it.sep ? (
           <div key={i} className="my-1 h-px bg-border" role="separator" />
@@ -225,10 +242,10 @@ export function ContextMenu({ x, y, items, onClose }: { x: number; y: number; it
               onClose();
               it.onClick();
             }}
-            className={`flex w-full items-center justify-between gap-6 rounded-md px-2 py-1.5 text-left hover:bg-accent disabled:pointer-events-none disabled:opacity-40 max-md:py-2.5 ${it.danger ? "text-destructive" : ""}`}
+            className={`flex w-full items-center justify-between gap-6 rounded-md px-2 py-1.5 text-left hover:bg-accent disabled:pointer-events-none disabled:opacity-40 max-md:min-h-12 max-md:text-[15px] ${it.danger ? "text-destructive" : ""}`}
           >
             <span>{it.label}</span>
-            {it.shortcut && <span className="text-xs text-muted-foreground">{it.shortcut}</span>}
+            {it.shortcut && <span className="text-xs text-muted-foreground max-md:hidden">{it.shortcut}</span>}
           </button>
         ),
       )}

@@ -7,6 +7,7 @@
  */
 import { memo, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent as RKeyboardEvent, type PointerEvent as RPointerEvent, type Ref } from "react";
 import { ChevronDown } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 import type { Book } from "@/lib/sheets/formula";
 import { formatValue, FErr } from "@/lib/sheets/format";
 import { colName, type Cell, type TabData } from "@/lib/sheets/types";
@@ -30,6 +31,8 @@ type Props = {
   sel: Sel;
   editing: Editing | null;
   canEdit: boolean;
+  /** celular: arrastar com o dedo estende a seleção (em vez de rolar a grade) */
+  selectMode?: boolean;
   /** referência pelo clique/arrasto enquanto edita uma fórmula (devolve true se tratou) */
   onPoint: (r: number, c: number, phase: "start" | "move") => boolean;
   onSelect: (s: Sel, keepAnchor?: boolean) => void;
@@ -52,6 +55,7 @@ type Props = {
 const OVERSCAN_R = 4;
 const OVERSCAN_C = 2;
 const BASE_FONT = 13;
+const MOBILE_FONT = 15; // celular: texto maior para ler sem zoom
 
 /* ----------------------------- célula ----------------------------- */
 
@@ -118,7 +122,10 @@ const CellView = memo(function CellView({ x, y, w, h, ext, text, isNum, isBool, 
 /* ----------------------------- grade ----------------------------- */
 
 export function SheetGrid({ ref, ...props }: Props) {
-  const { tab, tabIndex, book, layout, sel, editing, canEdit } = props;
+  const { tab, tabIndex, book, layout, sel, editing, canEdit, selectMode } = props;
+  const mobile = useIsMobile();
+  const [kb, setKb] = useState(0);
+  const longPress = useRef(0);
   const scroller = useRef<HTMLDivElement>(null);
   const sink = useRef<HTMLTextAreaElement>(null);
   const editor = useRef<HTMLTextAreaElement>(null);
@@ -144,6 +151,30 @@ export function SheetGrid({ ref, ...props }: Props) {
     setSize({ w: el.clientWidth, h: el.clientHeight });
     return () => ro.disconnect();
   }, []);
+  // ---- teclado virtual (celular): mede a altura coberta e mantém a célula em edição visível
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv || !mobile) return;
+    const on = () => setKb(Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop)));
+    on();
+    vv.addEventListener("resize", on);
+    vv.addEventListener("scroll", on);
+    return () => {
+      vv.removeEventListener("resize", on);
+      vv.removeEventListener("scroll", on);
+    };
+  }, [mobile]);
+  const kbPad = mobile && editing && editing.mode !== "bar" && kb > 100 ? kb : 0;
+  useEffect(() => {
+    if (!kbPad) return;
+    const el = scroller.current;
+    const vv = window.visualViewport;
+    const ed = editor.current;
+    if (!el || !vv || !ed) return;
+    const over = ed.getBoundingClientRect().bottom - (vv.offsetTop + vv.height - 12);
+    if (over > 0) el.scrollTop += over;
+  }, [kbPad, editing?.r, editing?.c]);
+
   const onScroll = useCallback(() => {
     if (raf.current) return;
     raf.current = requestAnimationFrame(() => {
@@ -310,8 +341,19 @@ export function SheetGrid({ ref, ...props }: Props) {
       return;
     }
     last.current = { x: e.clientX, y: e.clientY };
-    if (e.pointerType === "touch") {
+    if (e.pointerType === "touch" && !selectMode) {
       drag.current = { kind: "sel", touch: true, sx: e.clientX, sy: e.clientY, st: scroller.current?.scrollTop, sl: scroller.current?.scrollLeft };
+      // pressão longa = menu de contexto (o Safari do iPhone não dispara "contextmenu")
+      window.clearTimeout(longPress.current);
+      const x0 = e.clientX;
+      const y0 = e.clientY;
+      longPress.current = window.setTimeout(() => {
+        const d = drag.current;
+        if (!d?.touch || Math.hypot(last.current.x - x0, last.current.y - y0) > 8) return;
+        drag.current = null;
+        props.onSelect({ ar: r, ac: c, fr: r, fc: c });
+        props.onContext({ x: x0, y: y0, kind: "cell", index: r });
+      }, 520);
       return;
     }
     if (props.onPoint(r, c, "start")) {
@@ -334,6 +376,7 @@ export function SheetGrid({ ref, ...props }: Props) {
     movePointer(e.clientX, e.clientY);
   };
   const onCellsPointerUp = (e: RPointerEvent<HTMLDivElement>) => {
+    window.clearTimeout(longPress.current);
     const d = drag.current;
     drag.current = null;
     if (!d) return;
@@ -596,6 +639,12 @@ export function SheetGrid({ ref, ...props }: Props) {
 
   const editRect = editing && editing.mode !== "bar" ? rectOf(merges.origin.get(editing.r * 1024 + editing.c) ?? { r1: editing.r, c1: editing.c, r2: editing.r, c2: editing.c }) : null;
   const editStyle = editing ? tab.grid[editing.r]?.[editing.c]?.s : undefined;
+  // célula numérica (ou coluna de números) no celular: abre o teclado numérico
+  const numericOf = (r: number, c: number) => {
+    const cl = tab.grid[r]?.[c];
+    return !!cl && cl.f === undefined && typeof cl.v === "number";
+  };
+  const numericEdit = !!editing && mobile && /^[-\d.,\s]*$/.test(editing.text) && (numericOf(editing.r, editing.c) || (!tab.grid[editing.r]?.[editing.c] && editing.r > 0 && numericOf(editing.r - 1, editing.c)));
 
   return (
     <div
@@ -603,7 +652,7 @@ export function SheetGrid({ ref, ...props }: Props) {
       onScroll={onScroll}
       data-sheet-scroller
       className="thin-scroll relative min-h-0 flex-1 overflow-auto overscroll-contain bg-background"
-      style={{ ["--sheet-line" as string]: "color-mix(in oklch, var(--border), var(--foreground) 6%)", fontSize: BASE_FONT }}
+      style={{ ["--sheet-line" as string]: "color-mix(in oklch, var(--border), var(--foreground) 6%)", fontSize: mobile ? MOBILE_FONT : BASE_FONT }}
     >
       {/* teclado: alvo invisível que recebe digitação, atalhos e colar/copiar */}
       <textarea
@@ -618,7 +667,7 @@ export function SheetGrid({ ref, ...props }: Props) {
         onCut={props.onSinkCut}
         onPaste={props.onSinkPaste}
       />
-      <div style={{ width: HEADER_W + layout.totalW + 60, height: HEADER_H + layout.totalH + 44 }} className="relative">
+      <div style={{ width: HEADER_W + layout.totalW + 60, height: HEADER_H + layout.totalH + 44 + kbPad }} className="relative">
         {/* linha de letras */}
         <div className="sticky top-0 z-30 border-b bg-card" style={{ height: HEADER_H, width: HEADER_W + layout.totalW + 60 }}>
           <div
@@ -630,17 +679,20 @@ export function SheetGrid({ ref, ...props }: Props) {
           <div className="absolute top-0 left-0 h-full w-full">{colHeads}</div>
         </div>
         {/* corpo */}
-        <div className="relative" style={{ height: layout.totalH + 44, width: HEADER_W + layout.totalW + 60 }}>
-          <div className="sticky left-0 z-20 border-r bg-card" style={{ width: HEADER_W, height: layout.totalH + 44 }}>
+        <div className="relative" style={{ height: layout.totalH + 44 + kbPad, width: HEADER_W + layout.totalW + 60 }}>
+          <div className="sticky left-0 z-20 border-r bg-card" style={{ width: HEADER_W, height: layout.totalH + 44 + kbPad }}>
             {rowHeads}
           </div>
           <div
             className="absolute top-0"
-            style={{ left: HEADER_W, width: layout.totalW + 60, height: layout.totalH + 44, touchAction: "pan-x pan-y" }}
+            style={{ left: HEADER_W, width: layout.totalW + 60, height: layout.totalH + 44, touchAction: selectMode ? "none" : "pan-x pan-y" }}
             onPointerDown={onCellsPointerDown}
             onPointerMove={onCellsPointerMove}
             onPointerUp={onCellsPointerUp}
-            onPointerCancel={() => (drag.current = null)}
+            onPointerCancel={() => {
+              window.clearTimeout(longPress.current);
+              drag.current = null;
+            }}
             onDoubleClick={onCellsDouble}
             onContextMenu={onCellsContext}
           >
@@ -656,8 +708,8 @@ export function SheetGrid({ ref, ...props }: Props) {
                 onPointerDown={startFill}
                 onPointerMove={onCellsPointerMove}
                 onPointerUp={onCellsPointerUp}
-                className="absolute z-[8] size-2.5 cursor-crosshair rounded-[1px] border border-background bg-brand max-md:size-4"
-                style={{ left: selRect.left + selRect.width - 6, top: selRect.top + selRect.height - 6 }}
+                className="absolute z-[8] size-2.5 cursor-crosshair rounded-[1px] border border-background bg-brand before:absolute before:-inset-3.5 before:content-[''] max-md:size-4 max-md:rounded-full"
+                style={{ left: selRect.left + selRect.width - (mobile ? 8 : 6), top: selRect.top + selRect.height - (mobile ? 8 : 6), touchAction: "none" }}
                 aria-hidden
               />
             )}
@@ -668,6 +720,8 @@ export function SheetGrid({ ref, ...props }: Props) {
                 ref={editor}
                 value={editing.text}
                 rows={1}
+                inputMode={numericEdit ? "decimal" : "text"}
+                enterKeyHint="done"
                 spellCheck={false}
                 autoComplete="off"
                 autoCapitalize="off"
@@ -683,7 +737,7 @@ export function SheetGrid({ ref, ...props }: Props) {
                   width: Math.max(editRect.width + 1, Math.min(520, editing.text.length * 7.6 + 24)),
                   fontWeight: editStyle?.b ? 700 : undefined,
                   fontStyle: editStyle?.i ? "italic" : undefined,
-                  fontSize: editStyle?.fs ? Math.round(editStyle.fs * 1.333) : undefined,
+                  fontSize: mobile ? Math.max(16, editStyle?.fs ? Math.round(editStyle.fs * 1.333) : 16) : editStyle?.fs ? Math.round(editStyle.fs * 1.333) : undefined,
                   textAlign: editStyle?.al === "r" ? "right" : editStyle?.al === "c" ? "center" : "left",
                 }}
               />

@@ -29,7 +29,7 @@ export function Pill({ value, options, onChange, disabled, label, wide }: { valu
         value={value}
         disabled={disabled}
         onChange={(e) => onChange(e.target.value)}
-        className={cn("h-7 max-md:h-10 cursor-pointer appearance-none rounded-md px-2.5 text-center text-[12px] font-semibold text-on-st max-md:text-[13px] outline-none disabled:cursor-default", wide ? "min-w-28" : "min-w-20")}
+        className={cn("h-7 max-md:h-11 cursor-pointer appearance-none rounded-md px-2.5 text-center text-[12px] font-semibold text-on-st max-md:text-base outline-none disabled:cursor-default", wide ? "min-w-28" : "min-w-20")}
         style={{ background: cur.color }}
       >
         {Object.entries(options).map(([k, o]) => (
@@ -67,7 +67,7 @@ export function dueState(t: Pick<TaskDTO, "dueAt" | "status">) {
 export function DueInput({ t, onChange, disabled }: { t: TaskDTO; onChange: (v: string | null) => void; disabled?: boolean }) {
   const st = dueState(t);
   return (
-    <label className={cn("relative inline-flex h-7 items-center gap-1 rounded-md border px-2 text-[12px] max-md:h-10 max-md:text-[13px]", st === "late" && "border-destructive bg-destructive/10 font-medium text-destructive", st === "today" && "border-brand bg-brand-soft font-medium")}>
+    <label className={cn("relative inline-flex h-7 items-center gap-1 rounded-md border px-2 text-[12px] max-md:h-11 max-md:text-[13px]", st === "late" && "border-destructive bg-destructive/10 font-medium text-destructive", st === "today" && "border-brand bg-brand-soft font-medium")}>
       <CalendarDays className="size-3 shrink-0" />
       <span className="whitespace-nowrap">{t.dueAt ? `${fmtDate(t.dueAt, "dd/MM")}${st === "late" ? " · atrasada" : st === "today" ? " · hoje" : ""}` : "Prazo"}</span>
       <input
@@ -76,7 +76,7 @@ export function DueInput({ t, onChange, disabled }: { t: TaskDTO; onChange: (v: 
         disabled={disabled}
         value={t.dueAt ? isoDateBR(new Date(t.dueAt)) : ""}
         onChange={(e) => onChange(e.target.value || null)}
-        className="absolute inset-0 cursor-pointer opacity-0 disabled:cursor-default"
+        className="absolute inset-0 cursor-pointer opacity-0 disabled:cursor-default max-md:text-base"
       />
     </label>
   );
@@ -84,10 +84,10 @@ export function DueInput({ t, onChange, disabled }: { t: TaskDTO; onChange: (v: 
 
 export function Assignee({ t, users, onChange, disabled }: { t: TaskDTO; users: User[]; onChange: (v: string | null) => void; disabled?: boolean }) {
   return (
-    <label className="relative inline-flex h-7 items-center gap-1.5 rounded-md border px-1.5 text-[12px] max-md:h-10 max-md:text-[13px]">
+    <label className="relative inline-flex h-7 items-center gap-1.5 rounded-md border px-1.5 text-[12px] max-md:h-11 max-md:text-[13px]">
       <Person id={t.assigneeId} users={users} />
       <span className="max-w-24 truncate">{users.find((u) => u.id === t.assigneeId)?.name.split(" ")[0] ?? "Atribuir"}</span>
-      <select aria-label="Responsável" disabled={disabled} value={t.assigneeId ?? ""} onChange={(e) => onChange(e.target.value || null)} className="absolute inset-0 cursor-pointer opacity-0 disabled:cursor-default">
+      <select aria-label="Responsável" disabled={disabled} value={t.assigneeId ?? ""} onChange={(e) => onChange(e.target.value || null)} className="absolute inset-0 cursor-pointer opacity-0 disabled:cursor-default max-md:text-base">
         <option value="">Sem responsável</option>
         {users.map((u) => (
           <option key={u.id} value={u.id}>
@@ -104,7 +104,7 @@ export function LabelChip({ label, onRemove }: { label: string; onRemove?: () =>
     <span className="inline-flex max-w-32 items-center gap-1 truncate rounded px-1.5 py-px text-[11px] leading-4 font-semibold text-white" style={{ background: labelColor(label) }}>
       <span className="truncate">{label}</span>
       {onRemove && (
-        <button type="button" onClick={onRemove} aria-label={`Remover etiqueta ${label}`} className="-mr-0.5 rounded px-0.5 hover:bg-white/25">
+        <button type="button" onClick={onRemove} aria-label={`Remover etiqueta ${label}`} className="relative -mr-0.5 rounded px-0.5 after:absolute after:-inset-3 after:content-[''] hover:bg-white/25">
           ×
         </button>
       )}
@@ -125,7 +125,7 @@ export function SubtaskProgress({ t }: { t: Pick<TaskDTO, "subtasks"> }) {
 /* ----------------------------- valor de coluna personalizada ----------------------------- */
 
 export function CustomCell({ col, value, users, disabled, onChange }: { col: TaskColumn; value: unknown; users: User[]; disabled?: boolean; onChange: (v: unknown) => void }) {
-  const base = "h-7 w-full min-w-0 rounded border border-transparent bg-transparent px-1.5 text-[12.5px] hover:border-input focus:border-ring focus:outline-none disabled:opacity-100 max-md:h-10";
+  const base = "h-7 w-full min-w-0 rounded border border-transparent bg-transparent px-1.5 text-[12.5px] hover:border-input focus:border-ring focus:outline-none disabled:opacity-100 max-md:h-11 max-md:border-input max-md:text-base";
   switch (col.type) {
     case "texto":
       return <TextCell key={String(value ?? "")} initial={String(value ?? "")} className={base} disabled={disabled} label={col.name} onCommit={onChange} />;
@@ -136,7 +136,7 @@ export function CustomCell({ col, value, users, disabled, onChange }: { col: Tas
         <span className="flex min-w-0 items-center gap-1">
           <TextCell key={String(value ?? "")} initial={String(value ?? "")} className={base} disabled={disabled} label={col.name} onCommit={onChange} />
           {typeof value === "string" && value && (
-            <a href={value} target="_blank" rel="noreferrer" className="shrink-0 text-[12px] text-brand underline-offset-2 hover:underline" aria-label={`Abrir ${col.name}`}>
+            <a href={value} target="_blank" rel="noreferrer" className="shrink-0 text-[12px] text-brand underline-offset-2 hover:underline max-md:px-2 max-md:py-3" aria-label={`Abrir ${col.name}`}>
               abrir
             </a>
           )}
@@ -167,7 +167,11 @@ export function CustomCell({ col, value, users, disabled, onChange }: { col: Tas
         </select>
       );
     case "caixa":
-      return <input type="checkbox" aria-label={col.name} disabled={disabled} checked={value === true} onChange={(e) => onChange(e.target.checked ? true : null)} className="size-4 accent-brand" />;
+      return (
+        <label className="grid place-items-center max-md:size-11 max-md:justify-start">
+          <input type="checkbox" aria-label={col.name} disabled={disabled} checked={value === true} onChange={(e) => onChange(e.target.checked ? true : null)} className="size-4 accent-brand max-md:size-6" />
+        </label>
+      );
   }
 }
 

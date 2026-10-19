@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { DialogCloseBtn } from "@/components/touch-close";
 import { PageToolbar, ToolArea, ToolbarGroup } from "@/components/toolbar";
 import { cn } from "@/lib/utils";
 import { isoDateBR, todayISO } from "@/lib/format";
@@ -62,14 +64,16 @@ const VIEWS: { v: View; label: string; icon: React.ElementType }[] = [
   { v: "linha", label: "Linha do tempo", icon: Rows3 },
 ];
 
-const selectCls = "h-8 w-full rounded-lg border border-input bg-background px-2 text-[13px] max-md:h-10";
+const selectCls = "h-8 w-full rounded-lg border border-input bg-background px-2 text-[13px] max-md:h-11 max-md:text-base";
 
 /* --------------------------------- componente --------------------------------- */
 
 export function Tarefas(props: Props) {
   const { mode, boards, board, users, meId, canEdit, canManage, boardNames } = props;
   const router = useRouter();
-  const [prefs, setPrefs] = usePrefs(board?.id ?? "minhas", props.view === "kanban" ? { view: "kanban" } : undefined);
+  const isMobile = useIsMobile();
+  // no celular a visão padrão é a lista em cartões (a escolha do usuário continua valendo)
+  const [prefs, setPrefs] = usePrefs(board?.id ?? "minhas", props.view === "kanban" ? { view: "kanban" } : isMobile ? { view: "lista" } : undefined);
   const [tasks, setTasks] = useState<TaskDTO[]>(props.tasks);
   const [groups, setGroups] = useState<TaskGroup[]>(props.groups);
   const [columns, setColumns] = useState<TaskColumn[]>(board?.columns ?? []);
@@ -90,7 +94,7 @@ export function Tarefas(props: Props) {
   }
 
   const today = todayISO();
-  const view: View = mode === "minhas" ? "tabela" : prefs.view;
+  const view: View = mode === "minhas" ? "tabela" : isMobile && prefs.view === "tabela" ? "lista" : prefs.view;
   const f: Filters = useMemo(() => ({ ...filters, hideDone: prefs.hideDone }), [filters, prefs.hideDone]);
   const activeFilters = [f.who, f.priority, f.status, f.due, f.label].filter(Boolean).length + (prefs.hideDone ? 1 : 0);
 
@@ -351,6 +355,11 @@ export function Tarefas(props: Props) {
           </select>
         </label>
       )}
+      {mode === "board" && board && (canEdit || columns.length > 0) && (
+        <Button type="button" variant="outline" size="sm" className="w-fit" onClick={() => setColsOpen(true)}>
+          <Columns3 /> Colunas personalizadas{columns.length > 0 ? ` (${columns.length})` : ""}
+        </Button>
+      )}
       {(view === "tabela" || view === "lista") && prefs.groupBy !== "grupo" && <p className="text-[12px] text-muted-foreground">Agrupando por outro critério, não dá para arrastar ou adicionar tarefas direto na seção.</p>}
       {(view === "tabela" || view === "lista") && prefs.groupBy === "grupo" && prefs.sort !== "manual" && <p className="text-[12px] text-muted-foreground">Para arrastar e reordenar, volte para “Ordem manual”.</p>}
     </div>
@@ -358,12 +367,12 @@ export function Tarefas(props: Props) {
 
   const toolbarFilters = (
     <>
-      <div className="relative w-44 shrink-0 sm:w-56" data-tour="task-filters">
+      <div className="relative w-40 shrink-0 sm:w-56" data-tour="task-filters">
         <Search className="absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
-        <Input value={filters.q} onChange={(e) => setFilters({ ...filters, q: e.target.value })} placeholder="Buscar tarefa…" aria-label="Buscar tarefa" className="h-9 pl-8" />
+        <Input value={filters.q} onChange={(e) => setFilters({ ...filters, q: e.target.value })} placeholder="Buscar tarefa…" aria-label="Buscar tarefa" className="h-9 pl-8 max-md:h-11" />
       </div>
       {mode === "board" && (
-        <ToolbarGroup>
+        <ToolbarGroup className="max-md:hidden">
           {VIEWS.map(({ v, label, icon: Icon }) => (
             <button
               key={v}
@@ -387,7 +396,7 @@ export function Tarefas(props: Props) {
             {activeFilters > 0 && <span className="grid size-4.5 place-items-center rounded-full bg-brand text-[11px] font-semibold text-on-brand">{activeFilters}</span>}
           </Button>
         </PopoverTrigger>
-        <PopoverContent align="center" className="w-72">
+        <PopoverContent align="center" className="w-72 max-w-[calc(100vw-1.5rem)]">
           {filtersPanel}
         </PopoverContent>
       </Popover>
@@ -398,7 +407,7 @@ export function Tarefas(props: Props) {
               <SlidersHorizontal /> Organizar
             </Button>
           </PopoverTrigger>
-          <PopoverContent align="center" className="w-72">
+          <PopoverContent align="center" className="w-72 max-w-[calc(100vw-1.5rem)]">
             {organizePanel}
           </PopoverContent>
         </Popover>
@@ -407,17 +416,17 @@ export function Tarefas(props: Props) {
   );
 
   const boardsRow = (
-    <div data-tour="task-boards" className="thin-scroll flex h-11 items-center gap-1.5 overflow-x-auto border-t px-3 sm:px-5" role="tablist" aria-label="Quadros">
-      <Link href="/tarefas?quadro=minhas" role="tab" aria-selected={mode === "minhas"} className={cn("inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1 text-[13px] max-md:py-2", mode === "minhas" ? "border-foreground bg-foreground font-medium text-background" : "bg-card hover:border-foreground/40")}>
+    <div data-tour="task-boards" className="thin-scroll flex h-11 items-center gap-1.5 overflow-x-auto border-t px-3 max-md:h-14 sm:px-5" role="tablist" aria-label="Quadros">
+      <Link href="/tarefas?quadro=minhas" role="tab" aria-selected={mode === "minhas"} className={cn("inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1 text-[13px] max-md:min-h-11", mode === "minhas" ? "border-foreground bg-foreground font-medium text-background" : "bg-card hover:border-foreground/40")}>
         <Check className="size-3.5" /> Minhas tarefas
       </Link>
       {boards.map((b) => (
-        <Link key={b.id} href={href(b.id)} role="tab" aria-selected={board?.id === b.id} className={cn("inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1 text-[13px] max-md:py-2", board?.id === b.id ? "border-foreground bg-foreground font-medium text-background" : "bg-card hover:border-foreground/40")}>
+        <Link key={b.id} href={href(b.id)} role="tab" aria-selected={board?.id === b.id} className={cn("inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1 text-[13px] max-md:min-h-11", board?.id === b.id ? "border-foreground bg-foreground font-medium text-background" : "bg-card hover:border-foreground/40")}>
           <span className="size-2 rounded-full" style={{ background: b.color }} /> {b.name}
         </Link>
       ))}
       {canEdit && !newBoard && (
-        <Button type="button" variant="outline" size="sm" className="shrink-0 rounded-full" onClick={() => setNewBoard(true)}>
+        <Button type="button" variant="outline" size="sm" className="shrink-0 rounded-full max-md:h-11" onClick={() => setNewBoard(true)}>
           <Plus /> Quadro
         </Button>
       )}
@@ -434,7 +443,7 @@ export function Tarefas(props: Props) {
             if ("board" in r && r.board) router.push(href(r.board.id));
           }}
         >
-          <select name="tpl" aria-label="Modelo do quadro" className="h-8 rounded-lg border border-input bg-background px-2 text-[13px]">
+          <select name="tpl" aria-label="Modelo do quadro" className="h-8 max-w-44 rounded-lg border border-input bg-background px-2 text-[13px] max-md:h-11 max-md:text-base">
             <option value="">Em branco</option>
             {BOARD_TEMPLATES.map((t) => (
               <option key={t.key} value={t.key} title={t.description}>
@@ -442,8 +451,8 @@ export function Tarefas(props: Props) {
               </option>
             ))}
           </select>
-          <Input name="name" autoFocus placeholder="Nome do quadro" className="h-8 w-44" onKeyDown={(e) => e.key === "Escape" && setNewBoard(false)} />
-          <Button type="submit" size="sm">
+          <Input name="name" autoFocus placeholder="Nome do quadro" className="h-8 w-44 max-md:h-11" onKeyDown={(e) => e.key === "Escape" && setNewBoard(false)} />
+          <Button type="submit" size="sm" className="max-md:h-11">
             Criar
           </Button>
         </form>
@@ -492,15 +501,20 @@ export function Tarefas(props: Props) {
         filters={toolbarFilters}
         actions={
           mode === "board" && canEdit && groups.length > 0 ? (
-            <Button type="button" size="sm" onClick={() => newTask()}>
+            <Button type="button" size="sm" className="max-md:hidden" onClick={() => newTask()}>
               <Plus /> Nova tarefa
             </Button>
           ) : undefined
         }
         tabs={boardsRow}
       />
+      {mode === "board" && canEdit && groups.length > 0 && selected.size === 0 && (
+        <button type="button" onClick={() => newTask()} aria-label="Nova tarefa" className="fixed right-4 bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-30 grid size-14 place-items-center rounded-full bg-brand text-on-brand shadow-lg active:scale-95 md:hidden">
+          <Plus className="size-6" />
+        </button>
+      )}
       <ToolArea className="md:h-[calc(100dvh-7rem-2.75rem)]">
-        <div className="relative grid gap-4 p-3 pb-24 sm:p-5">
+        <div className="relative grid grid-cols-[minmax(0,1fr)] gap-4 p-3 pb-24 sm:p-5">
           {mode === "minhas" ? (
             <Minhas
               sections={sections}
@@ -515,9 +529,17 @@ export function Tarefas(props: Props) {
             />
           ) : board ? (
             <>
+              <div role="tablist" aria-label="Visão" className="grid grid-cols-4 gap-1 rounded-xl border bg-card p-1 md:hidden">
+                {VIEWS.filter((x) => x.v !== "tabela").map(({ v, label, icon: Icon }) => (
+                  <button key={v} type="button" role="tab" aria-selected={view === v} onClick={() => setPrefs({ view: v })} className={cn("flex min-h-11 flex-col items-center justify-center gap-0.5 rounded-lg px-1 text-[11.5px] leading-tight", view === v ? "bg-foreground font-medium text-background" : "text-muted-foreground")}>
+                    <Icon className="size-4" />
+                    <span className="truncate">{v === "linha" ? "Cronograma" : label}</span>
+                  </button>
+                ))}
+              </div>
               <div className="flex flex-wrap items-center gap-3">
                 <BoardTitle board={board} canEdit={canEdit} />
-                {view === "kanban" && canEdit && <p className="text-[12.5px] text-muted-foreground">Arraste um cartão para outra coluna para mudar {prefs.kGroup === "situacao" ? "a situação" : prefs.kGroup === "prioridade" ? "a prioridade" : "o responsável"}. Toque para ver detalhes.</p>}
+                {view === "kanban" && canEdit && <p className="text-[12.5px] text-muted-foreground"><span className="max-md:hidden">Arraste um cartão para outra coluna para mudar </span><span className="md:hidden">Use “Mover” no cartão para mudar </span>{prefs.kGroup === "situacao" ? "a situação" : prefs.kGroup === "prioridade" ? "a prioridade" : "o responsável"}. Toque para ver detalhes.</p>}
                 {(view === "tabela" || view === "lista") && canEdit && prefs.groupBy === "grupo" && prefs.sort === "manual" && <p className="text-[12.5px] text-muted-foreground max-md:hidden">Arraste pelo ícone ⋮⋮ para reordenar ou mover entre grupos.</p>}
               </div>
               {view === "tabela" || view === "lista" ? (
@@ -536,8 +558,8 @@ export function Tarefas(props: Props) {
                         form.reset();
                       }}
                     >
-                      <Input name="name" placeholder="Nome do novo grupo (ex.: Esta semana)" aria-label="Novo grupo" className="h-9 max-w-xs" />
-                      <Button type="submit" variant="outline" size="sm">
+                      <Input name="name" placeholder="Nome do novo grupo (ex.: Esta semana)" aria-label="Novo grupo" className="h-9 max-w-xs max-md:h-11" />
+                      <Button type="submit" variant="outline" size="sm" className="max-md:h-11">
                         Adicionar grupo
                       </Button>
                     </form>
@@ -568,7 +590,7 @@ export function Tarefas(props: Props) {
                     type="button"
                     variant="ghost"
                     size="sm"
-                    className="text-muted-foreground hover:text-destructive"
+                    className="text-muted-foreground hover:text-destructive max-md:h-11"
                     onClick={async () => {
                       if (!window.confirm(`Excluir o quadro "${board.name}" com todos os grupos e tarefas? Não dá para desfazer.`)) return;
                       await deleteBoard(board.id);
@@ -588,11 +610,14 @@ export function Tarefas(props: Props) {
           )}
 
           {selected.size > 0 && canEdit && (
-            <div role="toolbar" aria-label="Ações em massa" className="sticky bottom-3 z-20 mx-auto flex max-w-full flex-wrap items-center gap-2 rounded-xl border bg-card px-3 py-2 shadow-lg">
-              <span className="text-[13px] font-medium">
+            <div role="toolbar" aria-label="Ações em massa" className="sticky bottom-3 z-20 mx-auto flex max-w-full flex-wrap items-center gap-2 rounded-xl border bg-card px-3 py-2 shadow-lg max-md:bottom-[calc(4.75rem+env(safe-area-inset-bottom))] max-md:grid max-md:w-full max-md:grid-cols-2">
+              <span className="text-[13px] font-medium max-md:col-span-2 max-md:flex max-md:min-h-11 max-md:items-center max-md:justify-between">
                 {selected.size} {selected.size === 1 ? "selecionada" : "selecionadas"}
+                <Button type="button" variant="ghost" size="sm" className="md:hidden" onClick={() => setSelected(new Set())}>
+                  Limpar
+                </Button>
               </span>
-              <select aria-label="Mudar situação" disabled={busy} value="" onChange={(e) => e.target.value && bulk({ status: e.target.value })} className={cn(selectCls, "w-auto")}>
+              <select aria-label="Mudar situação" disabled={busy} value="" onChange={(e) => e.target.value && bulk({ status: e.target.value })} className={cn(selectCls, "w-auto max-md:w-full")}>
                 <option value="">Situação…</option>
                 {Object.entries(STATUS).map(([k, o]) => (
                   <option key={k} value={k}>
@@ -600,7 +625,7 @@ export function Tarefas(props: Props) {
                   </option>
                 ))}
               </select>
-              <select aria-label="Mudar responsável" disabled={busy} value="" onChange={(e) => e.target.value && bulk({ assigneeId: e.target.value === "__none" ? null : e.target.value })} className={cn(selectCls, "w-auto")}>
+              <select aria-label="Mudar responsável" disabled={busy} value="" onChange={(e) => e.target.value && bulk({ assigneeId: e.target.value === "__none" ? null : e.target.value })} className={cn(selectCls, "w-auto max-md:w-full")}>
                 <option value="">Responsável…</option>
                 <option value="__none">Sem responsável</option>
                 {users.map((u) => (
@@ -610,13 +635,13 @@ export function Tarefas(props: Props) {
                 ))}
               </select>
               <label className="flex items-center gap-1 text-[13px]">
-                Prazo
-                <input type="date" aria-label="Definir prazo" disabled={busy} onChange={(e) => e.target.value && bulk({ dueAt: e.target.value })} className="h-8 rounded-lg border border-input bg-background px-2 text-[13px] max-md:h-10" />
+                <span className="max-md:sr-only">Prazo</span>
+                <input type="date" aria-label="Definir prazo" disabled={busy} onChange={(e) => e.target.value && bulk({ dueAt: e.target.value })} className="h-8 min-w-0 rounded-lg border border-input bg-background px-2 text-[13px] max-md:h-11 max-md:flex-1 max-md:text-base" />
               </label>
-              <Button type="button" variant="outline" size="sm" disabled={busy} onClick={bulkRemove} className="text-destructive">
+              <Button type="button" variant="outline" size="sm" disabled={busy} onClick={bulkRemove} className="text-destructive max-md:h-11">
                 {busy ? <Loader2 className="animate-spin" /> : <Trash2 />} Excluir
               </Button>
-              <Button type="button" variant="ghost" size="sm" onClick={() => setSelected(new Set())}>
+              <Button type="button" variant="ghost" size="sm" className="max-md:hidden" onClick={() => setSelected(new Set())}>
                 Limpar
               </Button>
             </div>
@@ -667,7 +692,7 @@ function BoardTitle({ board, canEdit }: { board: { id: string; name: string; col
         onChange={(e) => setName(e.target.value)}
         onBlur={() => name.trim() && name !== board.name && renameBoard(board.id, name)}
         onKeyDown={(e) => e.key === "Enter" && (e.currentTarget as HTMLInputElement).blur()}
-        className="h-9 min-w-0 rounded-md border border-transparent bg-transparent px-1 text-[20px] font-semibold hover:border-input focus:border-ring focus:outline-none max-md:h-10"
+        className="h-9 min-w-0 rounded-md border border-transparent bg-transparent px-1 text-[20px] font-semibold hover:border-input focus:border-ring focus:outline-none max-md:h-11"
       />
     </div>
   );
@@ -682,16 +707,17 @@ function ColumnsDialog({ open, onOpenChange, boardId, columns, canEdit, onAdded,
   const typeLabel = (t: string) => COLUMN_TYPES.find((x) => x.v === t)?.l ?? t;
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-md" showCloseButton={false}>
+        <DialogCloseBtn />
+        <DialogHeader className="pr-10">
           <DialogTitle>Colunas do quadro</DialogTitle>
           <DialogDescription>Campos extras de cada tarefa deste quadro: texto, número, data, seleção, pessoa, caixa de seleção ou link.</DialogDescription>
         </DialogHeader>
         <ul className="grid gap-1.5">
           {columns.map((c) => (
-            <li key={c.id} className="flex items-center gap-2 rounded-lg border px-3 py-2 text-[13.5px]">
+            <li key={c.id} className="flex items-center gap-2 rounded-lg border py-1 pl-3 text-[13.5px]">
               <span className="min-w-0 flex-1 truncate font-medium">{c.name}</span>
-              <span className="text-xs text-muted-foreground">
+              <span className="min-w-0 max-w-[45%] truncate text-xs text-muted-foreground">
                 {typeLabel(c.type)}
                 {c.options ? ` · ${c.options.join(", ")}` : ""}
               </span>
@@ -699,7 +725,7 @@ function ColumnsDialog({ open, onOpenChange, boardId, columns, canEdit, onAdded,
                 <button
                   type="button"
                   aria-label={`Remover coluna ${c.name}`}
-                  className="text-muted-foreground hover:text-destructive"
+                  className="grid size-9 shrink-0 place-items-center rounded text-muted-foreground hover:text-destructive max-md:size-11"
                   onClick={async () => {
                     if (!window.confirm(`Remover a coluna "${c.name}"? Os valores preenchidos serão perdidos.`)) return;
                     await removeBoardColumn(boardId, c.id);
@@ -731,9 +757,9 @@ function ColumnsDialog({ open, onOpenChange, boardId, columns, canEdit, onAdded,
               }
             }}
           >
-            <div className="flex gap-2">
-              <Input ref={nameRef} name="name" placeholder="Nome da coluna" aria-label="Nome da coluna" className="h-9" />
-              <select value={type} onChange={(e) => setType(e.target.value as TaskColumnType)} aria-label="Tipo da coluna" className="h-9 rounded-lg border border-input bg-background px-2 text-[13px]">
+            <div className="flex flex-wrap gap-2">
+              <Input ref={nameRef} name="name" placeholder="Nome da coluna" aria-label="Nome da coluna" className="h-9 min-w-40 flex-1" />
+              <select value={type} onChange={(e) => setType(e.target.value as TaskColumnType)} aria-label="Tipo da coluna" className="h-9 rounded-lg border border-input bg-background px-2 text-[13px] max-md:h-11 max-md:text-base">
                 {COLUMN_TYPES.map((t) => (
                   <option key={t.v} value={t.v}>
                     {t.l}
@@ -742,7 +768,7 @@ function ColumnsDialog({ open, onOpenChange, boardId, columns, canEdit, onAdded,
               </select>
             </div>
             {type === "selecao" && <Input name="options" placeholder="Opções separadas por vírgula (ex.: Limpeza, Reintegração)" aria-label="Opções" className="h-9" />}
-            <Button type="submit" size="sm" disabled={busy} className="w-fit">
+            <Button type="submit" size="sm" disabled={busy} className="w-fit max-md:h-11">
               {busy ? <Loader2 className="animate-spin" /> : <Plus />} Adicionar coluna
             </Button>
           </form>
@@ -802,9 +828,9 @@ function Minhas({
           }}
         >
           <Plus className="size-4 text-muted-foreground" />
-          <input ref={ref} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="O que você precisa fazer? Digite e tecle Enter" aria-label="Nova tarefa" className="h-9 min-w-0 flex-1 bg-transparent text-[14px] focus:outline-none max-md:h-10" />
-          <Input type="date" value={due} onChange={(e) => setDue(e.target.value)} aria-label="Prazo da nova tarefa" className="h-8 w-36" />
-          <Button type="submit" size="sm" disabled={!title.trim()}>
+          <input ref={ref} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="O que você precisa fazer? Digite e tecle Enter" aria-label="Nova tarefa" className="h-9 min-w-0 flex-1 bg-transparent text-[14px] focus:outline-none max-md:h-11 max-md:basis-[calc(100%-2rem)] max-md:text-base" />
+          <Input type="date" value={due} onChange={(e) => setDue(e.target.value)} aria-label="Prazo da nova tarefa" className="h-8 w-36 max-md:h-11 max-md:flex-1" />
+          <Button type="submit" size="sm" disabled={!title.trim()} className="max-md:h-11">
             Adicionar
           </Button>
         </form>

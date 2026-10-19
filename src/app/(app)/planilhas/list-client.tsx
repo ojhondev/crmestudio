@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Field, SimpleSelect } from "@/components/form";
+import { DialogCloseBtn } from "@/components/touch-close";
 import { TEMPLATES } from "@/lib/sheets/templates";
 import { cn } from "@/lib/utils";
 import { createSheet, deleteSheet, duplicateSheet, linkSheet, renameSheet, toggleFavorite } from "./actions";
@@ -33,12 +34,13 @@ export function NewSheetButton({ deals }: { deals: Opt[] }) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="sm" data-tour="sheets-new">
+        <Button size="sm" data-tour="sheets-new" className="max-md:h-11">
           <Plus /> Nova planilha
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-xl">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-xl max-sm:max-h-[94dvh]" showCloseButton={false}>
+        <DialogCloseBtn />
+        <DialogHeader className="pr-10">
           <DialogTitle>Nova planilha</DialogTitle>
           <DialogDescription>Comece em branco ou de um modelo pronto. Tudo pode ser editado depois.</DialogDescription>
         </DialogHeader>
@@ -67,7 +69,7 @@ export function NewSheetButton({ deals }: { deals: Opt[] }) {
             </Field>
           )}
         </div>
-        <DialogFooter>
+        <DialogFooter className="max-md:[&_button]:h-11">
           <Button onClick={submit} disabled={pending}>
             {pending && <Loader2 className="animate-spin" />} Criar planilha
           </Button>
@@ -183,12 +185,13 @@ export function ImportButton({ deals }: { deals: Opt[] }) {
 
   return (
     <>
-      <Button size="sm" variant="outline" data-tour="sheets-import" onClick={() => { reset(); setOpen(true); }}>
+      <Button size="sm" variant="outline" data-tour="sheets-import" className="max-md:h-11" onClick={() => { reset(); setOpen(true); }}>
         <Upload /> Importar
       </Button>
       <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) reset(); }}>
-        <DialogContent className="sm:max-w-2xl">
-          <DialogHeader>
+        <DialogContent className="sm:max-w-2xl max-sm:max-h-[94dvh]" showCloseButton={false}>
+          <DialogCloseBtn />
+          <DialogHeader className="pr-10">
             <DialogTitle>Importar planilha</DialogTitle>
             <DialogDescription>Excel (.xlsx, .xls), Google Sheets (baixe como .xlsx ou .csv), LibreOffice (.ods), .csv e .tsv. Até {MAX_MB} MB.</DialogDescription>
           </DialogHeader>
@@ -198,12 +201,12 @@ export function ImportButton({ deals }: { deals: Opt[] }) {
                 onDragOver={(e) => { e.preventDefault(); setDrag(true); }}
                 onDragLeave={() => setDrag(false)}
                 onDrop={(e) => { e.preventDefault(); setDrag(false); const f = e.dataTransfer.files?.[0]; if (f) void pick(f); }}
-                className={cn("grid place-items-center gap-2 rounded-xl border-2 border-dashed px-6 py-10 text-center transition-colors", drag ? "border-foreground bg-muted" : "border-border")}
+                className={cn("grid place-items-center gap-2 rounded-xl border-2 border-dashed px-6 py-10 text-center transition-colors max-md:py-8", drag ? "border-foreground bg-muted" : "border-border")}
               >
                 <FileSpreadsheet className="size-8 text-muted-foreground" />
                 <p className="text-sm font-medium">Arraste o arquivo para cá</p>
                 <p className="text-xs text-muted-foreground">ou</p>
-                <Button type="button" variant="outline" onClick={() => input.current?.click()}>
+                <Button type="button" variant="outline" className="max-md:h-11" onClick={() => input.current?.click()}>
                   Escolher arquivo
                 </Button>
                 <input ref={input} type="file" accept={ACCEPT} className="sr-only" onChange={(e) => { const f = e.target.files?.[0]; if (f) void pick(f); e.target.value = ""; }} />
@@ -264,7 +267,7 @@ export function ImportButton({ deals }: { deals: Opt[] }) {
               </>
             )}
           </div>
-          <DialogFooter>
+          <DialogFooter className="max-md:[&_button]:h-11">
             {file && (
               <Button type="button" variant="ghost" onClick={reset} disabled={busy !== ""}>
                 Trocar arquivo
@@ -308,11 +311,11 @@ export function RowMenu({ id, name, favorite, dealId, contactId, deals, contacts
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon-sm" aria-label={`Ações de ${name}`}>
+          <Button variant="ghost" size="icon-sm" className="max-md:size-11" aria-label={`Ações de ${name}`}>
             <MoreVertical />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-52">
+        <DropdownMenuContent align="end" className="w-52 max-md:[&_[role=menuitem]]:min-h-11">
           <DropdownMenuItem onClick={() => run(() => toggleFavorite(id, !favorite))}>
             <Star className={favorite ? "fill-amber-400 text-amber-400" : ""} /> {favorite ? "Tirar dos favoritos" : "Favoritar"}
           </DropdownMenuItem>
@@ -346,12 +349,13 @@ export function RowMenu({ id, name, favorite, dealId, contactId, deals, contacts
       </DropdownMenu>
 
       <Dialog open={dialog === "rename"} onOpenChange={(o) => !o && setDialog("")}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
+        <DialogContent className="sm:max-w-md" showCloseButton={false}>
+          <DialogCloseBtn />
+          <DialogHeader className="pr-10">
             <DialogTitle>Renomear planilha</DialogTitle>
           </DialogHeader>
           <Input value={value} onChange={(e) => setValue(e.target.value)} autoFocus onKeyDown={(e) => e.key === "Enter" && run(() => renameSheet(id, value))} aria-label="Novo nome" />
-          <DialogFooter>
+          <DialogFooter className="max-md:[&_button]:h-11">
             <Button disabled={busy} onClick={() => run(() => renameSheet(id, value))}>
               Salvar
             </Button>
@@ -360,8 +364,9 @@ export function RowMenu({ id, name, favorite, dealId, contactId, deals, contacts
       </Dialog>
 
       <Dialog open={dialog === "link"} onOpenChange={(o) => !o && setDialog("")}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
+        <DialogContent className="sm:max-w-md" showCloseButton={false}>
+          <DialogCloseBtn />
+          <DialogHeader className="pr-10">
             <DialogTitle>Vincular a negócio ou contato</DialogTitle>
             <DialogDescription>Escolher um negócio vincula também o contato dele (você pode trocar o contato abaixo).</DialogDescription>
           </DialogHeader>
@@ -371,7 +376,7 @@ export function RowMenu({ id, name, favorite, dealId, contactId, deals, contacts
           <Field label="Contato">
             <SimpleSelect value={contact} onValueChange={setContact} options={[{ value: "", label: "Sem contato" }, ...contacts]} />
           </Field>
-          <DialogFooter>
+          <DialogFooter className="max-md:[&_button]:h-11">
             <Button disabled={busy} onClick={() => run(() => linkSheet(id, value || null, contact || null), "Vínculo atualizado.")}>
               Salvar
             </Button>
@@ -380,12 +385,13 @@ export function RowMenu({ id, name, favorite, dealId, contactId, deals, contacts
       </Dialog>
 
       <Dialog open={dialog === "delete"} onOpenChange={(o) => !o && setDialog("")}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
+        <DialogContent className="sm:max-w-md" showCloseButton={false}>
+          <DialogCloseBtn />
+          <DialogHeader className="pr-10">
             <DialogTitle>Excluir “{name}”?</DialogTitle>
             <DialogDescription>A planilha e o histórico de versões serão apagados. Isso não pode ser desfeito. Se precisar, baixe uma cópia (.xlsx) antes.</DialogDescription>
           </DialogHeader>
-          <DialogFooter>
+          <DialogFooter className="max-md:[&_button]:h-11">
             <Button variant="ghost" onClick={() => setDialog("")}>
               Cancelar
             </Button>
