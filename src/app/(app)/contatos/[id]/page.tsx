@@ -2,16 +2,16 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { asc, desc, eq } from "drizzle-orm";
-import { ArrowLeft, Mail, MessageCircle, Phone } from "lucide-react";
+import { ArrowLeft, Mail, Phone } from "lucide-react";
 import { db, schema } from "@/lib/db";
 import { has, requireAccess } from "@/lib/auth";
 import { getFormOptions } from "@/lib/options";
 import { fmtPhone, money } from "@/lib/format";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PageBody } from "@/components/page-header";
 import { Section } from "@/components/crm/section";
+import { FilesBlock } from "@/components/drive/files-block";
 import { Timeline } from "@/components/crm/timeline";
 import { ActivityComposer } from "@/components/crm/activity-composer";
 import { TaskList } from "@/components/crm/tasks";
@@ -29,12 +29,11 @@ export default async function ContactPage({ params }: PageProps<"/contatos/[id]"
   const canEdit = has(user, "contatos", "edit");
   const canDelete = has(user, "contatos", "manage");
   const canDeal = has(user, "negocios", "edit");
-  const canInbox = has(user, "atendimento", "edit");
   if (!/^[0-9a-f-]{36}$/.test(id)) notFound();
   const [contact] = await db.select().from(schema.contacts).where(eq(schema.contacts.id, id)).limit(1);
   if (!contact) notFound();
 
-  const [options, deals, activities, taskRows, conv] = await Promise.all([
+  const [options, deals, activities, taskRows] = await Promise.all([
     getFormOptions(user),
     db
       .select({ id: schema.deals.id, title: schema.deals.title, value: schema.deals.valueCents, stage: schema.stages.name, color: schema.stages.color })
@@ -56,7 +55,6 @@ export default async function ContactPage({ params }: PageProps<"/contatos/[id]"
       .orderBy(desc(schema.activities.createdAt))
       .limit(100),
     db.select().from(schema.tasks).where(eq(schema.tasks.contactId, id)).orderBy(asc(schema.tasks.doneAt), asc(schema.tasks.dueAt)),
-    db.select({ id: schema.conversations.id }).from(schema.conversations).where(eq(schema.conversations.contactId, id)).then((r) => r[0] ?? null),
   ]);
 
   return (
@@ -82,13 +80,6 @@ export default async function ContactPage({ params }: PageProps<"/contatos/[id]"
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            {canInbox && contact.phone && (
-              <Button asChild variant="outline">
-                <Link href={conv ? `/atendimento?c=${conv.id}` : `/atendimento/abrir?phone=${contact.phone}`}>
-                  <MessageCircle /> WhatsApp
-                </Link>
-              </Button>
-            )}
             {canDeal && <NewDealButton options={options} defaultContactId={contact.id} label="Negócio" variant="outline" />}
             {canDelete && (
             <ConfirmButton
@@ -156,6 +147,7 @@ export default async function ContactPage({ params }: PageProps<"/contatos/[id]"
               <p className="text-[13px] text-muted-foreground">Nenhum negócio.</p>
             )}
           </Section>
+          <FilesBlock user={user} contactId={contact.id} />
           <Section title="Tarefas">
             <TaskList
               contactId={contact.id}

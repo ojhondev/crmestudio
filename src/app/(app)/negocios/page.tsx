@@ -3,7 +3,7 @@ import { has, requireAccess } from "@/lib/auth";
 import { getBoard } from "@/lib/deals";
 import { getFormOptions } from "@/lib/options";
 import { money } from "@/lib/format";
-import { PageHeader } from "@/components/page-header";
+import { PageToolbar, ToolArea } from "@/components/toolbar";
 import { Kanban } from "./kanban";
 import { NewDealButton } from "./deal-form";
 
@@ -18,19 +18,20 @@ export default async function DealsPage() {
   const pipeline = open.reduce((s, d) => s + d.valueCents, 0);
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
-      <PageHeader
-        eyebrow="Funil de vendas"
+    <>
+      <PageToolbar
         title="Negócios"
-        description={
-          <>
-            {canEdit && <>Arraste os cartões entre as colunas para mudar a etapa. · </>}{open.length} em andamento · <span className="text-foreground">{money(pipeline)}</span> no funil
+        filters={
+          <p className="text-[13px] whitespace-nowrap text-muted-foreground">
+            {open.length} em andamento · <span className="font-semibold text-foreground">{money(pipeline)}</span> no funil
             {!canEdit && " · somente leitura"}
-          </>
+          </p>
         }
         actions={canEdit ? <NewDealButton options={options} isPartner={user.ownOnly} /> : undefined}
       />
-      <Kanban stages={stages} deals={deals} canEdit={canEdit} canLaunch={has(user, "financeiro", "edit")} />
-    </div>
+      <ToolArea scroll={false}>
+        <Kanban stages={stages} deals={deals} canEdit={canEdit} canLaunch={has(user, "financeiro", "edit")} />
+      </ToolArea>
+    </>
   );
 }

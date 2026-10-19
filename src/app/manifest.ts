@@ -4,7 +4,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "Restaura Gestão — Estúdio Restaura",
     short_name: "Restaura",
-    description: "CRM, atendimento, agenda, financeiro e documentos do Estúdio Restaura.",
+    description: "CRM, agenda, financeiro e documentos do Estúdio Restaura.",
     start_url: "/",
     scope: "/",
     display: "standalone",
@@ -19,7 +19,6 @@ export default function manifest(): MetadataRoute.Manifest {
     ],
     shortcuts: [
       { name: "Negócios", url: "/negocios" },
-      { name: "Atendimento", url: "/atendimento" },
       { name: "Agenda", url: "/agenda" },
     ],
   };

@@ -16,7 +16,7 @@ export default async function LoginPage() {
           <p className="label mb-3">Restaura · gestão</p>
           <h1 className="h-display mb-2 text-4xl">Bem-vinda de volta.</h1>
           <p className="mb-8 text-sm text-muted-foreground">
-            CRM, atendimento, agenda e financeiro do estúdio num lugar só.
+            CRM, agenda e financeiro do estúdio num lugar só.
           </p>
           <LoginForm />
         </div>

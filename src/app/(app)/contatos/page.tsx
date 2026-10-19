@@ -9,7 +9,8 @@ import { fmtDate, fmtPhone, money } from "@/lib/format";
 import { SOURCES } from "@/lib/constants";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { EmptyState, PageBody, PageHeader } from "@/components/page-header";
+import { EmptyState } from "@/components/page-header";
+import { PageToolbar, ToolArea } from "@/components/toolbar";
 import { NewContactButton } from "./contact-form";
 
 export const metadata: Metadata = { title: "Leads e contatos" };
@@ -75,37 +76,36 @@ export default async function ContactsPage({ searchParams }: PageProps<"/contato
 
   return (
     <>
-      <PageHeader
-        eyebrow="CRM"
+      <PageToolbar
         title="Leads e contatos"
-        description={`${rows.length} ${rows.length === 1 ? "registro" : "registros"}${q || origem ? " encontrados" : ""}`}
-        actions={canEdit ? <NewContactButton team={options.team} /> : undefined}
-      />
-      <PageBody className="grid gap-4">
-        <form data-tour="contacts-search" className="flex flex-wrap items-center gap-2">
-          <div className="relative w-full max-w-sm">
-            <Search className="absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
-            <Input name="q" defaultValue={q} placeholder="Buscar por nome, instituição, e-mail ou telefone" className="pl-8" />
-          </div>
-          {origem && <input type="hidden" name="origem" value={origem} />}
-          <div className="flex flex-wrap gap-1.5">
+        filters={
+          <>
+            <form data-tour="contacts-search" className="relative w-56 shrink-0 sm:w-72">
+              <Search className="absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
+              <Input name="q" defaultValue={q} placeholder="Buscar nome, instituição, e-mail…" aria-label="Buscar contatos" className="h-9 pl-8" />
+              {origem && <input type="hidden" name="origem" value={origem} />}
+            </form>
             {["", ...SOURCES].map((s) => (
               <Link
                 key={s || "all"}
                 href={{ query: { ...(q ? { q } : {}), ...(s ? { origem: s } : {}) } }}
-                className={`inline-flex items-center rounded-full border px-3 py-1 text-[13px] transition-colors max-md:min-h-10 ${
+                className={`inline-flex shrink-0 items-center rounded-full border px-3 py-1 text-[13px] whitespace-nowrap transition-colors max-md:min-h-10 ${
                   origem === s ? "border-foreground bg-foreground text-background" : "text-muted-foreground hover:border-foreground/30"
                 }`}
               >
                 {s || "Todas as origens"}
               </Link>
             ))}
-          </div>
-        </form>
-
+            <span className="text-xs whitespace-nowrap text-muted-foreground">{rows.length} {rows.length === 1 ? "registro" : "registros"}</span>
+          </>
+        }
+        actions={canEdit ? <NewContactButton team={options.team} /> : undefined}
+      />
+      <ToolArea>
+      <div className="p-4 sm:p-5">
         {rows.length === 0 ? (
           <EmptyState icon={Users} title={q || origem ? "Nada encontrado" : "Nenhum lead ainda"}>
-            {q || origem ? "Tente outro termo de busca." : "Cadastre o primeiro lead ou aguarde mensagens chegarem pelo WhatsApp."}
+            {q || origem ? "Tente outro termo de busca." : "Cadastre o primeiro lead."}
           </EmptyState>
         ) : (
           <div data-tour="contacts-list" className="overflow-x-auto rounded-xl border bg-card">
@@ -157,7 +157,8 @@ export default async function ContactsPage({ searchParams }: PageProps<"/contato
             </table>
           </div>
         )}
-      </PageBody>
+      </div>
+      </ToolArea>
     </>
   );
 }

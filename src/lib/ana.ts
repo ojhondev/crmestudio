@@ -32,7 +32,7 @@ export async function buildSnapshot(user: SessionUser) {
   const own = user.ownOnly;
   const canDeals = has(user, "negocios");
   const canAgenda = has(user, "agenda");
-  const canInbox = has(user, "atendimento");
+  const canInbox = false; // Atendimento retirado da interface (módulo sem permissão)
   const canFinance = has(user, "financeiro");
   const dealScope = own ? or(eq(schema.deals.partnerId, user.id), eq(schema.deals.ownerId, user.id)) : undefined;
 

@@ -10,7 +10,8 @@ import { fmtDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { DocStatusBadge } from "@/components/docs/status";
-import { EmptyState, PageBody, PageHeader } from "@/components/page-header";
+import { EmptyState } from "@/components/page-header";
+import { PageToolbar, ToolArea, ToolbarSep } from "@/components/toolbar";
 import { NewDocumentButton } from "./new-document";
 
 export const metadata: Metadata = { title: "Documentos" };
@@ -60,14 +61,31 @@ export default async function DocumentsPage({ searchParams }: PageProps<"/docume
   ]);
 
   const href = (k: string, s: string) => `/documentos${k || s ? `?${new URLSearchParams({ ...(k && { tipo: k }), ...(s && { status: s }) })}` : ""}`;
-  const pill = (active: boolean) => cn("inline-flex items-center rounded-full border px-3 py-1.5 text-[13px] max-md:min-h-10", active ? "border-foreground bg-foreground text-background" : "bg-card hover:border-foreground/40");
+  const pill = (active: boolean) => cn("inline-flex items-center rounded-full border px-3 py-1.5 text-[13px] whitespace-nowrap max-md:min-h-10", active ? "border-foreground bg-foreground text-background" : "bg-card hover:border-foreground/40");
 
   return (
     <>
-      <PageHeader
-        eyebrow="Gestão"
+      <PageToolbar
         title="Documentos"
-        description="Contratos e apresentações comerciais, do rascunho ao aceite do cliente."
+        filters={
+          <>
+            <div className="flex shrink-0 gap-1.5" aria-label="Filtrar por tipo">
+              {KINDS.map((k) => (
+                <Link key={k.v} href={href(k.v, status)} className={pill(kind === k.v)} aria-current={kind === k.v}>
+                  {k.l}
+                </Link>
+              ))}
+            </div>
+            <ToolbarSep />
+            <div className="flex shrink-0 gap-1.5" aria-label="Filtrar por situação">
+              {STATUSES.map((s) => (
+                <Link key={s.v} href={href(kind, s.v)} className={pill(status === s.v)} aria-current={status === s.v}>
+                  {s.l}
+                </Link>
+              ))}
+            </div>
+          </>
+        }
         actions={
           <>
             {canManage && (
@@ -79,24 +97,8 @@ export default async function DocumentsPage({ searchParams }: PageProps<"/docume
           </>
         }
       />
-      <PageBody>
-        <div className="mb-4 grid gap-2">
-          <div className="thin-scroll flex gap-1.5 overflow-x-auto pb-1" aria-label="Filtrar por tipo">
-            {KINDS.map((k) => (
-              <Link key={k.v} href={href(k.v, status)} className={pill(kind === k.v)} aria-current={kind === k.v}>
-                {k.l}
-              </Link>
-            ))}
-          </div>
-          <div className="thin-scroll flex gap-1.5 overflow-x-auto pb-1" aria-label="Filtrar por situação">
-            {STATUSES.map((s) => (
-              <Link key={s.v} href={href(kind, s.v)} className={pill(status === s.v)} aria-current={status === s.v}>
-                {s.l}
-              </Link>
-            ))}
-          </div>
-        </div>
-
+      <ToolArea>
+      <div className="p-4 sm:p-5">
         {rows.length === 0 ? (
           <EmptyState icon={FileText} title="Nenhum documento por aqui">
             {canEdit ? "Crie o primeiro contrato ou proposta: escolha um modelo e os dados do cliente entram sozinhos." : "Quando houver documentos, eles aparecem aqui."}
@@ -119,7 +121,8 @@ export default async function DocumentsPage({ searchParams }: PageProps<"/docume
             ))}
           </ul>
         )}
-      </PageBody>
+      </div>
+      </ToolArea>
     </>
   );
 }

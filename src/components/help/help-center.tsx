@@ -48,7 +48,7 @@ export function HelpCenter({ items, faq }: { items: Item[]; faq: { q: string; a:
               <span className="text-[13px] text-muted-foreground">{r.summary}</span>
             </Link>
           ))}
-          {!results.length && <p className="text-sm text-muted-foreground">Nada encontrado. Tente outra palavra ou pergunte à Ana (botão “?” no topo).</p>}
+          {!results.length && <p className="text-sm text-muted-foreground">Nada encontrado. Tente outra palavra.</p>}
         </section>
       ) : (
         <>

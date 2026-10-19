@@ -1,14 +1,15 @@
 import Link from "next/link";
-import { and, asc, desc, eq, gt, gte, isNull, lt, lte, sql } from "drizzle-orm";
-import { ArrowRight, CalendarDays, Lock, MessageCircle } from "lucide-react";
+import { and, asc, eq, gte, isNull, lt, lte, sql } from "drizzle-orm";
+import { ArrowRight, CalendarDays, Lock } from "lucide-react";
 import { db, schema } from "@/lib/db";
 import { has, requireUser } from "@/lib/auth";
 import { dealScope } from "@/lib/deals";
 import { EVENT_TYPES } from "@/lib/constants";
-import { fmtDate, fmtPhone, fmtRelativeShort, fmtTime, money, moneyShort, todayISO } from "@/lib/format";
+import { fmtDate, fmtTime, money, moneyShort, todayISO } from "@/lib/format";
 import { PageBody } from "@/components/page-header";
 import { Section } from "@/components/crm/section";
 import { TaskList } from "@/components/crm/tasks";
+import { ANA_UI_ENABLED } from "@/lib/ana-flag";
 import { AskAna } from "@/components/ana/ask-ana";
 
 export default async function Dashboard({ searchParams }: PageProps<"/">) {
@@ -16,7 +17,6 @@ export default async function Dashboard({ searchParams }: PageProps<"/">) {
   const sp = await searchParams;
   const canDeals = has(user, "negocios");
   const canAgenda = has(user, "agenda");
-  const canInbox = has(user, "atendimento");
   const canFinance = has(user, "financeiro");
   const today = todayISO();
   const monthStart = new Date(`${today.slice(0, 7)}-01T00:00:00-03:00`);
@@ -75,20 +75,6 @@ export default async function Dashboard({ searchParams }: PageProps<"/">) {
       .where(and(eq(schema.tasks.assigneeId, user.id), isNull(schema.tasks.doneAt)))
       .orderBy(sql`${schema.tasks.dueAt} asc nulls last`)
       .limit(8);
-  const waitingQ = () =>
-    db
-      .select({
-        id: schema.conversations.id,
-        name: sql<string>`coalesce(${schema.contacts.name}, ${schema.conversations.profileName}, ${schema.conversations.phone})`,
-        preview: schema.conversations.preview,
-        unread: schema.conversations.unread,
-        at: schema.conversations.lastMessageAt,
-      })
-      .from(schema.conversations)
-      .leftJoin(schema.contacts, eq(schema.conversations.contactId, schema.contacts.id))
-      .where(and(gt(schema.conversations.unread, 0), eq(schema.conversations.status, "aberta")))
-      .orderBy(desc(schema.conversations.lastMessageAt))
-      .limit(5);
   const receivableQ = () =>
     db
       .select({
@@ -98,12 +84,11 @@ export default async function Dashboard({ searchParams }: PageProps<"/">) {
       .from(schema.transactions)
       .where(and(eq(schema.transactions.kind, "receita"), isNull(schema.transactions.paidAt), lte(schema.transactions.dueDate, in30)));
 
-  const [funnel, [won], agenda, myTasks, waiting, [receivable]] = await Promise.all([
+  const [funnel, [won], agenda, myTasks, [receivable]] = await Promise.all([
     canDeals ? funnelQ() : [],
     canDeals ? wonQ() : [],
     canAgenda ? agendaQ() : [],
     tasksQ(),
-    canInbox ? waitingQ() : [],
     canFinance ? receivableQ() : [],
   ]);
 
@@ -166,21 +151,12 @@ export default async function Dashboard({ searchParams }: PageProps<"/">) {
               href="/financeiro/lancamentos?v=abertos"
             />
           )}
-          {canInbox && (
-            <Kpi
-              label="Aguardando resposta"
-              value={String(waiting.length)}
-              sub={waiting.length ? "conversas no WhatsApp" : "caixa de entrada em dia"}
-              alert={waiting.length > 0}
-              href="/atendimento?f=nao-lidas"
-            />
-          )}
-          {canAgenda && (!canDeals || !canFinance || !canInbox) && (
+          {canAgenda && (!canDeals || !canFinance) && (
             <Kpi label="Próximos 7 dias" value={String(agenda.length)} sub="compromissos na agenda" href="/agenda" />
           )}
         </div>
 
-        <AskAna />
+        {ANA_UI_ENABLED && <AskAna />}
 
         <div className="grid items-start gap-5 lg:grid-cols-3">
           {canDeals && (
@@ -249,37 +225,6 @@ export default async function Dashboard({ searchParams }: PageProps<"/">) {
                 </ul>
               ) : (
                 <p className="text-[13px] text-muted-foreground">Agenda livre.</p>
-              )}
-            </Section>
-          )}
-
-          {canInbox && (
-            <Section
-              title="Aguardando resposta"
-              className="lg:col-span-2"
-              action={
-                <Link href="/atendimento" className="grid size-8 place-items-center text-muted-foreground hover:text-foreground max-md:size-10" aria-label="Atendimento">
-                  <MessageCircle className="size-4" />
-                </Link>
-              }
-            >
-              {waiting.length ? (
-                <ul className="grid">
-                  {waiting.map((c) => (
-                    <li key={c.id}>
-                      <Link href={`/atendimento?c=${c.id}`} className="flex items-center gap-3 rounded-md px-1 py-2 hover:bg-muted/60">
-                        <span className="min-w-0 flex-1 leading-tight">
-                          <span className="block truncate text-[13px] font-medium">{/^\d+$/.test(c.name) ? fmtPhone(c.name) : c.name}</span>
-                          <span className="block truncate text-[12px] text-muted-foreground">{c.preview}</span>
-                        </span>
-                        <span className="text-xs text-muted-foreground">{fmtRelativeShort(c.at)}</span>
-                        <span className="rounded-full bg-brand px-1.5 text-xs leading-[18px] text-on-brand">{c.unread}</span>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-[13px] text-muted-foreground">Ninguém esperando. 👌</p>
               )}
             </Section>
           )}

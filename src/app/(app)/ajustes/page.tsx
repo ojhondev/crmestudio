@@ -1,12 +1,11 @@
 import type { Metadata } from "next";
-import { headers } from "next/headers";
 import { asc, count, eq } from "drizzle-orm";
-import { CalendarDays, MessageCircle, Sparkles } from "lucide-react";
+import { CalendarDays, Sparkles } from "lucide-react";
 import { db, schema } from "@/lib/db";
 import { has, requireUser } from "@/lib/auth";
 import { anaEnabled } from "@/lib/ana";
-import { whatsappConnected } from "@/lib/whatsapp";
-import { PageBody, PageHeader } from "@/components/page-header";
+import { ANA_UI_ENABLED } from "@/lib/ana-flag";
+import { PageToolbar, ToolArea } from "@/components/toolbar";
 import { Section } from "@/components/crm/section";
 import { cn } from "@/lib/utils";
 import { getStudio } from "@/lib/docs/server";
@@ -24,13 +23,12 @@ export default async function SettingsPage() {
     db.select({ n: count() }).from(schema.contacts).where(eq(schema.contacts.source, "exemplo")),
     canManage ? getStudio() : null,
   ]);
-  const h = await headers();
-  const origin = `${h.get("x-forwarded-proto") ?? "https"}://${h.get("host")}`;
 
   return (
     <>
-      <PageHeader eyebrow="Ajustes" title="Ajustes" description="Seu perfil, aparência e as conexões do sistema (WhatsApp, Ana, calendário)." />
-      <PageBody className="grid max-w-5xl gap-5 lg:grid-cols-2">
+      <PageToolbar title="Ajustes" />
+      <ToolArea>
+      <div className="grid gap-5 p-4 sm:p-5 lg:grid-cols-2">
         <Section title="Meu perfil">
           <ProfileForm name={me.name} phone={me.phone} email={user.email} />
         </Section>
@@ -47,28 +45,12 @@ export default async function SettingsPage() {
 
         {canView && (
           <Section title="Integrações" className="lg:col-span-2">
-            <div className="grid gap-3 md:grid-cols-3">
-              <Integration
-                icon={MessageCircle}
-                title="WhatsApp Business"
-                on={whatsappConnected()}
-                onText="Cloud API conectada"
-                offText="Modo simulado"
-              >
-                <p>
-                  Webhook para o painel da Meta:
-                  <code className="mt-1 block rounded bg-muted px-1.5 py-1 text-xs break-all">{origin}/api/whatsapp/webhook</code>
-                </p>
-                <p className="mt-1.5">
-                  Variáveis: <code>WHATSAPP_TOKEN</code>, <code>WHATSAPP_PHONE_NUMBER_ID</code>, <code>WHATSAPP_VERIFY_TOKEN</code>,{" "}
-                  <code>WHATSAPP_APP_SECRET</code>.
-                </p>
-              </Integration>
-              <Integration icon={Sparkles} title="Ana (Claude)" on={anaEnabled()} onText="Ativa" offText="Sem chave">
+            <div className="grid gap-3 md:grid-cols-2">
+              {ANA_UI_ENABLED && <Integration icon={Sparkles} title="Ana (Claude)" on={anaEnabled()} onText="Ativa" offText="Sem chave">
                 <p>
                   Usa o modelo Claude Opus 5.5 da Anthropic. Variável: <code>ANTHROPIC_API_KEY</code>.
                 </p>
-              </Integration>
+              </Integration>}
               <Integration icon={CalendarDays} title="Agenda" on onText="Feed .ics ativo" offText="">
                 <p>Cada pessoa tem um link privado em Agenda → Sincronizar, que funciona no Google Agenda, iPhone e Outlook.</p>
               </Integration>
@@ -86,13 +68,14 @@ export default async function SettingsPage() {
           <Section title="Dados de exemplo" className="lg:col-span-2">
             <div className="flex flex-wrap items-center gap-3 text-[13px] text-muted-foreground">
               <p className="flex-1">
-                Há {demo.n} contatos de exemplo (com negócios, conversas e eventos) para conhecer o app. Remova quando começar a usar de verdade.
+                Há {demo.n} contatos de exemplo (com negócios, e eventos) para conhecer o app. Remova quando começar a usar de verdade.
               </p>
               <DemoDataButton />
             </div>
           </Section>
         )}
-      </PageBody>
+      </div>
+      </ToolArea>
     </>
   );
 }

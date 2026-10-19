@@ -6,7 +6,7 @@ import { PERIODS, getDashboard, parsePeriod } from "@/lib/finance";
 import { fmtDate, money, moneyShort, todayISO } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { PageBody, PageHeader } from "@/components/page-header";
+import { PageBody } from "@/components/page-header";
 import { Section } from "@/components/crm/section";
 import { MonthlyColumns } from "./charts";
 import { HBars } from "./bars";
@@ -55,21 +55,8 @@ export default async function FinanceDashboard({ searchParams }: PageProps<"/fin
 
   return (
     <>
-      <PageHeader
-        eyebrow="Financeiro"
-        title="Painel financeiro"
-        description="Caixa, previsão e de onde vem o dinheiro do estúdio."
-        actions={
-          canEdit ? (
-            <Button asChild>
-              <Link href="/financeiro/lancamentos?novo=receita">
-                <Plus /> Lançamento
-              </Link>
-            </Button>
-          ) : undefined
-        }
-      />
-      <PageBody className="grid gap-5">
+      <PageBody className="grid gap-5 pt-4">
+        <div className="flex flex-wrap items-center gap-1.5">
         <div data-tour="fin-period" className="flex flex-wrap gap-1.5" role="group" aria-label="Período">
           {PERIODS.map((p) => (
             <Link
@@ -84,6 +71,14 @@ export default async function FinanceDashboard({ searchParams }: PageProps<"/fin
               {p.label}
             </Link>
           ))}
+        </div>
+        {canEdit && (
+          <Button asChild data-tour="page-actions" className="ml-auto">
+            <Link href="/financeiro/lancamentos?novo=receita">
+              <Plus /> Lançamento
+            </Link>
+          </Button>
+        )}
         </div>
 
         <div className="grid gap-3 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1.6fr)]">

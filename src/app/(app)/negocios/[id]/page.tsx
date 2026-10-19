@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { asc, desc, eq } from "drizzle-orm";
-import { ArrowLeft, CalendarPlus, Mail, MessageCircle, Phone, Plus } from "lucide-react";
+import { ArrowLeft, CalendarPlus, Mail, Phone, Plus } from "lucide-react";
 import { db, schema } from "@/lib/db";
 import { has, requireAccess } from "@/lib/auth";
 import { getFormOptions } from "@/lib/options";
@@ -13,10 +13,12 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PageBody } from "@/components/page-header";
 import { Section } from "@/components/crm/section";
+import { FilesBlock } from "@/components/drive/files-block";
 import { Timeline } from "@/components/crm/timeline";
 import { ActivityComposer } from "@/components/crm/activity-composer";
 import { TaskList } from "@/components/crm/tasks";
 import { ConfirmButton } from "@/components/crm/confirm-button";
+import { ANA_UI_ENABLED } from "@/lib/ana-flag";
 import { EmailDraftButton } from "@/components/ana/email-draft";
 import { AnaFocusSetter } from "@/components/ana/ana-provider";
 import { DocStatusBadge } from "@/components/docs/status";
@@ -39,10 +41,9 @@ export default async function DealPage({ params }: PageProps<"/negocios/[id]">) 
   const canFinance = has(user, "financeiro");
   const canFinanceEdit = has(user, "financeiro", "edit");
   const canContacts = has(user, "contatos") && !user.ownOnly;
-  const canInbox = has(user, "atendimento", "edit");
   const canSchedule = has(user, "agenda", "edit");
 
-  const [options, contact, activities, taskRows, eventRows, txRows, conv] = await Promise.all([
+  const [options, contact, activities, taskRows, eventRows, txRows] = await Promise.all([
     getFormOptions(user),
     deal.contactId
       ? db.select().from(schema.contacts).where(eq(schema.contacts.id, deal.contactId)).then((r) => r[0] ?? null)
@@ -62,13 +63,6 @@ export default async function DealPage({ params }: PageProps<"/negocios/[id]">) 
     db.select().from(schema.tasks).where(eq(schema.tasks.dealId, id)).orderBy(asc(schema.tasks.doneAt), asc(schema.tasks.dueAt)),
     db.select().from(schema.events).where(eq(schema.events.dealId, id)).orderBy(desc(schema.events.startsAt)),
     !canFinance ? [] : db.select().from(schema.transactions).where(eq(schema.transactions.dealId, id)).orderBy(asc(schema.transactions.dueDate)),
-    deal.contactId && canInbox
-      ? db
-          .select({ id: schema.conversations.id })
-          .from(schema.conversations)
-          .where(eq(schema.conversations.contactId, deal.contactId))
-          .then((r) => r[0] ?? null)
-      : null,
   ]);
   const stage = options.stages.find((s) => s.id === deal.stageId)!;
   const canDocs = has(user, "documentos");
@@ -104,7 +98,7 @@ export default async function DealPage({ params }: PageProps<"/negocios/[id]">) 
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            {canEdit && <EmailDraftButton dealId={deal.id} to={contact?.email} />}
+            {ANA_UI_ENABLED && canEdit && <EmailDraftButton dealId={deal.id} to={contact?.email} />}
             {canDelete && (
               <ConfirmButton
                 action={deleteDeal.bind(null, deal.id)}
@@ -155,18 +149,13 @@ export default async function DealPage({ params }: PageProps<"/negocios/[id]">) 
                     <Mail className="size-3.5" /> {contact.email}
                   </a>
                 )}
-                {canInbox && contact.phone && (
-                  <Button asChild variant="outline" size="sm" className="mt-1 w-fit">
-                    <Link href={conv ? `/atendimento?c=${conv.id}` : `/atendimento/abrir?phone=${contact.phone}`}>
-                      <MessageCircle /> {conv ? "Abrir conversa" : "Iniciar conversa"}
-                    </Link>
-                  </Button>
-                )}
               </div>
             ) : (
               <p className="text-[13px] text-muted-foreground">Sem cliente vinculado.</p>
             )}
           </Section>
+
+          <FilesBlock user={user} dealId={deal.id} contactId={deal.contactId} />
 
           <Section title="Tarefas">
             <TaskList

@@ -97,7 +97,7 @@ export function Kanban({ stages, deals: initial, canEdit = true, canLaunch = tru
 
   return (
     <DndContext id="deals-board" sensors={canEdit ? sensors : []} onDragStart={onDragStart} onDragEnd={onDragEnd} onDragCancel={() => setActiveId(null)}>
-      <div data-tour="kanban" className="thin-scroll flex min-h-0 flex-1 snap-x snap-proximity gap-3 overflow-x-auto scroll-px-5 px-5 pb-6 sm:px-8 lg:px-10">
+      <div data-tour="kanban" className="thin-scroll flex min-h-0 flex-1 snap-x snap-proximity gap-3 overflow-x-auto scroll-px-3 p-3 sm:scroll-px-5 sm:px-5">
         {stages.map((s) => {
           const list = byStage.get(s.id) ?? [];
           const total = list.reduce((sum, d) => sum + d.valueCents, 0);
@@ -109,6 +109,21 @@ export function Kanban({ stages, deals: initial, canEdit = true, canLaunch = tru
       </DragOverlay>
     </DndContext>
   );
+}
+
+/** Cor de texto (branco ou quase-preto) com maior contraste sobre a cor da etapa. */
+function readableOn(hex: string) {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex.trim());
+  if (!m) return "#ffffff";
+  const n = parseInt(m[1], 16);
+  const lin = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((v) => {
+    const c = v / 255;
+    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  });
+  const L = 0.2126 * lin[0] + 0.7152 * lin[1] + 0.0722 * lin[2];
+  const onWhite = 1.05 / (L + 0.05);
+  const onDark = (L + 0.05) / 0.0675; // #111111
+  return onWhite >= onDark ? "#ffffff" : "#111111";
 }
 
 function Column({
@@ -125,25 +140,27 @@ function Column({
   activeId: string | null;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: `stage-${stage.id}` });
+  const fg = readableOn(stage.color);
   return (
     <section
       ref={setNodeRef}
       className={cn(
-        "flex w-[80vw] max-w-[300px] shrink-0 snap-start flex-col rounded-xl bg-muted/60 transition-colors sm:w-[272px]",
-        isOver && "bg-brand-soft/70 ring-1 ring-brand/30",
+        "flex h-full w-[82vw] max-w-[304px] shrink-0 snap-start flex-col overflow-hidden rounded-xl border border-black/15 bg-[#e1ded9] shadow-sm transition-colors sm:w-[288px] dark:border-white/15 dark:bg-[#0a0909]",
+        isOver && "ring-2 ring-brand",
       )}
     >
-      <header className="flex items-center gap-2 px-3 pt-3 pb-2">
-        <span className="size-2 rounded-full" style={{ background: stage.color }} />
-        <h2 className="text-[13px] font-medium">{stage.name}</h2>
-        <span className="text-[12px] text-muted-foreground">{count}</span>
-        <span className="ml-auto text-[12px] text-muted-foreground tabular-nums">{total ? moneyShort(total) : ""}</span>
+      <header className="flex items-center gap-2 px-3 py-2.5" style={{ background: stage.color, color: fg }}>
+        <h2 className="min-w-0 truncate text-[13.5px] font-bold">{stage.name}</h2>
+        <span className="rounded-full px-2 py-px text-[12px] leading-4 font-bold tabular-nums" style={{ background: fg, color: stage.color }}>
+          {count}
+        </span>
+        <span className="ml-auto shrink-0 text-[13px] font-bold tabular-nums">{moneyShort(total)}</span>
       </header>
-      <div className="thin-scroll grid max-h-[calc(100svh-230px)] min-h-24 content-start gap-2 overflow-x-hidden overflow-y-auto px-2 pb-2">
+      <div className="thin-scroll grid min-h-24 flex-1 content-start gap-2.5 overflow-x-hidden overflow-y-auto p-2.5">
         {deals.map((d) => (
           <DraggableCard key={d.id} deal={d} dimmed={activeId === d.id} />
         ))}
-        {!deals.length && <p className="px-2 py-6 text-center text-[12px] text-muted-foreground">Coluna vazia. Arraste um negócio para cá.</p>}
+        {!deals.length && <p className="px-2 py-6 text-center text-[12.5px] font-medium text-muted-foreground">Coluna vazia. Arraste um negócio para cá.</p>}
       </div>
     </section>
   );
@@ -169,45 +186,57 @@ function DraggableCard({ deal, dimmed }: { deal: BoardDeal; dimmed: boolean }) {
 }
 
 function Card({ deal, overlay }: { deal: BoardDeal; overlay?: boolean }) {
-  const late = deal.expectedClose && deal.expectedClose < todayISO();
+  const today = todayISO();
+  const late = !!deal.expectedClose && deal.expectedClose < today;
   return (
     <Link
       href={`/negocios/${deal.id}`}
       draggable={false}
       className={cn(
-        "block rounded-lg border bg-card p-3 transition-shadow hover:border-foreground/25",
-        overlay && "rotate-[1.5deg] cursor-grabbing shadow-lg",
+        "block rounded-lg border border-black/20 bg-white p-3 shadow-[0_1px_3px_rgb(0_0_0/0.18)] transition-shadow hover:border-black/40 hover:shadow-md dark:border-white/20 dark:bg-[#232120] dark:shadow-[0_1px_3px_rgb(0_0_0/0.6)] dark:hover:border-white/40",
+        late && "border-l-[3px] border-l-destructive",
+        overlay && "rotate-[1.5deg] cursor-grabbing shadow-xl",
       )}
     >
-      <p className="line-clamp-2 text-[13px] leading-snug font-medium">{deal.title}</p>
+      <p className="line-clamp-2 text-[14px] leading-snug font-semibold text-foreground">{deal.title}</p>
       {(deal.contactName || deal.company) && (
-        <p className="mt-0.5 truncate text-[12px] text-muted-foreground">
+        <p className="mt-1 truncate text-[12.5px] text-muted-foreground">
           {deal.contactName}
           {deal.company && deal.contactName ? " · " : ""}
           {deal.company}
         </p>
       )}
-      <div className="mt-2.5 flex items-center gap-2 text-xs text-muted-foreground">
-        <span className="num text-[13px] text-foreground">{deal.valueCents ? money(deal.valueCents) : "—"}</span>
-        {deal.location && (
-          <span className="flex min-w-0 items-center gap-0.5 truncate">
-            <MapPin className="size-3 shrink-0" />
-            <span className="truncate">{deal.location}</span>
-          </span>
-        )}
+      <div className="mt-2.5 flex items-center gap-2">
+        <span className="num text-[15px] font-bold text-foreground">{deal.valueCents ? money(deal.valueCents) : "—"}</span>
         {deal.ownerName && (
           <span
             title={deal.ownerName}
-            className="ml-auto grid size-6 shrink-0 place-items-center rounded-full bg-secondary text-xs font-medium text-foreground"
+            className="ml-auto grid size-6 shrink-0 place-items-center rounded-full bg-foreground text-[11px] font-semibold text-background"
           >
             {initials(deal.ownerName)}
           </span>
         )}
       </div>
-      {deal.expectedClose && (
-        <p className={cn("mt-1.5 flex items-center gap-1 text-xs text-muted-foreground", late && "text-destructive")}>
-          <CalendarClock className="size-3" /> {fmtDate(deal.expectedClose, "dd/MM")}
-        </p>
+      {(deal.expectedClose || deal.location) && (
+        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px]">
+          {deal.expectedClose && (
+            <span
+              className={cn(
+                "inline-flex items-center gap-1 rounded px-1.5 py-0.5 font-medium",
+                late ? "bg-[#fbe4e0] text-[#8f1f12] dark:bg-[#4a1a14] dark:text-[#ffb4a8]" : "bg-secondary text-foreground",
+              )}
+            >
+              <CalendarClock className="size-3" /> {late ? "Atrasado · " : "Previsão · "}
+              {fmtDate(deal.expectedClose, "dd/MM")}
+            </span>
+          )}
+          {deal.location && (
+            <span className="flex min-w-0 items-center gap-0.5 text-muted-foreground">
+              <MapPin className="size-3 shrink-0" />
+              <span className="truncate">{deal.location}</span>
+            </span>
+          )}
+        </div>
       )}
     </Link>
   );

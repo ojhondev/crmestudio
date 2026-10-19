@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { PageBody, PageHeader } from "@/components/page-header";
+import { PageToolbar, ToolArea } from "@/components/toolbar";
 import { HelpCenter } from "@/components/help/help-center";
 import { articles, faq, type Block } from "@/lib/help";
 
@@ -20,10 +20,12 @@ export default function HelpPage() {
   }));
   return (
     <>
-      <PageHeader eyebrow="Ajuda" title="Central de ajuda" description="Passo a passo de cada funcionalidade, tours guiados e respostas rápidas." />
-      <PageBody>
+      <PageToolbar title="Central de ajuda" />
+      <ToolArea>
+      <div className="p-4 sm:p-5">
         <HelpCenter items={items} faq={faq} />
-      </PageBody>
+      </div>
+      </ToolArea>
     </>
   );
 }

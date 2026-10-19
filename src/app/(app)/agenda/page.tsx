@@ -5,7 +5,6 @@ import { db, schema } from "@/lib/db";
 import { has, requireAccess } from "@/lib/auth";
 import { dealScope } from "@/lib/deals";
 import { todayISO } from "@/lib/format";
-import { PageHeader } from "@/components/page-header";
 import { AgendaView } from "./agenda-view";
 import { CalendarSync } from "./calendar-sync";
 
@@ -67,7 +66,6 @@ export default async function AgendaPage({ searchParams }: PageProps<"/agenda">)
 
   return (
     <>
-      <PageHeader eyebrow="Agenda" title="Agenda do estúdio" description="Visitas, reuniões e entregas do mês. Toque em um dia para marcar um evento." actions={<CalendarSync token={me.token} origin={`${h.get("x-forwarded-proto") ?? "https"}://${h.get("host")}`} />} />
       <AgendaView
         month={month}
         days={days}
@@ -79,6 +77,7 @@ export default async function AgendaPage({ searchParams }: PageProps<"/agenda">)
         userId={user.id}
         isPartner={partner}
         canEdit={canEdit}
+        sync={<CalendarSync token={me.token} origin={`${h.get("x-forwarded-proto") ?? "https"}://${h.get("host")}`} />}
         openNew={sp.novo === "1"}
         presetDeal={typeof sp.deal === "string" ? sp.deal : undefined}
       />

@@ -33,7 +33,7 @@ Cada pessoa pode ter permissões ajustadas individualmente. Filtro de dados cont
   Excel BR e no Google Sheets) e **importa CSV** de volta.
 - Categorias e contas configuráveis; conciliação simples (pago/recebido).
 
-## Fase 4 — Central de Atendimento (WhatsApp + E-mail)
+## Fase 4 — Central de Atendimento (WhatsApp + E-mail) — Atendimento: retirado por ora (tela removida da interface; tabelas conversations/messages e webhook /api/whatsapp/webhook mantidos)
 - Caixa única por contato: WhatsApp e e-mail na mesma linha do tempo, filtros por canal.
 - E-mail via **Gmail API** (Google Workspace do estúdio): receber, responder, anexos, assinatura.
   🔑 precisa criar um app OAuth no Google Cloud (eu guio passo a passo; ~10 min).
@@ -68,10 +68,19 @@ upload de imagens em Blob (hoje: imagem reduzida embutida ou URL https).
 - Tarefas dentro de negócios/contatos: concluir sincroniza `status` (`doneAt` segue como fonte de "concluída") e mostram
   situação/prioridade; botão de excluir visível no toque.
 
-## Fase 6 — CMS do site dentro do CRM
-Projetos, blog, vagas, seções/imagens, vídeo da home e configurações passam a ser editados aqui
-(`/site/...`). O CRM conecta ao banco e ao armazenamento de imagens do site; o `/admin` do site
-é desativado depois da validação. Leads do site já chegam ao CRM.
+## Fase 6 — CMS do site + Drive ✅ (entregue 2026-10-19)
+**Site** (`/site`, permissão `site`): projetos (capa, galeria arrastável, destaque, ordem por arrastar), blog (rascunho/publicado, data,
+capa), vagas, imagens (biblioteca de mídia + imagem de cada seção da home) e textos/vídeo da home. O CRM usa um cliente separado
+(`src/lib/site-db.ts`, `SITE_DATABASE_URL`) com cópia do schema do site (`src/lib/site-schema.ts`; nunca rodar db:push nele). Uploads são
+comprimidos no navegador e vão para o Vercel Blob do site (`SITE_BLOB_READ_WRITE_TOKEN`), registrados na tabela `media`. Após salvar, o CRM chama
+`POST {SITE_URL}/api/revalidate` (segredo `SITE_REVALIDATE_SECRET` = `REVALIDATE_SECRET` do site) porque a home do site é estática. Textos longos são
+parágrafos simples, como o site exibe. O `/admin` do site continua ativo (desativar só depois de validar). Pendente: contatos do rodapé estão fixos no código do site; e
+blog/projeto com formatação rica exigiria mudar a renderização do site.
+
+**Drive** (`/drive`, permissão `drive`): camada `DriveProvider` (`src/lib/drive`) com `links` (ativo hoje: links do Drive registrados por URL,
+tipo detectado, pastas virtuais do CRM, vínculo a cliente/negócio/projeto, busca, favoritos, grade/lista, arrastar para mover, bloco “Arquivos”
+no negócio e no contato) e `google` (API REST v3 + OAuth2, tokens criptografados em `drive_connections`; **pronto, aguardando credenciais** 🔑
+GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET — passo a passo em /drive/conexao). Auditoria em todas as ações.
 
 ## Transversal
 - PWA: instalar no celular, abrir em tela cheia, ícone próprio, áreas seguras (notch).

@@ -3,38 +3,47 @@
 import { useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { DndContext, DragOverlay, PointerSensor, TouchSensor, useDraggable, useDroppable, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
-import { CalendarDays, Check, ChevronDown, ChevronRight, Columns3, LayoutList, Link2, Plus, Trash2, UserRound } from "lucide-react";
+import { CalendarDays, Check, Columns3, List, ListFilter, Loader2, Plus, Rows3, Search, SlidersHorizontal, Table2, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Field } from "@/components/form";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { PageToolbar, ToolArea, ToolbarGroup } from "@/components/toolbar";
 import { cn } from "@/lib/utils";
-import { fmtDate, initials, isoDateBR, todayISO } from "@/lib/format";
-import type { TaskBoard, TaskGroup, TaskPriority, TaskStatus } from "@/lib/db/schema";
-import { createBoard, createGroup, createLooseTask, createTask, deleteBoard, deleteGroup, deleteTask, renameBoard, updateGroup, updateTask, type TaskDTO } from "./actions";
+import { isoDateBR, todayISO } from "@/lib/format";
+import type { TaskBoard, TaskColumn, TaskColumnType, TaskGroup, TaskPriority, TaskStatus } from "@/lib/db/schema";
+import { BOARD_TEMPLATES } from "@/lib/task-templates";
+import { COLUMN_TYPES, NO_FILTERS, filterTasks, groupTasks, sortTasks, type DueFilter, type Filters, type GroupBy, type SortKey, type TaskDTO } from "@/lib/tasks";
+import {
+  addBoardColumn,
+  bulkDeleteTasks,
+  bulkUpdateTasks,
+  createBoard,
+  createGroup,
+  createLooseTask,
+  createTask,
+  deleteBoard,
+  deleteGroup,
+  deleteTask,
+  duplicateGroup,
+  duplicateTask,
+  moveTask,
+  removeBoardColumn,
+  renameBoard,
+  updateGroup,
+  updateTask,
+  type TaskPatch,
+} from "./actions";
+import { PRIORITY, STATUS, usePrefs, type Patch, type User, type View } from "./task-bits";
+import { TaskSheet } from "./task-sheet";
+import { CalendarView, KanbanView, TableView, TimelineView } from "./views";
 
-const STATUS: Record<TaskStatus, { label: string; color: string }> = {
-  a_fazer: { label: "A fazer", color: "var(--st-todo)" },
-  em_andamento: { label: "Em andamento", color: "var(--st-doing)" },
-  travada: { label: "Travada", color: "var(--st-stuck)" },
-  concluida: { label: "Concluída", color: "var(--st-done)" },
-};
-const STATUS_KEYS = Object.keys(STATUS) as TaskStatus[];
-const PRIORITY: Record<TaskPriority, { label: string; color: string }> = {
-  baixa: { label: "Baixa", color: "var(--pr-low)" },
-  media: { label: "Média", color: "var(--pr-mid)" },
-  alta: { label: "Alta", color: "var(--pr-high)" },
-  urgente: { label: "Urgente", color: "var(--pr-urgent)" },
-};
-
-type User = { id: string; name: string };
+type BoardLite = Pick<TaskBoard, "id" | "name" | "color">;
 type Props = {
   mode: "board" | "minhas";
-  boards: Pick<TaskBoard, "id" | "name" | "color">[];
-  board: Pick<TaskBoard, "id" | "name" | "color"> | null;
+  boards: BoardLite[];
+  board: (BoardLite & { columns: TaskColumn[] }) | null;
   groups: TaskGroup[];
   tasks: TaskDTO[];
   users: User[];
@@ -45,109 +54,47 @@ type Props = {
   view: "tabela" | "kanban";
 };
 
-/* ------------------------------- peças pequenas ------------------------------- */
+const VIEWS: { v: View; label: string; icon: React.ElementType }[] = [
+  { v: "tabela", label: "Tabela", icon: Table2 },
+  { v: "lista", label: "Lista", icon: List },
+  { v: "kanban", label: "Kanban", icon: Columns3 },
+  { v: "calendario", label: "Calendário", icon: CalendarDays },
+  { v: "linha", label: "Linha do tempo", icon: Rows3 },
+];
 
-function Pill({ value, options, onChange, disabled, label, wide }: { value: string; options: Record<string, { label: string; color: string }>; onChange: (v: string) => void; disabled?: boolean; label: string; wide?: boolean }) {
-  const cur = options[value];
-  return (
-    <span className="relative inline-flex">
-      <select
-        aria-label={label}
-        value={value}
-        disabled={disabled}
-        onChange={(e) => onChange(e.target.value)}
-        className={cn("h-7 max-md:h-10 cursor-pointer appearance-none rounded-md px-2.5 text-center text-[12px] font-semibold text-on-st max-md:text-[13px] outline-none disabled:cursor-default", wide ? "min-w-28" : "min-w-20")}
-        style={{ background: cur.color }}
-      >
-        {Object.entries(options).map(([k, o]) => (
-          <option key={k} value={k} style={{ color: "#1a1a1a", background: "#fff" }}>
-            {o.label}
-          </option>
-        ))}
-      </select>
-    </span>
-  );
-}
-
-const Person = ({ id, users }: { id: string | null; users: User[] }) => {
-  const u = users.find((x) => x.id === id);
-  return u ? (
-    <span className="grid size-6 place-items-center rounded-full bg-primary text-xs font-semibold text-primary-foreground" title={u.name}>
-      {initials(u.name)}
-    </span>
-  ) : (
-    <span className="grid size-6 place-items-center rounded-full border border-dashed text-muted-foreground" title="Sem responsável">
-      <UserRound className="size-3" />
-    </span>
-  );
-};
-
-function dueState(t: TaskDTO) {
-  if (!t.dueAt) return "none";
-  if (t.status === "concluida") return "done";
-  const d = isoDateBR(new Date(t.dueAt));
-  const today = todayISO();
-  return d < today ? "late" : d === today ? "today" : "later";
-}
-
-function DueInput({ t, onChange, disabled }: { t: TaskDTO; onChange: (v: string | null) => void; disabled?: boolean }) {
-  const st = dueState(t);
-  return (
-    <label className={cn("relative inline-flex h-7 items-center gap-1 rounded-md border px-2 text-[12px] max-md:h-10 max-md:text-[13px]", st === "late" && "border-destructive bg-destructive/10 font-medium text-destructive", st === "today" && "border-brand bg-brand-soft font-medium")}>
-      <CalendarDays className="size-3 shrink-0" />
-      <span className="whitespace-nowrap">{t.dueAt ? `${fmtDate(t.dueAt, "dd/MM")}${st === "late" ? " · atrasada" : st === "today" ? " · hoje" : ""}` : "Prazo"}</span>
-      <input
-        type="date"
-        aria-label="Prazo"
-        disabled={disabled}
-        value={t.dueAt ? isoDateBR(new Date(t.dueAt)) : ""}
-        onChange={(e) => onChange(e.target.value || null)}
-        className="absolute inset-0 cursor-pointer opacity-0 disabled:cursor-default"
-      />
-    </label>
-  );
-}
-
-function Assignee({ t, users, onChange, disabled }: { t: TaskDTO; users: User[]; onChange: (v: string | null) => void; disabled?: boolean }) {
-  return (
-    <label className="relative inline-flex h-7 items-center gap-1.5 rounded-md border px-1.5 text-[12px] max-md:h-10 max-md:text-[13px]">
-      <Person id={t.assigneeId} users={users} />
-      <span className="max-w-24 truncate">{users.find((u) => u.id === t.assigneeId)?.name.split(" ")[0] ?? "Atribuir"}</span>
-      <select aria-label="Responsável" disabled={disabled} value={t.assigneeId ?? ""} onChange={(e) => onChange(e.target.value || null)} className="absolute inset-0 cursor-pointer opacity-0 disabled:cursor-default">
-        <option value="">Sem responsável</option>
-        {users.map((u) => (
-          <option key={u.id} value={u.id}>
-            {u.name}
-          </option>
-        ))}
-      </select>
-    </label>
-  );
-}
+const selectCls = "h-8 w-full rounded-lg border border-input bg-background px-2 text-[13px] max-md:h-10";
 
 /* --------------------------------- componente --------------------------------- */
 
 export function Tarefas(props: Props) {
-  const { mode, boards, board, users, meId, canEdit, canManage, boardNames, view } = props;
+  const { mode, boards, board, users, meId, canEdit, canManage, boardNames } = props;
   const router = useRouter();
+  const [prefs, setPrefs] = usePrefs(board?.id ?? "minhas", props.view === "kanban" ? { view: "kanban" } : undefined);
   const [tasks, setTasks] = useState<TaskDTO[]>(props.tasks);
   const [groups, setGroups] = useState<TaskGroup[]>(props.groups);
+  const [columns, setColumns] = useState<TaskColumn[]>(board?.columns ?? []);
   const [open, setOpen] = useState<string | null>(null);
-  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
-  const [q, setQ] = useState("");
-  const [who, setWho] = useState("");
-  const [hideDone, setHideDone] = useState(false);
+  const [filters, setFilters] = useState<Filters>(NO_FILTERS);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [colsOpen, setColsOpen] = useState(false);
   const [newBoard, setNewBoard] = useState(false);
+  const [busy, setBusy] = useState(false);
 
-  // dados do servidor (troca de quadro/visão) substituem o estado local
+  // dados do servidor (troca de quadro/atualização) substituem o estado local
   const [seen, setSeen] = useState(props);
   if (props.tasks !== seen.tasks || props.groups !== seen.groups) {
     setSeen(props);
     setTasks(props.tasks);
     setGroups(props.groups);
+    setColumns(props.board?.columns ?? []);
   }
 
-  const patch = async (id: string, p: Parameters<typeof updateTask>[1]) => {
+  const today = todayISO();
+  const view: View = mode === "minhas" ? "tabela" : prefs.view;
+  const f: Filters = useMemo(() => ({ ...filters, hideDone: prefs.hideDone }), [filters, prefs.hideDone]);
+  const activeFilters = [f.who, f.priority, f.status, f.due, f.label].filter(Boolean).length + (prefs.hideDone ? 1 : 0);
+
+  const patch: Patch = async (id, p: TaskPatch) => {
     const prev = tasks;
     setTasks((all) =>
       all.map((t) => {
@@ -160,6 +107,19 @@ export function Tarefas(props: Props) {
         if (p.dueAt !== undefined) n.dueAt = p.dueAt ? new Date(`${p.dueAt}T12:00:00-03:00`).toISOString() : null;
         if (p.description !== undefined) n.description = p.description;
         if (p.groupId) n.groupId = p.groupId;
+        if (p.position !== undefined) n.position = p.position;
+        if (p.subtasks) n.subtasks = p.subtasks;
+        if (p.labels) n.labels = p.labels;
+        if (p.links) n.links = p.links.map((l) => ({ ...l, name: l.name || l.url }));
+        if (p.recur !== undefined) n.recur = (p.recur as TaskDTO["recur"]) ?? null;
+        if (p.custom) {
+          const c = { ...n.custom };
+          for (const [k, v] of Object.entries(p.custom)) {
+            if (v === null || v === "" || v === undefined) delete c[k];
+            else c[k] = v;
+          }
+          n.custom = c;
+        }
         return n;
       }),
     );
@@ -169,9 +129,15 @@ export function Tarefas(props: Props) {
       setTasks(prev);
     } else if (r && "task" in r && r.task) {
       const saved = r.task;
-      setTasks((all) => all.map((t) => (t.id === id ? { ...saved, dealTitle: t.dealTitle } : t)));
+      const spawned = "spawned" in r ? r.spawned : undefined;
+      setTasks((all) => {
+        const next = all.map((t) => (t.id === id ? { ...saved, dealTitle: t.dealTitle } : t));
+        return spawned ? [...next, spawned] : next;
+      });
+      if (spawned) toast.success("Próxima ocorrência criada", { description: "Tarefa recorrente: a nova já está no quadro." });
     }
   };
+
   const remove = async (id: string) => {
     const prev = tasks;
     setTasks((all) => all.filter((t) => t.id !== id));
@@ -182,169 +148,510 @@ export function Tarefas(props: Props) {
       setTasks(prev);
     }
   };
-  const add = async (groupId: string, title: string) => {
+
+  const duplicate = async (id: string) => {
+    const r = await duplicateTask(id);
+    if ("error" in r && r.error) return void toast.error(r.error);
+    if ("task" in r && r.task) {
+      setTasks((all) => [...all, r.task]);
+      toast.success("Tarefa duplicada");
+    }
+  };
+
+  const add = async (groupId: string, title: string, extra?: { status?: string; priority?: string; assigneeId?: string | null; dueAt?: string | null }) => {
     if (!board || !title.trim()) return;
-    const r = await createTask({ boardId: board.id, groupId, title });
+    const r = await createTask({ boardId: board.id, groupId, title, ...extra });
     if ("error" in r && r.error) return void toast.error(r.error);
     if ("task" in r && r.task) setTasks((all) => [...all, r.task]);
   };
 
-  const visible = useMemo(() => {
-    const s = q.trim().toLowerCase();
-    return tasks.filter((t) => (!s || t.title.toLowerCase().includes(s)) && (!who || (who === "none" ? !t.assigneeId : t.assigneeId === who)) && (!hideDone || t.status !== "concluida"));
-  }, [tasks, q, who, hideDone]);
+  const newTask = async (dueAt?: string) => {
+    if (!board || !groups[0]) return;
+    const r = await createTask({ boardId: board.id, groupId: groups[0].id, title: "Nova tarefa", dueAt });
+    if ("error" in r && r.error) return void toast.error(r.error);
+    if ("task" in r && r.task) {
+      setTasks((all) => [...all, r.task]);
+      setOpen(r.task.id);
+    }
+  };
 
+  const move = async (id: string, groupId: string, position: number) => {
+    const prev = tasks;
+    setTasks((all) => all.map((t) => (t.id === id ? { ...t, groupId, position } : t)));
+    const r = await moveTask(id, { groupId, position });
+    if ("error" in r && r.error) {
+      toast.error(r.error);
+      setTasks(prev);
+    }
+  };
+
+  const select = (ids: string[], on: boolean) =>
+    setSelected((s) => {
+      const n = new Set(s);
+      for (const id of ids) {
+        if (on) n.add(id);
+        else n.delete(id);
+      }
+      return n;
+    });
+
+  const bulk = async (p: { status?: string; assigneeId?: string | null; dueAt?: string | null }) => {
+    const ids = [...selected];
+    setBusy(true);
+    const r = await bulkUpdateTasks(ids, p);
+    setBusy(false);
+    if ("error" in r && r.error) return void toast.error(r.error);
+    if ("tasks" in r && r.tasks) {
+      const byId = new Map(r.tasks.map((t) => [t.id, t]));
+      setTasks((all) => {
+        const known = new Set(all.map((t) => t.id));
+        return [...all.map((t) => byId.get(t.id) ?? t), ...r.tasks.filter((t) => !known.has(t.id))];
+      });
+    }
+    toast.success(`${ids.length} ${ids.length === 1 ? "tarefa atualizada" : "tarefas atualizadas"}`);
+    setSelected(new Set());
+  };
+
+  const bulkRemove = async () => {
+    const ids = [...selected];
+    if (!window.confirm(`Excluir ${ids.length} ${ids.length === 1 ? "tarefa" : "tarefas"}? Não dá para desfazer.`)) return;
+    setBusy(true);
+    const r = await bulkDeleteTasks(ids);
+    setBusy(false);
+    if ("error" in r && r.error) return void toast.error(r.error);
+    if ("deleted" in r && r.deleted) {
+      setTasks((all) => all.filter((t) => !r.deleted.includes(t.id)));
+      if (r.skipped) toast.message(`${r.skipped} não puderam ser excluídas (só quem criou ou gerencia pode excluir).`);
+    }
+    setSelected(new Set());
+  };
+
+  const visible = useMemo(() => sortTasks(filterTasks(tasks, f, today, isoDateBR), prefs.sort), [tasks, f, today, prefs.sort]);
+  const ctx = { users, groups, today, toDay: isoDateBR };
+  const tableBy: GroupBy = mode === "minhas" ? "prazo" : prefs.groupBy;
+  const sections = useMemo(() => groupTasks(visible, tableBy, ctx), [visible, tableBy, groups, users, today]); // eslint-disable-line react-hooks/exhaustive-deps
+  const totals = useMemo(() => Object.fromEntries(groupTasks(tasks, tableBy, ctx).map((s) => [s.key, s.tasks.length])), [tasks, tableBy, groups, users, today]); // eslint-disable-line react-hooks/exhaustive-deps
+  const kSections = useMemo(() => groupTasks(visible, prefs.kGroup, ctx), [visible, prefs.kGroup, groups, users, today]); // eslint-disable-line react-hooks/exhaustive-deps
+  const labels = useMemo(() => [...new Set(tasks.flatMap((t) => t.labels))].sort(), [tasks]);
   const openTask = tasks.find((t) => t.id === open) ?? null;
-  const href = (b: string, v?: string) => `/tarefas?quadro=${b}${v && v !== "tabela" ? `&vista=${v}` : ""}`;
+  const href = (b: string) => `/tarefas?quadro=${b}`;
+
+  const filtersPanel = (
+    <div className="grid gap-3 text-[13px]">
+      <label className="grid gap-1">
+        <span className="label">Responsável</span>
+        <select value={filters.who} onChange={(e) => setFilters({ ...filters, who: e.target.value })} className={selectCls}>
+          <option value="">Todos</option>
+          <option value="none">Sem responsável</option>
+          {users.map((u) => (
+            <option key={u.id} value={u.id}>
+              {u.name}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label className="grid gap-1">
+        <span className="label">Prioridade</span>
+        <select value={filters.priority} onChange={(e) => setFilters({ ...filters, priority: e.target.value })} className={selectCls}>
+          <option value="">Todas</option>
+          {Object.entries(PRIORITY).map(([k, o]) => (
+            <option key={k} value={k}>
+              {o.label}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label className="grid gap-1">
+        <span className="label">Situação</span>
+        <select value={filters.status} onChange={(e) => setFilters({ ...filters, status: e.target.value })} className={selectCls}>
+          <option value="">Todas</option>
+          {Object.entries(STATUS).map(([k, o]) => (
+            <option key={k} value={k}>
+              {o.label}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label className="grid gap-1">
+        <span className="label">Prazo</span>
+        <select value={filters.due} onChange={(e) => setFilters({ ...filters, due: e.target.value as DueFilter })} className={selectCls}>
+          <option value="">Qualquer</option>
+          <option value="atrasadas">Atrasadas</option>
+          <option value="hoje">Hoje</option>
+          <option value="semana">Hoje e próximos 7 dias</option>
+          <option value="sem-prazo">Sem prazo</option>
+        </select>
+      </label>
+      {labels.length > 0 && (
+        <label className="grid gap-1">
+          <span className="label">Etiqueta</span>
+          <select value={filters.label} onChange={(e) => setFilters({ ...filters, label: e.target.value })} className={selectCls}>
+            <option value="">Todas</option>
+            {labels.map((l) => (
+              <option key={l} value={l}>
+                {l}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
+      <label className="flex items-center gap-2 max-md:min-h-10">
+        <input type="checkbox" checked={prefs.hideDone} onChange={(e) => setPrefs({ hideDone: e.target.checked })} className="size-4 accent-brand" /> Ocultar concluídas
+      </label>
+      {activeFilters > 0 && (
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="w-fit"
+          onClick={() => {
+            setFilters(NO_FILTERS);
+            setPrefs({ hideDone: false });
+          }}
+        >
+          <X /> Limpar filtros
+        </Button>
+      )}
+    </div>
+  );
+
+  const organizePanel = (
+    <div className="grid gap-3 text-[13px]">
+      {(view === "tabela" || view === "lista") && (
+        <label className="grid gap-1">
+          <span className="label">Agrupar por</span>
+          <select value={prefs.groupBy} onChange={(e) => setPrefs({ groupBy: e.target.value as GroupBy })} className={selectCls}>
+            <option value="grupo">Grupo do quadro</option>
+            <option value="responsavel">Responsável</option>
+            <option value="prioridade">Prioridade</option>
+            <option value="situacao">Situação</option>
+            <option value="prazo">Prazo</option>
+          </select>
+        </label>
+      )}
+      {view === "kanban" && (
+        <label className="grid gap-1">
+          <span className="label">Colunas do kanban</span>
+          <select value={prefs.kGroup} onChange={(e) => setPrefs({ kGroup: e.target.value as "situacao" | "responsavel" | "prioridade" })} className={selectCls}>
+            <option value="situacao">Situação</option>
+            <option value="responsavel">Responsável</option>
+            <option value="prioridade">Prioridade</option>
+          </select>
+        </label>
+      )}
+      {(view === "tabela" || view === "lista") && (
+        <label className="grid gap-1">
+          <span className="label">Ordenar por</span>
+          <select value={prefs.sort} onChange={(e) => setPrefs({ sort: e.target.value as SortKey })} className={selectCls}>
+            <option value="manual">Ordem manual (arraste)</option>
+            <option value="prazo">Prazo</option>
+            <option value="prioridade">Prioridade</option>
+            <option value="situacao">Situação</option>
+            <option value="titulo">Título (A–Z)</option>
+          </select>
+        </label>
+      )}
+      {(view === "tabela" || view === "lista") && prefs.groupBy !== "grupo" && <p className="text-[12px] text-muted-foreground">Agrupando por outro critério, não dá para arrastar ou adicionar tarefas direto na seção.</p>}
+      {(view === "tabela" || view === "lista") && prefs.groupBy === "grupo" && prefs.sort !== "manual" && <p className="text-[12px] text-muted-foreground">Para arrastar e reordenar, volte para “Ordem manual”.</p>}
+    </div>
+  );
+
+  const toolbarFilters = (
+    <>
+      <div className="relative w-44 shrink-0 sm:w-56" data-tour="task-filters">
+        <Search className="absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
+        <Input value={filters.q} onChange={(e) => setFilters({ ...filters, q: e.target.value })} placeholder="Buscar tarefa…" aria-label="Buscar tarefa" className="h-9 pl-8" />
+      </div>
+      {mode === "board" && (
+        <ToolbarGroup>
+          {VIEWS.map(({ v, label, icon: Icon }) => (
+            <button
+              key={v}
+              type="button"
+              onClick={() => setPrefs({ view: v })}
+              aria-pressed={view === v}
+              title={label}
+              aria-label={`Visão ${label}`}
+              className={cn("inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[13px] whitespace-nowrap transition-colors max-md:min-h-9", view === v ? "bg-foreground font-medium text-background" : "text-muted-foreground hover:text-foreground")}
+            >
+              <Icon className="size-3.5" />
+              <span className="max-xl:hidden">{label}</span>
+            </button>
+          ))}
+        </ToolbarGroup>
+      )}
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button type="button" variant="outline" size="sm">
+            <ListFilter /> Filtros
+            {activeFilters > 0 && <span className="grid size-4.5 place-items-center rounded-full bg-brand text-[11px] font-semibold text-on-brand">{activeFilters}</span>}
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent align="center" className="w-72">
+          {filtersPanel}
+        </PopoverContent>
+      </Popover>
+      {mode === "board" && view !== "calendario" && view !== "linha" && (
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button type="button" variant="outline" size="sm">
+              <SlidersHorizontal /> Organizar
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent align="center" className="w-72">
+            {organizePanel}
+          </PopoverContent>
+        </Popover>
+      )}
+    </>
+  );
+
+  const boardsRow = (
+    <div data-tour="task-boards" className="thin-scroll flex h-11 items-center gap-1.5 overflow-x-auto border-t px-3 sm:px-5" role="tablist" aria-label="Quadros">
+      <Link href="/tarefas?quadro=minhas" role="tab" aria-selected={mode === "minhas"} className={cn("inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1 text-[13px] max-md:py-2", mode === "minhas" ? "border-foreground bg-foreground font-medium text-background" : "bg-card hover:border-foreground/40")}>
+        <Check className="size-3.5" /> Minhas tarefas
+      </Link>
+      {boards.map((b) => (
+        <Link key={b.id} href={href(b.id)} role="tab" aria-selected={board?.id === b.id} className={cn("inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1 text-[13px] max-md:py-2", board?.id === b.id ? "border-foreground bg-foreground font-medium text-background" : "bg-card hover:border-foreground/40")}>
+          <span className="size-2 rounded-full" style={{ background: b.color }} /> {b.name}
+        </Link>
+      ))}
+      {canEdit && !newBoard && (
+        <Button type="button" variant="outline" size="sm" className="shrink-0 rounded-full" onClick={() => setNewBoard(true)}>
+          <Plus /> Quadro
+        </Button>
+      )}
+      {newBoard && (
+        <form
+          className="flex shrink-0 gap-1.5"
+          onSubmit={async (e) => {
+            e.preventDefault();
+            const fd = new FormData(e.currentTarget);
+            const tpl = String(fd.get("tpl") ?? "");
+            const name = String(fd.get("name") ?? "").trim() || BOARD_TEMPLATES.find((t) => t.key === tpl)?.name || "";
+            const r = await createBoard(name, tpl || undefined);
+            if ("error" in r && r.error) return void toast.error(r.error);
+            if ("board" in r && r.board) router.push(href(r.board.id));
+          }}
+        >
+          <select name="tpl" aria-label="Modelo do quadro" className="h-8 rounded-lg border border-input bg-background px-2 text-[13px]">
+            <option value="">Em branco</option>
+            {BOARD_TEMPLATES.map((t) => (
+              <option key={t.key} value={t.key} title={t.description}>
+                Modelo: {t.name}
+              </option>
+            ))}
+          </select>
+          <Input name="name" autoFocus placeholder="Nome do quadro" className="h-8 w-44" onKeyDown={(e) => e.key === "Escape" && setNewBoard(false)} />
+          <Button type="submit" size="sm">
+            Criar
+          </Button>
+        </form>
+      )}
+    </div>
+  );
+
+  const tableCommon = {
+    groups,
+    users,
+    canEdit,
+    canManage,
+    patch,
+    openTask: setOpen,
+    selected,
+    select,
+    totals,
+    onAdd: (gid: string, title: string) => add(gid, title),
+    onRenameGroup: async (id: string, name: string) => {
+      setGroups((all) => all.map((x) => (x.id === id ? { ...x, name } : x)));
+      await updateGroup(id, { name });
+    },
+    onDeleteGroup: async (id: string, name: string) => {
+      if (!window.confirm(`Excluir o grupo "${name}" e as tarefas dele?`)) return;
+      setGroups((all) => all.filter((x) => x.id !== id));
+      setTasks((all) => all.filter((t) => t.groupId !== id));
+      await deleteGroup(id);
+    },
+    onDuplicateGroup: async (id: string) => {
+      const r = await duplicateGroup(id);
+      if ("error" in r && r.error) return void toast.error(r.error);
+      if ("group" in r && r.group) {
+        setGroups((a) => [...a, r.group]);
+        setTasks((a) => [...a, ...r.tasks]);
+        toast.success("Grupo duplicado");
+      }
+    },
+    onMove: move,
+    onEditColumns: () => setColsOpen(true),
+  };
 
   return (
-    <div className="grid gap-4">
-      {/* quadros */}
-      <div data-tour="task-boards" className="thin-scroll flex items-center gap-1.5 overflow-x-auto pb-1" role="tablist" aria-label="Quadros">
-        <Link href="/tarefas?quadro=minhas" role="tab" aria-selected={mode === "minhas"} className={cn("inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-[13px] max-md:py-2.5", mode === "minhas" ? "border-foreground bg-foreground font-medium text-background" : "bg-card hover:border-foreground/40")}>
-          <Check className="size-3.5" /> Minhas tarefas
-        </Link>
-        {boards.map((b) => (
-          <Link key={b.id} href={href(b.id, view)} role="tab" aria-selected={board?.id === b.id} className={cn("inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-[13px] max-md:py-2.5", board?.id === b.id ? "border-foreground bg-foreground font-medium text-background" : "bg-card hover:border-foreground/40")}>
-            <span className="size-2 rounded-full" style={{ background: b.color }} /> {b.name}
-          </Link>
-        ))}
-        {canEdit && !newBoard && (
-          <Button type="button" variant="outline" size="sm" className="shrink-0 rounded-full" onClick={() => setNewBoard(true)}>
-            <Plus /> Quadro
-          </Button>
-        )}
-        {newBoard && (
-          <form
-            className="flex shrink-0 gap-1.5"
-            onSubmit={async (e) => {
-              e.preventDefault();
-              const name = String(new FormData(e.currentTarget).get("name") ?? "");
-              const r = await createBoard(name);
-              if ("error" in r && r.error) return void toast.error(r.error);
-              if ("board" in r && r.board) router.push(href(r.board.id));
-            }}
-          >
-            <Input name="name" autoFocus placeholder="Nome do quadro" className="h-8 w-44" onKeyDown={(e) => e.key === "Escape" && setNewBoard(false)} />
-            <Button type="submit" size="sm">
-              Criar
+    <>
+      <PageToolbar
+        title="Tarefas"
+        filters={toolbarFilters}
+        actions={
+          mode === "board" && canEdit && groups.length > 0 ? (
+            <Button type="button" size="sm" onClick={() => newTask()}>
+              <Plus /> Nova tarefa
             </Button>
-          </form>
-        )}
-      </div>
+          ) : undefined
+        }
+        tabs={boardsRow}
+      />
+      <ToolArea className="md:h-[calc(100dvh-7rem-2.75rem)]">
+        <div className="relative grid gap-4 p-3 pb-24 sm:p-5">
+          {mode === "minhas" ? (
+            <Minhas
+              sections={sections}
+              totals={totals}
+              all={tasks}
+              users={users}
+              meId={meId}
+              canEdit={canEdit}
+              boardNames={boardNames}
+              common={tableCommon}
+              onAdded={(t) => setTasks((a) => [t, ...a])}
+            />
+          ) : board ? (
+            <>
+              <div className="flex flex-wrap items-center gap-3">
+                <BoardTitle board={board} canEdit={canEdit} />
+                {view === "kanban" && canEdit && <p className="text-[12.5px] text-muted-foreground">Arraste um cartão para outra coluna para mudar {prefs.kGroup === "situacao" ? "a situação" : prefs.kGroup === "prioridade" ? "a prioridade" : "o responsável"}. Toque para ver detalhes.</p>}
+                {(view === "tabela" || view === "lista") && canEdit && prefs.groupBy === "grupo" && prefs.sort === "manual" && <p className="text-[12.5px] text-muted-foreground max-md:hidden">Arraste pelo ícone ⋮⋮ para reordenar ou mover entre grupos.</p>}
+              </div>
+              {view === "tabela" || view === "lista" ? (
+                <>
+                  <TableView {...tableCommon} sections={sections} realGroups={prefs.groupBy === "grupo"} manual={prefs.sort === "manual"} compact={view === "lista"} columns={view === "lista" ? [] : columns} />
+                  {canEdit && prefs.groupBy === "grupo" && (
+                    <form
+                      className="flex gap-2"
+                      onSubmit={async (e) => {
+                        e.preventDefault();
+                        const form = e.currentTarget;
+                        const name = String(new FormData(form).get("name") ?? "");
+                        const r = await createGroup(board.id, name);
+                        if ("error" in r && r.error) return void toast.error(r.error);
+                        if ("group" in r && r.group) setGroups((a) => [...a, r.group]);
+                        form.reset();
+                      }}
+                    >
+                      <Input name="name" placeholder="Nome do novo grupo (ex.: Esta semana)" aria-label="Novo grupo" className="h-9 max-w-xs" />
+                      <Button type="submit" variant="outline" size="sm">
+                        Adicionar grupo
+                      </Button>
+                    </form>
+                  )}
+                  {groups.length === 0 && <p className="rounded-xl border border-dashed p-6 text-center text-[13px] text-muted-foreground">Este quadro não tem grupos. Crie um grupo (por exemplo “Esta semana”) para começar a adicionar tarefas.</p>}
+                </>
+              ) : view === "kanban" ? (
+                <KanbanView
+                  sections={kSections}
+                  by={prefs.kGroup}
+                  users={users}
+                  canEdit={canEdit}
+                  patch={patch}
+                  openTask={setOpen}
+                  onAdd={(key, title) =>
+                    groups[0] &&
+                    add(groups[0].id, title, prefs.kGroup === "situacao" ? { status: key } : prefs.kGroup === "prioridade" ? { priority: key } : { assigneeId: key === "none" ? null : key })
+                  }
+                />
+              ) : view === "calendario" ? (
+                <CalendarView tasks={visible} mode={prefs.calMode} setMode={(m) => setPrefs({ calMode: m })} canEdit={canEdit} patch={patch} openTask={setOpen} onCreate={(d) => newTask(d)} />
+              ) : (
+                <TimelineView sections={groupTasks(visible, "grupo", ctx)} openTask={setOpen} />
+              )}
+              {board && canManage && (
+                <div className="pt-2">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="text-muted-foreground hover:text-destructive"
+                    onClick={async () => {
+                      if (!window.confirm(`Excluir o quadro "${board.name}" com todos os grupos e tarefas? Não dá para desfazer.`)) return;
+                      await deleteBoard(board.id);
+                      router.push("/tarefas?quadro=minhas");
+                      router.refresh();
+                    }}
+                  >
+                    <Trash2 /> Excluir este quadro
+                  </Button>
+                </div>
+              )}
+            </>
+          ) : (
+            <p className="rounded-xl border border-dashed p-8 text-center text-[14px] text-muted-foreground">
+              Nenhum quadro ainda. {canEdit ? "Crie o primeiro em “+ Quadro” — por exemplo com o modelo “Rotina do estúdio” ou “Obra de restauro”." : ""}
+            </p>
+          )}
 
-      {mode === "minhas" ? (
-        <Minhas tasks={visible} all={tasks} users={users} meId={meId} canEdit={canEdit} boardNames={boardNames} patch={patch} openTask={setOpen} onAdded={(t) => setTasks((a) => [t, ...a])} q={q} setQ={setQ} hideDone={hideDone} setHideDone={setHideDone} />
-      ) : board ? (
-        <>
-          <div className="flex flex-wrap items-center gap-2">
-            <BoardTitle board={board} canEdit={canEdit} />
-            <div className="ml-auto flex flex-wrap items-center gap-2" data-tour="task-filters">
-              <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar tarefa…" aria-label="Buscar tarefa" className="h-8 w-40" />
-              <select value={who} onChange={(e) => setWho(e.target.value)} aria-label="Filtrar por responsável" className="h-8 rounded-lg border border-input bg-background px-2 text-[13px] max-md:h-10">
-                <option value="">Todos</option>
-                <option value="none">Sem responsável</option>
+          {selected.size > 0 && canEdit && (
+            <div role="toolbar" aria-label="Ações em massa" className="sticky bottom-3 z-20 mx-auto flex max-w-full flex-wrap items-center gap-2 rounded-xl border bg-card px-3 py-2 shadow-lg">
+              <span className="text-[13px] font-medium">
+                {selected.size} {selected.size === 1 ? "selecionada" : "selecionadas"}
+              </span>
+              <select aria-label="Mudar situação" disabled={busy} value="" onChange={(e) => e.target.value && bulk({ status: e.target.value })} className={cn(selectCls, "w-auto")}>
+                <option value="">Situação…</option>
+                {Object.entries(STATUS).map(([k, o]) => (
+                  <option key={k} value={k}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+              <select aria-label="Mudar responsável" disabled={busy} value="" onChange={(e) => e.target.value && bulk({ assigneeId: e.target.value === "__none" ? null : e.target.value })} className={cn(selectCls, "w-auto")}>
+                <option value="">Responsável…</option>
+                <option value="__none">Sem responsável</option>
                 {users.map((u) => (
                   <option key={u.id} value={u.id}>
                     {u.name}
                   </option>
                 ))}
               </select>
-              <label className="flex items-center gap-1.5 text-[13px] max-md:min-h-10">
-                <input type="checkbox" checked={hideDone} onChange={(e) => setHideDone(e.target.checked)} className="size-4 accent-brand" /> Ocultar concluídas
+              <label className="flex items-center gap-1 text-[13px]">
+                Prazo
+                <input type="date" aria-label="Definir prazo" disabled={busy} onChange={(e) => e.target.value && bulk({ dueAt: e.target.value })} className="h-8 rounded-lg border border-input bg-background px-2 text-[13px] max-md:h-10" />
               </label>
-              <div className="flex rounded-lg border p-0.5" role="group" aria-label="Visão">
-                <Link href={href(board.id, "tabela")} aria-current={view === "tabela"} className={cn("inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-[13px] max-md:py-2.5", view === "tabela" && "bg-foreground font-medium text-background")}>
-                  <LayoutList className="size-3.5" /> Tabela
-                </Link>
-                <Link href={href(board.id, "kanban")} aria-current={view === "kanban"} className={cn("inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-[13px] max-md:py-2.5", view === "kanban" && "bg-foreground font-medium text-background")}>
-                  <Columns3 className="size-3.5" /> Kanban
-                </Link>
-              </div>
-            </div>
-          </div>
-
-          {view === "kanban" && canEdit && <p className="-mt-2 text-[13px] text-muted-foreground">Arraste um cartão para outra coluna para mudar a situação (no celular, segure o cartão por um instante). Toque no cartão para ver detalhes.</p>}
-          {view === "kanban" ? (
-            <KanbanView tasks={visible} users={users} canEdit={canEdit} patch={patch} openTask={setOpen} />
-          ) : (
-            <div data-tour="task-groups" className="grid gap-5">
-              {groups.map((g) => (
-                <GroupBlock
-                  key={g.id}
-                  group={g}
-                  tasks={visible.filter((t) => t.groupId === g.id)}
-                  total={tasks.filter((t) => t.groupId === g.id).length}
-                  users={users}
-                  canEdit={canEdit}
-                  canManage={canManage}
-                  collapsed={!!collapsed[g.id]}
-                  toggle={() => setCollapsed((c) => ({ ...c, [g.id]: !c[g.id] }))}
-                  patch={patch}
-                  openTask={setOpen}
-                  add={(title) => add(g.id, title)}
-                  onRename={async (name) => {
-                    setGroups((all) => all.map((x) => (x.id === g.id ? { ...x, name } : x)));
-                    await updateGroup(g.id, { name });
-                  }}
-                  onDelete={async () => {
-                    if (!window.confirm(`Excluir o grupo "${g.name}" e as tarefas dele?`)) return;
-                    setGroups((all) => all.filter((x) => x.id !== g.id));
-                    setTasks((all) => all.filter((t) => t.groupId !== g.id));
-                    await deleteGroup(g.id);
-                  }}
-                />
-              ))}
-              {groups.length === 0 && <p className="rounded-xl border border-dashed p-6 text-center text-[13px] text-muted-foreground">Este quadro não tem grupos. Crie um grupo (por exemplo “Esta semana”) para começar a adicionar tarefas.</p>}
-              {canEdit && (
-                <form
-                  className="flex gap-2"
-                  onSubmit={async (e) => {
-                    e.preventDefault();
-                    const f = e.currentTarget;
-                    const name = String(new FormData(f).get("name") ?? "");
-                    const r = await createGroup(board.id, name);
-                    if ("error" in r && r.error) return void toast.error(r.error);
-                    if ("group" in r && r.group) setGroups((a) => [...a, r.group]);
-                    f.reset();
-                  }}
-                >
-                  <Input name="name" placeholder="Nome do novo grupo (ex.: Esta semana)" aria-label="Novo grupo" className="h-9 max-w-xs" />
-                  <Button type="submit" variant="outline" size="sm">
-                    Adicionar grupo
-                  </Button>
-                </form>
-              )}
+              <Button type="button" variant="outline" size="sm" disabled={busy} onClick={bulkRemove} className="text-destructive">
+                {busy ? <Loader2 className="animate-spin" /> : <Trash2 />} Excluir
+              </Button>
+              <Button type="button" variant="ghost" size="sm" onClick={() => setSelected(new Set())}>
+                Limpar
+              </Button>
             </div>
           )}
-        </>
-      ) : (
-        <p className="rounded-xl border border-dashed p-8 text-center text-[14px] text-muted-foreground">
-          Nenhum quadro ainda. {canEdit ? "Crie o primeiro em “+ Quadro” — por exemplo “Rotina do estúdio” ou “Obra da Matriz”." : ""}
-        </p>
-      )}
-
-      <TaskSheet task={openTask} users={users} canEdit={canEdit} boardName={openTask?.boardId ? boardNames[openTask.boardId] : null} groups={groups} onClose={() => setOpen(null)} patch={patch} remove={remove} />
-
-      {board && canManage && mode === "board" && (
-        <div className="pt-2">
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="text-muted-foreground hover:text-destructive"
-            onClick={async () => {
-              if (!window.confirm(`Excluir o quadro "${board.name}" com todos os grupos e tarefas? Não dá para desfazer.`)) return;
-              await deleteBoard(board.id);
-              router.push("/tarefas?quadro=minhas");
-              router.refresh();
-            }}
-          >
-            <Trash2 /> Excluir este quadro
-          </Button>
         </div>
+      </ToolArea>
+
+      <TaskSheet
+        task={openTask}
+        users={users}
+        canEdit={canEdit}
+        boardName={openTask?.boardId ? boardNames[openTask.boardId] : null}
+        groups={groups}
+        columns={columns}
+        knownLabels={labels}
+        onClose={() => setOpen(null)}
+        patch={patch}
+        remove={remove}
+        duplicate={duplicate}
+      />
+      {board && (
+        <ColumnsDialog
+          open={colsOpen}
+          onOpenChange={setColsOpen}
+          boardId={board.id}
+          columns={columns}
+          canEdit={canEdit}
+          onAdded={(c) => setColumns((a) => [...a, c])}
+          onRemoved={(id) => {
+            setColumns((a) => a.filter((c) => c.id !== id));
+            setTasks((all) => all.map((t) => (id in t.custom ? { ...t, custom: Object.fromEntries(Object.entries(t.custom).filter(([k]) => k !== id)) } : t)));
+          }}
+        />
       )}
-    </div>
+    </>
   );
 }
 
@@ -360,227 +667,125 @@ function BoardTitle({ board, canEdit }: { board: { id: string; name: string; col
         onChange={(e) => setName(e.target.value)}
         onBlur={() => name.trim() && name !== board.name && renameBoard(board.id, name)}
         onKeyDown={(e) => e.key === "Enter" && (e.currentTarget as HTMLInputElement).blur()}
-        className="h-9 max-md:h-10 min-w-0 rounded-md border border-transparent bg-transparent px-1 text-[20px] font-semibold hover:border-input focus:border-ring focus:outline-none"
+        className="h-9 min-w-0 rounded-md border border-transparent bg-transparent px-1 text-[20px] font-semibold hover:border-input focus:border-ring focus:outline-none max-md:h-10"
       />
     </div>
   );
 }
 
-/* ------------------------------- grupo (tabela) ------------------------------- */
+/* ------------------------------- colunas do quadro ------------------------------- */
 
-function GroupBlock({ group, tasks, total, users, canEdit, canManage, collapsed, toggle, patch, openTask, add, onRename, onDelete }: {
-  group: TaskGroup; tasks: TaskDTO[]; total: number; users: User[]; canEdit: boolean; canManage: boolean; collapsed: boolean; toggle: () => void;
-  patch: (id: string, p: Parameters<typeof updateTask>[1]) => void; openTask: (id: string) => void; add: (title: string) => void; onRename: (n: string) => void; onDelete: () => void;
-}) {
-  const [name, setName] = useState(group.name);
-  const [title, setTitle] = useState("");
-  const done = tasks.filter((t) => t.status === "concluida").length;
+function ColumnsDialog({ open, onOpenChange, boardId, columns, canEdit, onAdded, onRemoved }: { open: boolean; onOpenChange: (v: boolean) => void; boardId: string; columns: TaskColumn[]; canEdit: boolean; onAdded: (c: TaskColumn) => void; onRemoved: (id: string) => void }) {
+  const [type, setType] = useState<TaskColumnType>("texto");
+  const [busy, setBusy] = useState(false);
+  const nameRef = useRef<HTMLInputElement>(null);
+  const typeLabel = (t: string) => COLUMN_TYPES.find((x) => x.v === t)?.l ?? t;
   return (
-    <section className="rounded-xl border bg-card" style={{ borderLeft: `5px solid ${group.color}` }}>
-      <header className="flex items-center gap-2 px-3 py-2.5">
-        <button type="button" onClick={toggle} aria-expanded={!collapsed} aria-label={collapsed ? "Expandir grupo" : "Recolher grupo"} className="grid size-6 place-items-center rounded hover:bg-muted max-md:size-10">
-          {collapsed ? <ChevronRight className="size-4" /> : <ChevronDown className="size-4" />}
-        </button>
-        <input
-          aria-label="Nome do grupo"
-          value={name}
-          disabled={!canEdit}
-          onChange={(e) => setName(e.target.value)}
-          onBlur={() => name.trim() && name !== group.name && onRename(name)}
-          onKeyDown={(e) => e.key === "Enter" && (e.currentTarget as HTMLInputElement).blur()}
-          className="h-8 max-md:h-10 min-w-0 flex-1 rounded border border-transparent bg-transparent px-1 text-[15px] font-semibold hover:border-input focus:border-ring focus:outline-none"
-          style={{ color: group.color }}
-        />
-        <span className="text-[12px] text-muted-foreground max-md:hidden">
-          {done}/{total} concluídas
-        </span>
-        {canManage && (
-          <Button type="button" variant="ghost" size="icon-sm" aria-label="Excluir grupo" onClick={onDelete} className="text-muted-foreground hover:text-destructive">
-            <Trash2 />
-          </Button>
-        )}
-      </header>
-      {!collapsed && (
-        <>
-          <div className="hidden grid-cols-[minmax(0,1fr)_150px_120px_130px_110px] gap-3 border-y bg-muted/60 px-4 py-1.5 text-xs font-semibold tracking-wide text-muted-foreground uppercase md:grid">
-            <span>Tarefa</span>
-            <span>Responsável</span>
-            <span>Prazo</span>
-            <span>Situação</span>
-            <span>Prioridade</span>
-          </div>
-          <ul>
-            {tasks.map((t) => (
-              <TaskRow key={t.id} t={t} users={users} canEdit={canEdit} patch={patch} openTask={openTask} />
-            ))}
-          </ul>
-          {tasks.length === 0 && <p className="px-4 py-3 text-[13px] text-muted-foreground">Nenhuma tarefa neste grupo.</p>}
-          {canEdit && (
-            <form
-              className="flex items-center gap-2 border-t px-3 py-2"
-              onSubmit={(e) => {
-                e.preventDefault();
-                add(title);
-                setTitle("");
-              }}
-            >
-              <Plus className="size-4 text-muted-foreground" />
-              <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Adicionar tarefa — digite e tecle Enter" aria-label={`Nova tarefa em ${group.name}`} className="h-8 min-w-0 flex-1 bg-transparent text-[14px] placeholder:text-muted-foreground focus:outline-none max-md:h-10" />
-            </form>
-          )}
-        </>
-      )}
-    </section>
-  );
-}
-
-function TaskRow({ t, users, canEdit, patch, openTask, boardName }: { t: TaskDTO; users: User[]; canEdit: boolean; patch: (id: string, p: Parameters<typeof updateTask>[1]) => void; openTask: (id: string) => void; boardName?: string | null }) {
-  const [title, setTitle] = useState(t.title);
-  const [seen, setSeen] = useState(t.title);
-  if (t.title !== seen) {
-    setSeen(t.title);
-    setTitle(t.title);
-  }
-  const done = t.status === "concluida";
-  return (
-    <li className="grid gap-2 border-b px-4 py-2.5 last:border-b-0 hover:bg-muted/40 md:grid-cols-[minmax(0,1fr)_150px_120px_130px_110px] md:items-center md:gap-3">
-      <div className="flex min-w-0 items-center gap-2">
-        <button
-          type="button"
-          disabled={!canEdit}
-          onClick={() => patch(t.id, { status: done ? "a_fazer" : "concluida" })}
-          aria-label={done ? "Reabrir tarefa" : "Marcar como concluída"}
-          className={cn("relative grid size-5 shrink-0 place-items-center rounded-full border-2 after:absolute after:-inset-2.5 after:content-['']", done ? "border-[var(--st-done)] bg-[var(--st-done)] text-on-st" : "border-muted-foreground/60 hover:border-[var(--st-done)]")}
-        >
-          {done && <Check className="size-3" strokeWidth={3} />}
-        </button>
-        <div className="min-w-0 flex-1">
-          <input
-            aria-label="Título da tarefa"
-            value={title}
-            disabled={!canEdit}
-            onChange={(e) => setTitle(e.target.value)}
-            onBlur={() => title.trim() && title !== t.title && patch(t.id, { title })}
-            onKeyDown={(e) => e.key === "Enter" && (e.currentTarget as HTMLInputElement).blur()}
-            className={cn("h-8 max-md:h-10 w-full min-w-0 rounded border border-transparent bg-transparent px-1 text-[14px] hover:border-input focus:border-ring focus:outline-none", done && "text-muted-foreground line-through")}
-          />
-          {(t.dealTitle || boardName) && (
-            <p className="flex items-center gap-1 px-1 text-xs text-muted-foreground">
-              {t.dealTitle && (
-                <Link href={`/negocios/${t.dealId}`} className="inline-flex items-center gap-1 hover:underline">
-                  <Link2 className="size-3" /> {t.dealTitle}
-                </Link>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Colunas do quadro</DialogTitle>
+          <DialogDescription>Campos extras de cada tarefa deste quadro: texto, número, data, seleção, pessoa, caixa de seleção ou link.</DialogDescription>
+        </DialogHeader>
+        <ul className="grid gap-1.5">
+          {columns.map((c) => (
+            <li key={c.id} className="flex items-center gap-2 rounded-lg border px-3 py-2 text-[13.5px]">
+              <span className="min-w-0 flex-1 truncate font-medium">{c.name}</span>
+              <span className="text-xs text-muted-foreground">
+                {typeLabel(c.type)}
+                {c.options ? ` · ${c.options.join(", ")}` : ""}
+              </span>
+              {canEdit && (
+                <button
+                  type="button"
+                  aria-label={`Remover coluna ${c.name}`}
+                  className="text-muted-foreground hover:text-destructive"
+                  onClick={async () => {
+                    if (!window.confirm(`Remover a coluna "${c.name}"? Os valores preenchidos serão perdidos.`)) return;
+                    await removeBoardColumn(boardId, c.id);
+                    onRemoved(c.id);
+                  }}
+                >
+                  <Trash2 className="size-4" />
+                </button>
               )}
-              {boardName && <span>{t.dealTitle ? " · " : ""}{boardName}</span>}
-            </p>
-          )}
-        </div>
-        <Button type="button" variant="ghost" size="sm" className="shrink-0 text-muted-foreground md:hidden" onClick={() => openTask(t.id)}>
-          Abrir
-        </Button>
-      </div>
-      <div className="flex flex-wrap items-center gap-2 md:contents">
-        <Assignee t={t} users={users} disabled={!canEdit} onChange={(v) => patch(t.id, { assigneeId: v })} />
-        <DueInput t={t} disabled={!canEdit} onChange={(v) => patch(t.id, { dueAt: v })} />
-        <Pill label="Situação" value={t.status} options={STATUS} disabled={!canEdit} onChange={(v) => patch(t.id, { status: v })} wide />
-        <span className="flex items-center gap-1.5">
-          <Pill label="Prioridade" value={t.priority} options={PRIORITY} disabled={!canEdit} onChange={(v) => patch(t.id, { priority: v })} />
-          <button type="button" onClick={() => openTask(t.id)} className="hidden rounded px-1.5 text-[12px] text-muted-foreground underline-offset-2 hover:underline md:inline" aria-label="Abrir detalhes">
-            Detalhes
-          </button>
-        </span>
-      </div>
-    </li>
-  );
-}
-
-/* --------------------------------- kanban --------------------------------- */
-
-function KCard({ t, users, openTask, canEdit }: { t: TaskDTO; users: User[]; openTask: (id: string) => void; canEdit: boolean }) {
-  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: t.id, disabled: !canEdit });
-  return (
-    <div ref={setNodeRef} {...attributes} {...listeners} onClick={() => openTask(t.id)} className={cn("cursor-grab rounded-lg border bg-card p-3 shadow-sm active:cursor-grabbing", isDragging && "opacity-40")} style={{ borderLeft: `4px solid ${PRIORITY[t.priority].color}` }}>
-      <p className="text-[13.5px] leading-snug font-medium">{t.title}</p>
-      <div className="mt-2 flex flex-wrap items-center gap-2 text-[12px] text-muted-foreground">
-        <Person id={t.assigneeId} users={users} />
-        {t.dueAt && <span className={cn(dueState(t) === "late" && "font-medium text-destructive")}>{fmtDate(t.dueAt, "dd/MM")}</span>}
-        <span>{PRIORITY[t.priority].label}</span>
-      </div>
-    </div>
-  );
-}
-
-function KColumn({ status, tasks, users, openTask, canEdit }: { status: TaskStatus; tasks: TaskDTO[]; users: User[]; openTask: (id: string) => void; canEdit: boolean }) {
-  const { setNodeRef, isOver } = useDroppable({ id: status });
-  return (
-    <section ref={setNodeRef} className={cn("flex min-h-48 w-72 shrink-0 flex-col gap-2 rounded-xl border bg-muted/50 p-2.5 md:w-auto", isOver && "ring-2 ring-brand")}>
-      <h3 className="flex items-center gap-2 px-1 text-[13px] font-semibold">
-        <span className="size-2.5 rounded-full" style={{ background: STATUS[status].color }} /> {STATUS[status].label}
-        <span className="font-normal text-muted-foreground">{tasks.length}</span>
-      </h3>
-      {tasks.map((t) => (
-        <KCard key={t.id} t={t} users={users} openTask={openTask} canEdit={canEdit} />
-      ))}
-      {tasks.length === 0 && <p className="rounded-lg border border-dashed px-2 py-6 text-center text-[13px] text-muted-foreground">{canEdit ? "Vazio. Arraste uma tarefa para cá para mudar a situação." : "Nenhuma tarefa."}</p>}
-    </section>
-  );
-}
-
-function KanbanView({ tasks, users, canEdit, patch, openTask }: { tasks: TaskDTO[]; users: User[]; canEdit: boolean; patch: (id: string, p: Parameters<typeof updateTask>[1]) => void; openTask: (id: string) => void }) {
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }), useSensor(TouchSensor, { activationConstraint: { delay: 220, tolerance: 6 } }));
-  const [active, setActive] = useState<string | null>(null);
-  const onEnd = (e: DragEndEvent) => {
-    setActive(null);
-    const id = String(e.active.id);
-    const to = e.over?.id as TaskStatus | undefined;
-    const cur = tasks.find((t) => t.id === id);
-    if (to && cur && cur.status !== to && STATUS_KEYS.includes(to)) patch(id, { status: to });
-  };
-  const a = tasks.find((t) => t.id === active);
-  return (
-    <DndContext id="tasks-kanban" sensors={sensors} onDragStart={(e) => setActive(String(e.active.id))} onDragEnd={onEnd} onDragCancel={() => setActive(null)}>
-      <div className="thin-scroll flex gap-3 overflow-x-auto pb-2 md:grid md:grid-cols-4 md:overflow-visible">
-        {STATUS_KEYS.map((s) => (
-          <KColumn key={s} status={s} tasks={tasks.filter((t) => t.status === s)} users={users} openTask={openTask} canEdit={canEdit} />
-        ))}
-      </div>
-      <DragOverlay>{a && <div className="rounded-lg border bg-card p-3 text-[13.5px] font-medium shadow-lg">{a.title}</div>}</DragOverlay>
-    </DndContext>
+            </li>
+          ))}
+          {columns.length === 0 && <li className="text-[13px] text-muted-foreground">Nenhuma coluna personalizada ainda.</li>}
+        </ul>
+        {canEdit && (
+          <form
+            className="grid gap-2 border-t pt-3"
+            onSubmit={async (e) => {
+              e.preventDefault();
+              const fd = new FormData(e.currentTarget);
+              setBusy(true);
+              const r = await addBoardColumn(boardId, { name: String(fd.get("name") ?? ""), type, options: String(fd.get("options") ?? "").split(",") });
+              setBusy(false);
+              if ("error" in r && r.error) return void toast.error(r.error);
+              if ("column" in r && r.column) {
+                onAdded(r.column);
+                e.currentTarget.reset();
+                setType("texto");
+                nameRef.current?.focus();
+              }
+            }}
+          >
+            <div className="flex gap-2">
+              <Input ref={nameRef} name="name" placeholder="Nome da coluna" aria-label="Nome da coluna" className="h-9" />
+              <select value={type} onChange={(e) => setType(e.target.value as TaskColumnType)} aria-label="Tipo da coluna" className="h-9 rounded-lg border border-input bg-background px-2 text-[13px]">
+                {COLUMN_TYPES.map((t) => (
+                  <option key={t.v} value={t.v}>
+                    {t.l}
+                  </option>
+                ))}
+              </select>
+            </div>
+            {type === "selecao" && <Input name="options" placeholder="Opções separadas por vírgula (ex.: Limpeza, Reintegração)" aria-label="Opções" className="h-9" />}
+            <Button type="submit" size="sm" disabled={busy} className="w-fit">
+              {busy ? <Loader2 className="animate-spin" /> : <Plus />} Adicionar coluna
+            </Button>
+          </form>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }
 
 /* ------------------------------- minhas tarefas ------------------------------- */
 
-function Minhas({ tasks, all, users, meId, canEdit, boardNames, patch, openTask, onAdded, q, setQ, hideDone, setHideDone }: {
-  tasks: TaskDTO[]; all: TaskDTO[]; users: User[]; meId: string; canEdit: boolean; boardNames: Record<string, string>;
-  patch: (id: string, p: Parameters<typeof updateTask>[1]) => void; openTask: (id: string) => void; onAdded: (t: TaskDTO) => void;
-  q: string; setQ: (v: string) => void; hideDone: boolean; setHideDone: (v: boolean) => void;
+function Minhas({
+  sections,
+  totals,
+  all,
+  users,
+  meId,
+  canEdit,
+  boardNames,
+  common,
+  onAdded,
+}: {
+  sections: React.ComponentProps<typeof TableView>["sections"];
+  totals: Record<string, number>;
+  all: TaskDTO[];
+  users: User[];
+  meId: string;
+  canEdit: boolean;
+  boardNames: Record<string, string>;
+  common: Omit<React.ComponentProps<typeof TableView>, "sections" | "realGroups" | "manual" | "compact" | "columns">;
+  onAdded: (t: TaskDTO) => void;
 }) {
+  void boardNames;
+  void totals;
   const [title, setTitle] = useState("");
   const [due, setDue] = useState("");
   const ref = useRef<HTMLInputElement>(null);
-  const today = todayISO();
-  const week = isoDateBR(new Date(new Date(`${today}T12:00:00-03:00`).getTime() + 7 * 864e5));
-  const sections = [
-    { key: "late", label: "Atrasadas", tone: "text-destructive", test: (t: TaskDTO) => t.status !== "concluida" && !!t.dueAt && isoDateBR(new Date(t.dueAt)) < today },
-    { key: "today", label: "Hoje", tone: "text-brand", test: (t: TaskDTO) => t.status !== "concluida" && !!t.dueAt && isoDateBR(new Date(t.dueAt)) === today },
-    { key: "week", label: "Próximos 7 dias", tone: "", test: (t: TaskDTO) => t.status !== "concluida" && !!t.dueAt && isoDateBR(new Date(t.dueAt)) > today && isoDateBR(new Date(t.dueAt)) <= week },
-    { key: "later", label: "Depois", tone: "", test: (t: TaskDTO) => t.status !== "concluida" && !!t.dueAt && isoDateBR(new Date(t.dueAt)) > week },
-    { key: "none", label: "Sem prazo", tone: "", test: (t: TaskDTO) => t.status !== "concluida" && !t.dueAt },
-    { key: "done", label: "Concluídas", tone: "text-muted-foreground", test: (t: TaskDTO) => t.status === "concluida" },
-  ];
   const openCount = all.filter((t) => t.status !== "concluida").length;
   return (
     <div className="grid gap-4">
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-baseline gap-2">
         <h2 className="text-[20px] font-semibold">Minhas tarefas</h2>
         <span className="text-[13px] text-muted-foreground">{openCount} em aberto</span>
-        <div className="ml-auto flex flex-wrap items-center gap-2">
-          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar…" aria-label="Buscar tarefa" className="h-8 w-40" />
-          <label className="flex items-center gap-1.5 text-[13px] max-md:min-h-10">
-            <input type="checkbox" checked={hideDone} onChange={(e) => setHideDone(e.target.checked)} className="size-4 accent-brand" /> Ocultar concluídas
-          </label>
-        </div>
       </div>
       {canEdit && (
         <form
@@ -597,102 +802,16 @@ function Minhas({ tasks, all, users, meId, canEdit, boardNames, patch, openTask,
           }}
         >
           <Plus className="size-4 text-muted-foreground" />
-          <input ref={ref} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="O que você precisa fazer? Digite e tecle Enter" aria-label="Nova tarefa" className="h-9 max-md:h-10 min-w-0 flex-1 bg-transparent text-[14px] focus:outline-none" />
+          <input ref={ref} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="O que você precisa fazer? Digite e tecle Enter" aria-label="Nova tarefa" className="h-9 min-w-0 flex-1 bg-transparent text-[14px] focus:outline-none max-md:h-10" />
           <Input type="date" value={due} onChange={(e) => setDue(e.target.value)} aria-label="Prazo da nova tarefa" className="h-8 w-36" />
           <Button type="submit" size="sm" disabled={!title.trim()}>
             Adicionar
           </Button>
         </form>
       )}
-      {tasks.length === 0 && <p className="rounded-xl border border-dashed p-8 text-center text-[14px] text-muted-foreground">Nada por aqui. Quando alguém atribuir uma tarefa a você, ela aparece nesta lista, organizada por prazo.</p>}
-      {sections.map((s) => {
-        const list = tasks.filter(s.test);
-        if (!list.length) return null;
-        return (
-          <section key={s.key} className="rounded-xl border bg-card">
-            <h3 className={cn("border-b px-4 py-2.5 text-[14px] font-semibold", s.tone)}>
-              {s.label} <span className="font-normal text-muted-foreground">· {list.length}</span>
-            </h3>
-            <ul>
-              {list.map((t) => (
-                <TaskRow key={t.id} t={t} users={users} canEdit={canEdit} patch={patch} openTask={openTask} boardName={t.boardId ? boardNames[t.boardId] : undefined} />
-              ))}
-            </ul>
-          </section>
-        );
-      })}
+      {sections.every((s) => s.tasks.length === 0) && <p className="rounded-xl border border-dashed p-8 text-center text-[14px] text-muted-foreground">Nada por aqui. Quando alguém atribuir uma tarefa a você, ela aparece nesta lista, organizada por prazo.</p>}
+      <TableView {...common} sections={sections} realGroups={false} manual={false} compact={false} columns={[]} />
       <p className="text-[12px] text-muted-foreground">Aqui aparecem as tarefas atribuídas a você ({users.find((u) => u.id === meId)?.name}) em todos os quadros e dentro dos negócios.</p>
     </div>
-  );
-}
-
-/* ------------------------------- painel de detalhe ------------------------------- */
-
-function TaskSheet({ task, users, canEdit, boardName, groups, onClose, patch, remove }: {
-  task: TaskDTO | null; users: User[]; canEdit: boolean; boardName: string | null | undefined; groups: TaskGroup[]; onClose: () => void;
-  patch: (id: string, p: Parameters<typeof updateTask>[1]) => void; remove: (id: string) => void;
-}) {
-  const [desc, setDesc] = useState("");
-  const [seenId, setSeenId] = useState<string | null>(null);
-  if (task && task.id !== seenId) {
-    setSeenId(task.id);
-    setDesc(task.description ?? "");
-  }
-  return (
-    <Sheet open={!!task} onOpenChange={(o) => !o && onClose()}>
-      <SheetContent className="w-full overflow-y-auto sm:max-w-md">
-        {task && (
-          <>
-            <SheetHeader>
-              <SheetTitle className="pr-6 text-left">{task.title}</SheetTitle>
-              <SheetDescription>
-                {boardName ? `Quadro: ${boardName}` : "Tarefa avulsa"}
-                {task.dealTitle ? ` · Negócio: ${task.dealTitle}` : ""}
-              </SheetDescription>
-            </SheetHeader>
-            <div className="grid gap-4 px-4 pb-6">
-              <Field label="Situação">
-                <Pill label="Situação" value={task.status} options={STATUS} disabled={!canEdit} onChange={(v) => patch(task.id, { status: v })} wide />
-              </Field>
-              <Field label="Prioridade">
-                <Pill label="Prioridade" value={task.priority} options={PRIORITY} disabled={!canEdit} onChange={(v) => patch(task.id, { priority: v })} wide />
-              </Field>
-              <Field label="Responsável">
-                <Assignee t={task} users={users} disabled={!canEdit} onChange={(v) => patch(task.id, { assigneeId: v })} />
-              </Field>
-              <Field label="Prazo">
-                <DueInput t={task} disabled={!canEdit} onChange={(v) => patch(task.id, { dueAt: v })} />
-              </Field>
-              {task.boardId && groups.some((g) => g.boardId === task.boardId) && (
-                <Field label="Grupo">
-                  <select value={task.groupId ?? ""} disabled={!canEdit} onChange={(e) => patch(task.id, { groupId: e.target.value })} className="h-9 max-md:h-10 rounded-lg border border-input bg-background px-2 text-[14px]">
-                    {groups.filter((g) => g.boardId === task.boardId).map((g) => (
-                      <option key={g.id} value={g.id}>
-                        {g.name}
-                      </option>
-                    ))}
-                  </select>
-                </Field>
-              )}
-              <Field label="Descrição e anotações">
-                <Textarea rows={6} value={desc} disabled={!canEdit} onChange={(e) => setDesc(e.target.value)} onBlur={() => desc !== (task.description ?? "") && patch(task.id, { description: desc })} placeholder="Detalhes, links, o que falta fazer…" />
-              </Field>
-              {task.dealId && (
-                <Button asChild variant="outline" size="sm" className="w-fit">
-                  <Link href={`/negocios/${task.dealId}`}>
-                    <Link2 /> Abrir o negócio
-                  </Link>
-                </Button>
-              )}
-              {canEdit && (
-                <Button type="button" variant="ghost" size="sm" className="w-fit text-muted-foreground hover:text-destructive" onClick={() => window.confirm("Excluir esta tarefa?") && remove(task.id)}>
-                  <Trash2 /> Excluir tarefa
-                </Button>
-              )}
-            </div>
-          </>
-        )}
-      </SheetContent>
-    </Sheet>
   );
 }

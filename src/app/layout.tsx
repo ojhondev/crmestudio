@@ -23,7 +23,7 @@ const lora = Lora({
 export const metadata: Metadata = {
   metadataBase: new URL("https://gestao.estudiorestaura.com.br"),
   title: { default: "Restaura Gestão", template: "%s · Restaura" },
-  description: "Gestão do Estúdio Restaura — CRM, atendimento, agenda, financeiro e documentos.",
+  description: "Gestão do Estúdio Restaura — CRM, agenda, financeiro e documentos.",
   applicationName: "Restaura Gestão",
   appleWebApp: { capable: true, title: "Restaura", statusBarStyle: "default" },
   formatDetection: { telephone: false },

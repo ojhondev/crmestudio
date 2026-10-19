@@ -32,12 +32,12 @@ export const articles: Article[] = [
     tour: "welcome",
     keywords: ["início", "menu", "navegação", "tour"],
     body: [
-      { t: "p", text: "O Restaura Gestão reúne em um só lugar o funil de negócios, os contatos, o atendimento por WhatsApp, a agenda e o financeiro do estúdio. A Ana, a copiloto, ajuda em tudo isso." },
+      { t: "p", text: "O Restaura Gestão reúne em um só lugar o funil de negócios, os contatos, a agenda e o financeiro do estúdio." },
       {
         t: "list",
         title: "Como navegar",
         items: [
-          "No celular, use a barra inferior: Painel, Negócios, Atendimento e Agenda. O botão “Mais” abre o resto do menu.",
+          "No celular, use a barra inferior: Painel, Negócios, Tarefas e Agenda. O botão “Mais” abre o resto do menu.",
           "No computador, use o menu lateral. O botão no topo recolhe o menu para só ícones (atalho: Ctrl+B).",
           "O botão “?” no topo abre o tour guiado, a Central de ajuda e as dúvidas mais comuns.",
           "O ícone de sol/lua troca entre o tema claro (padrão) e o escuro (opcional).",
@@ -81,7 +81,7 @@ export const articles: Article[] = [
     slug: "painel",
     module: "Operação",
     title: "Painel",
-    summary: "O resumo do dia: funil, agenda, tarefas e conversas esperando resposta.",
+    summary: "O resumo do dia: funil, agenda e tarefas.",
     href: "/",
     tour: "/",
     keywords: ["resumo", "dashboard", "kpi", "tarefas"],
@@ -91,11 +91,10 @@ export const articles: Article[] = [
         t: "list",
         title: "O que aparece",
         items: [
-          "Números do topo: valor no funil, fechado no mês, a receber nos próximos 30 dias e conversas aguardando resposta. Toque em um número para abrir a tela correspondente.",
+          "Números do topo: valor no funil, fechado no mês, e a receber nos próximos 30 dias. Toque em um número para abrir a tela correspondente.",
           "Funil: quantos negócios e quanto dinheiro há em cada etapa.",
           "Minhas tarefas: o que está atribuído a você, em ordem de prazo.",
           "Próximos 7 dias: visitas, reuniões e prazos da agenda.",
-          "Aguardando resposta: conversas do WhatsApp com mensagens não lidas.",
         ],
       },
       { t: "tip", text: "A caixa “Pergunte à Ana” responde dúvidas sobre o seu próprio funil, agenda e caixa. Ex.: “quem precisa de follow-up?”." },
@@ -145,63 +144,15 @@ export const articles: Article[] = [
         title: "De onde vêm os leads",
         items: [
           "Cadastro manual: botão “Novo lead”. Você pode já abrir um negócio no funil.",
-          "WhatsApp: quando um número novo escreve para o estúdio, o contato é criado automaticamente com origem WhatsApp.",
           "Site: pedidos de orçamento e mensagens do formulário do site viram um contato e um negócio em “Novo lead”.",
         ],
       },
       {
         t: "list",
+        items: ["Histórico de registros, tarefas, negócios e dados de contato.", "Use etiquetas para agrupar (ex.: diocese, IPHAN, recorrente)."],
         title: "Ficha do contato",
-        items: ["Histórico de conversas e registros, tarefas, negócios e dados de contato.", "Botão WhatsApp abre (ou inicia) a conversa com a pessoa.", "Use etiquetas para agrupar (ex.: diocese, IPHAN, recorrente)."],
       },
       { t: "tip", text: "A busca encontra por nome, instituição, e-mail ou telefone. Os filtros de origem ficam logo abaixo." },
-    ],
-  },
-  {
-    slug: "atendimento",
-    module: "Operação",
-    title: "Atendimento (WhatsApp)",
-    summary: "Caixa de entrada do WhatsApp do estúdio, com apoio da Ana.",
-    href: "/atendimento",
-    tour: "/atendimento",
-    keywords: ["whatsapp", "conversa", "mensagem", "inbox", "24h", "nota"],
-    body: [
-      { t: "p", text: "Todas as conversas do WhatsApp Business do estúdio chegam aqui, organizadas por contato." },
-      {
-        t: "list",
-        title: "Recursos",
-        items: [
-          "Filtros: Abertas, Não lidas, Minhas e Resolvidas.",
-          "Responsável: atribua a conversa a alguém da equipe.",
-          "Nota interna: o botão “Nota” guarda um recado que o cliente não vê.",
-          "Resolver: encerra a conversa; se o cliente escrever de novo, ela reabre sozinha.",
-          "Painel da Ana (ao lado no computador, botão “Ana” no celular): resumo da conversa, sugestão de resposta e rascunho de e-mail.",
-        ],
-      },
-      { t: "warn", text: "Regra da Meta: texto livre só pode ser enviado até 24 horas depois da última mensagem do cliente. Depois disso o sistema avisa e é preciso esperar o cliente escrever ou usar um modelo aprovado." },
-      { t: "tip", text: "A Ana apenas sugere. Você revisa e toca em Enviar — nada é enviado sem a sua confirmação." },
-    ],
-  },
-  {
-    slug: "ana",
-    module: "Operação",
-    title: "Ana, a copiloto",
-    summary: "O que a Ana faz e como pedir bem.",
-    keywords: ["ia", "copiloto", "resumo", "email", "sugestão"],
-    body: [
-      { t: "p", text: "A Ana é a assistente do estúdio dentro do sistema. Ela lê o funil, a agenda, o financeiro e as conversas a que você tem acesso e ajuda a decidir e a escrever." },
-      {
-        t: "list",
-        title: "Ela pode",
-        items: [
-          "Resumir uma conversa e dizer o que o cliente quer e quais são os próximos passos.",
-          "Sugerir a próxima resposta de WhatsApp, no tom do estúdio.",
-          "Redigir e-mails (proposta, retorno, agradecimento) a partir do histórico do negócio.",
-          "Responder perguntas como “como está o caixa do mês?” ou “o que tenho na agenda esta semana?”.",
-        ],
-      },
-      { t: "list", title: "Ela não faz", items: ["Não envia mensagens nem altera dados sozinha.", "Não inventa valores, prazos ou datas: quando falta informação, ela avisa."] },
-      { t: "tip", text: "Abra a Ana em qualquer tela com Ctrl+J (ou ⌘J). Dentro de um negócio, contato ou conversa, ela já enxerga o que está aberto." },
     ],
   },
   {
@@ -278,33 +229,48 @@ export const articles: Article[] = [
     slug: "tarefas",
     module: "Operação",
     title: "Tarefas",
-    summary: "Quadros de tarefas com grupos, responsável, prazo, situação e prioridade — em tabela ou Kanban.",
+    summary: "Quadros de tarefas em tabela, lista, Kanban, calendário e linha do tempo, com colunas personalizadas, checklist e comentários.",
     href: "/tarefas",
     tour: "/tarefas",
-    keywords: ["tarefa", "quadro", "monday", "prazo", "responsável", "kanban", "projeto", "pendência", "atrasada", "checklist"],
+    keywords: ["tarefa", "quadro", "monday", "prazo", "responsável", "kanban", "projeto", "pendência", "atrasada", "checklist", "calendário", "gantt", "subtarefa", "etiqueta", "recorrente", "modelo"],
     body: [
       { t: "p", text: "Tarefas é onde a equipe organiza o trabalho do dia a dia. Cada quadro representa um assunto (por exemplo “Rotina do estúdio” ou “Obra da Matriz”) e se divide em grupos; cada tarefa tem responsável, prazo, situação e prioridade." },
       {
         t: "steps",
         title: "Começar",
         items: [
-          "Abra Tarefas e toque em “+ Quadro”. Dê um nome e confirme.",
-          "No grupo, digite o título na linha “Adicionar tarefa” e tecle Enter.",
+          "Abra Tarefas e toque em “+ Quadro”. Escolha “Em branco” ou um modelo pronto (Rotina do estúdio, Obra de restauro), dê um nome e confirme.",
+          "No grupo, digite o título na linha “Adicionar tarefa” e tecle Enter (ou use “Nova tarefa” na barra de cima).",
           "Em cada linha, escolha o responsável, o prazo, a situação (A fazer, Em andamento, Travada, Concluída) e a prioridade.",
-          "Toque em “Detalhes” para escrever anotações, trocar de grupo ou excluir.",
+          "Toque em “Detalhes” para abrir a tarefa: checklist, etiquetas, links, repetição, comentários e histórico.",
         ],
       },
       {
         t: "list",
-        title: "Visões",
+        title: "Visões (botões na barra de cima — a escolha fica salva em cada quadro)",
         items: [
-          "Tabela: grupos que podem ser recolhidos, com tudo editável na própria linha.",
-          "Kanban: colunas por situação; arraste o cartão para mudar (no celular, segure um instante antes de arrastar).",
+          "Tabela: grupos que podem ser recolhidos, com tudo editável na linha e colunas personalizadas.",
+          "Lista: versão compacta, uma linha por tarefa.",
+          "Kanban: colunas por situação, responsável ou prioridade (menu Organizar); arraste o cartão para mudar o campo (no celular, segure um instante antes de arrastar).",
+          "Calendário: tarefas por prazo, em mês ou semana; arraste para outro dia para mudar o prazo e use o + do dia para criar.",
+          "Linha do tempo: barras do dia em que a tarefa foi criada até o prazo (cronograma simples).",
           "Minhas tarefas: tudo o que está atribuído a você, em todos os quadros e negócios, separado em Atrasadas, Hoje, Próximos 7 dias, Depois e Sem prazo.",
         ],
       },
+      {
+        t: "list",
+        title: "Recursos",
+        items: [
+          "Filtros (responsável, prioridade, situação, prazo, etiqueta, ocultar concluídas) e Organizar (agrupar por grupo, responsável, prioridade, situação ou prazo; ordenar).",
+          "Arrastar pelo ícone ⋮⋮ para reordenar dentro do grupo ou mover para outro grupo (com “Ordem manual” e agrupado por grupo).",
+          "Colunas personalizadas: o botão + no cabeçalho da tabela adiciona campos de texto, número, data, seleção, pessoa, caixa de seleção ou link.",
+          "Checklist (subtarefas), etiquetas coloridas, anexos por link, comentários e histórico de alterações dentro da tarefa.",
+          "Repetir: tarefas diárias, semanais ou mensais — ao concluir, a próxima nasce sozinha.",
+          "Duplicar tarefa ou grupo inteiro.",
+          "Ações em massa: marque várias tarefas na caixinha da esquerda e mude situação, responsável, prazo ou exclua de uma vez.",
+        ],
+      },
       { t: "tip", text: "Tarefas criadas dentro de um negócio ou de um contato também aparecem em “Minhas tarefas” de quem é o responsável, com o nome do negócio ao lado. Marcar como concluída em qualquer lugar vale para todos: a situação “Concluída” e o visto no negócio são a mesma coisa." },
-      { t: "tip", text: "No Kanban, cartões vazios mostram onde soltar. No celular, os botões e campos têm tamanho de toque confortável; se uma coluna não couber, deslize para o lado." },
       { t: "warn", text: "Excluir quadros e grupos exige o nível Gerenciar em Tarefas. Parceiros só veem as tarefas atribuídas a eles." },
     ],
   },
@@ -377,9 +343,8 @@ export const articles: Article[] = [
         title: "Perfis prontos",
         items: [
           "Administrador: acesso total, inclusive contas e configurações.",
-          "Gestor: toca a operação inteira (negócios, atendimento, agenda, financeiro, documentos); vê a equipe, mas não altera acessos.",
-          "Comercial: funil, contatos, atendimento, agenda e documentos. Sem financeiro.",
-          "Atendimento: responde clientes e cuida de contatos e agenda; consulta o funil sem alterar.",
+          "Gestor: toca a operação inteira (negócios, agenda, financeiro, documentos); vê a equipe, mas não altera acessos.",
+          "Comercial: funil, contatos, agenda e documentos. Sem financeiro.",
           "Financeiro: cuida do caixa e consulta negócios, contatos e agenda.",
           "Parceiro comercial: externo; vê e atualiza só os negócios em que foi indicado e a própria agenda.",
         ],
@@ -434,13 +399,13 @@ export const articles: Article[] = [
     summary: "Perfil, senha, etapas do funil e integrações.",
     href: "/ajustes",
     tour: "/ajustes",
-    keywords: ["senha", "perfil", "etapas", "whatsapp", "integração"],
+    keywords: ["senha", "perfil", "etapas", "integração"],
     body: [
       {
         t: "list",
         items: [
           "Meu perfil e Senha: dados pessoais e troca de senha (mínimo de 8 caracteres).",
-          "Integrações (administrador): estado do WhatsApp, da Ana e o link do feed da agenda.",
+          "Integrações (administrador): o link do feed da agenda.",
           "Etapas do funil (administrador): renomeie, reordene, recolora, adicione ou remova etapas. Uma etapa só pode ser removida se estiver vazia.",
           "Dados de exemplo: aparecem enquanto houver contatos de demonstração e podem ser removidos com um toque.",
         ],
@@ -460,12 +425,70 @@ export const articles: Article[] = [
     ],
   },
   {
+    slug: "site",
+    module: "Gestão",
+    title: "Site: projetos, blog, vagas e imagens",
+    summary: "Edite o site público do estúdio sem sair do sistema.",
+    href: "/site",
+    keywords: ["site", "projetos", "blog", "vagas", "imagens", "vídeo", "home", "publicar", "rascunho", "capa", "galeria"],
+    body: [
+      { t: "p", text: "O módulo Site edita o mesmo conteúdo do site público (estudiorestaura.com.br). Ao salvar, o site já é atualizado. O painel antigo do site (/admin) continua funcionando como reserva." },
+      {
+        t: "list",
+        title: "O que dá para editar",
+        items: [
+          "Projetos: título, categoria, localização, ano, área, resumo, texto, capa e galeria. Arraste as fotos pela alça para ordenar e a estrela para escolher a capa. Na lista, arraste os projetos para mudar a ordem no site.",
+          "Blog: artigos com resumo, texto, capa, categoria, data e rascunho.",
+          "Vagas: descrição, requisitos (um por linha), tipo e local.",
+          "Imagens: biblioteca de mídia (envie, renomeie, copie o link) e a imagem de cada seção da home.",
+          "Textos e vídeo: abertura, manifesto, faixa de vídeo da home (URL de um .mp4) e introdução de Trabalhe conosco.",
+        ],
+      },
+      {
+        t: "steps",
+        title: "Publicar um projeto novo",
+        items: ["Abra Site > Projetos e toque em Novo projeto.", "Preencha os dados, escolha a capa e adicione as fotos da galeria.", "Ligue “Publicado” e toque em Salvar. Use “Ver no site” para conferir."],
+      },
+      { t: "tip", text: "Desligue “Publicado” para guardar como rascunho: o item não aparece no site. As imagens são comprimidas automaticamente antes do envio." },
+      { t: "p", text: "Os textos longos são parágrafos simples (Enter cria um novo parágrafo), porque é assim que o site exibe. Permissões: Ver consulta, Editar publica e altera, Gerenciar exclui projetos, artigos, vagas e imagens." },
+      { t: "warn", text: "Excluir um projeto, artigo ou vaga o remove do site na hora. Se só quer esconder, desligue “Publicado”." },
+    ],
+  },
+  {
+    slug: "drive",
+    module: "Gestão",
+    title: "Drive: arquivos e pastas dos clientes",
+    summary: "Organize os links do Google Drive por cliente, negócio e projeto.",
+    href: "/drive",
+    keywords: ["drive", "google", "arquivos", "pastas", "links", "cliente", "favoritos", "conectar"],
+    body: [
+      { t: "p", text: "O Drive do sistema guarda os links das pastas e arquivos do Google Drive e os organiza em pastas do CRM, ligados a clientes, negócios e projetos. Nada é copiado: o arquivo continua no Google Drive e abre em nova aba." },
+      {
+        t: "steps",
+        title: "Registrar a pasta de um cliente",
+        items: ["No Google Drive, copie o link da pasta (Compartilhar > Copiar link).", "Em Drive > Arquivos, toque em Adicionar link e cole. O sistema detecta se é pasta, documento, planilha, apresentação, PDF…", "Escolha o cliente e/ou o negócio. A pasta passa a aparecer no bloco “Arquivos” do negócio e do contato."],
+      },
+      {
+        t: "list",
+        title: "Recursos",
+        items: [
+          "Pastas do CRM: crie quantas quiser; arraste um arquivo da lista para uma pasta (ou use Editar para mover, no celular).",
+          "Busca em todas as pastas, filtros por tipo, favoritos e ordenação (mais recentes, nome, tipo).",
+          "Visão em grade ou em lista.",
+          "Remover do CRM não apaga nada do Google Drive.",
+        ],
+      },
+      { t: "p", text: "A aba “Google Drive” (navegar e buscar direto no Drive, registrar com um clique) fica ativa quando o Google é conectado em Drive > Conexão. Isso depende das credenciais do Google Cloud, com passo a passo na própria tela. Quem tem o nível Gerenciar conecta e desconecta." },
+      { t: "tip", text: "Enquanto o Google não está conectado, tudo o mais funciona normalmente com links." },
+    ],
+  },
+  {
     slug: "atalhos",
     module: "Começando",
     title: "Atalhos do teclado",
     summary: "Para quem usa o computador.",
     keywords: ["teclado", "atalho", "ctrl"],
-    body: [{ t: "list", items: ["Ctrl+J (⌘J no Mac): abrir/fechar a Ana.", "Ctrl+B (⌘B no Mac): recolher ou expandir o menu lateral.", "Enter no atendimento: enviar mensagem. Shift+Enter: quebrar linha.", "Esc: fechar janelas e o tour."] }],
+    body: [{ t: "list", items: ["Ctrl+B (⌘B no Mac): recolher ou expandir o menu lateral.", "Esc: fechar janelas e o tour."] }],
   },
 ];
 
@@ -473,7 +496,6 @@ export const articleBySlug = (slug: string) => articles.find((a) => a.slug === s
 
 export const faq: { q: string; a: string }[] = [
   { q: "Esqueci minha senha. E agora?", a: "Peça a um administrador para gerar uma nova senha provisória em Equipe e acessos (toque na sua pessoa → Gerar nova senha). No próximo login você cria uma senha nova só sua." },
-  { q: "Por que não consigo enviar mensagem no WhatsApp?", a: "Provavelmente passaram 24 horas desde a última mensagem do cliente. A Meta só permite texto livre dentro dessa janela. Aguarde o cliente escrever ou use um modelo aprovado." },
   { q: "A agenda do Google não mostra um evento que criei.", a: "O Google atualiza assinaturas de calendário a cada algumas horas. No iPhone costuma ser mais rápido. Confira também se o link de sincronização é o seu." },
   { q: "Apaguei um negócio sem querer.", a: "A exclusão é definitiva. Por isso o sistema sempre pede confirmação. Se aconteceu, avise um administrador para tentar recuperar pelo banco." },
   { q: "Por que não vejo um módulo no menu (ex.: Financeiro)?", a: "Cada pessoa vê só os módulos liberados no seu perfil de acesso. Se precisar de outro, peça a um administrador em Equipe e acessos." },
@@ -493,12 +515,10 @@ export const tours: Record<string, { label: string; steps: TourStep[] }> = {
   welcome: {
     label: "Tour de boas-vindas",
     steps: [
-      { title: "Bem-vinda ao Restaura Gestão", body: "Um app só para o dia a dia do estúdio: negócios, contatos, atendimento, agenda e financeiro. Vamos ver o essencial em menos de 1 minuto." },
+      { title: "Bem-vinda ao Restaura Gestão", body: "Um app só para o dia a dia do estúdio: negócios, contatos, agenda e financeiro. Vamos ver o essencial em menos de 1 minuto." },
       { target: ["nav-negocios"], title: "Negócios", body: "O funil de vendas em formato de quadro. Arraste os cartões entre as etapas conforme o negócio avança." },
-      { target: ["nav-atendimento", "nav-mais"], title: "Atendimento", body: "As conversas do WhatsApp do estúdio chegam aqui. A Ana resume e sugere respostas." },
       { target: ["nav-agenda"], title: "Agenda", body: "Visitas, reuniões e prazos. Dá para sincronizar com o Google Agenda e com o iPhone." },
       { target: ["nav-financeiro", "nav-mais"], title: "Financeiro e mais", body: "Receitas, despesas e o caixa do mês ficam no menu. No celular, toque em “Mais” para ver tudo." },
-      { target: ["ana", "ana-top"], title: "Ana, a copiloto", body: "Pergunte sobre o funil, peça um resumo de conversa ou um rascunho de e-mail. Atalho no computador: Ctrl+J." },
       { target: ["sidebar-toggle"], title: "Menu recolhível", body: "No computador, este botão recolhe o menu lateral para deixar só os ícones e abrir mais espaço." },
       { target: ["theme-toggle"], title: "Tema claro ou escuro", body: "O visual padrão é claro. Se preferir, troque para o escuro aqui — a escolha fica salva neste aparelho." },
       { target: ["help-button"], title: "Ajuda sempre à mão", body: "Aqui você revê este tour, faz o tour de cada tela e abre a Central de ajuda com o passo a passo de tudo." },
@@ -507,8 +527,7 @@ export const tours: Record<string, { label: string; steps: TourStep[] }> = {
   "/": {
     label: "Tour do Painel",
     steps: [
-      { target: ["dash-kpis"], title: "Números do dia", body: "Valor no funil, fechado no mês, a receber e conversas esperando resposta. Toque em um número para abrir a tela dele." },
-      { target: ["dash-ask"], title: "Pergunte à Ana", body: "Escreva uma pergunta sobre o seu funil, agenda ou caixa — ou toque em um dos atalhos." },
+      { target: ["dash-kpis"], title: "Números do dia", body: "Valor no funil, fechado no mês, e a receber. Toque em um número para abrir a tela dele." },
       { target: ["dash-funnel"], title: "Funil", body: "Quantos negócios e quanto dinheiro há em cada etapa." },
     ],
   },
@@ -517,7 +536,7 @@ export const tours: Record<string, { label: string; steps: TourStep[] }> = {
     steps: [
       { target: ["page-actions"], title: "Novo negócio", body: "Crie um negócio já escolhendo o cliente — ou cadastrando um novo na hora." },
       { target: ["kanban"], title: "O quadro", body: "Cada coluna é uma etapa. Arraste um cartão para mudar a etapa. No celular, segure o cartão um instante antes de arrastar. Deslize de lado para ver as outras etapas." },
-      { title: "Dentro do negócio", body: "Toque em um cartão para ver histórico, tarefas, agenda e financeiro, e para pedir um e-mail à Ana." },
+      { title: "Dentro do negócio", body: "Toque em um cartão para ver histórico, tarefas, agenda e financeiro." },
     ],
   },
   "/contatos": {
@@ -526,14 +545,6 @@ export const tours: Record<string, { label: string; steps: TourStep[] }> = {
       { target: ["page-actions"], title: "Novo lead", body: "Cadastre uma pessoa ou instituição e, se quiser, já abra um negócio para ela." },
       { target: ["contacts-search"], title: "Busca e filtros", body: "Procure por nome, instituição, e-mail ou telefone e filtre pela origem do lead." },
       { target: ["contacts-list"], title: "Lista", body: "Toque em um contato para abrir a ficha com histórico, negócios e tarefas." },
-    ],
-  },
-  "/atendimento": {
-    label: "Tour de Atendimento",
-    steps: [
-      { target: ["inbox-list"], title: "Conversas", body: "As conversas do WhatsApp. O número laranja mostra mensagens não lidas. Use os filtros Abertas, Não lidas, Minhas e Resolvidas." },
-      { target: ["thread-composer"], title: "Responder", body: "Escreva e envie. O botão “Nota” guarda um recado interno que o cliente não vê." },
-      { target: ["thread-side", "thread-ana-button"], title: "Ana na conversa", body: "Resumo da conversa, sugestão de resposta e rascunho de e-mail. Você revisa e envia." },
     ],
   },
   "/agenda": {
@@ -573,7 +584,7 @@ export const tours: Record<string, { label: string; steps: TourStep[] }> = {
     label: "Tour de Tarefas",
     steps: [
       { target: ["task-boards"], title: "Quadros", body: "“Minhas tarefas” mostra tudo o que é seu. Os demais são quadros da equipe — crie um com “+ Quadro”." },
-      { target: ["task-filters"], title: "Filtros e visões", body: "Busque pelo título, filtre por responsável, oculte as concluídas e alterne entre Tabela e Kanban (no Kanban, arraste o cartão para mudar a situação)." },
+      { target: ["task-filters"], title: "Filtros e visões", body: "Busque pelo título, escolha a visão (Tabela, Lista, Kanban, Calendário ou Linha do tempo) e use Filtros e Organizar para filtrar, agrupar e ordenar. A visão fica salva em cada quadro." },
       { target: ["task-groups", "task-quick"], title: "Grupos e tarefas", body: "Digite o título na última linha do grupo e tecle Enter. Clique na bolinha para concluir; nas etiquetas coloridas para mudar situação e prioridade." },
     ],
   },

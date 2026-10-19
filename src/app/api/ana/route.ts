@@ -88,6 +88,9 @@ function textStream(produce: (push: (s: string) => void) => Promise<void>) {
   );
 }
 
+/** Atendimento foi retirado da interface: conversas ficam fora do alcance da Ana. */
+const inboxOn = (): boolean => false;
+
 export async function POST(req: Request) {
   const user = await getUser();
   if (!user || user.mustChangePassword) return new Response("Não autenticado", { status: 401 });
@@ -110,7 +113,7 @@ export async function POST(req: Request) {
     if (body.focus) {
       if (body.focus.kind === "deal" && (await canSeeDeal(user, body.focus.id))) focusText = (await dealContext(body.focus.id)) ?? "";
       else if (body.focus.kind === "contact" && has(user, "contatos") && !user.ownOnly) focusText = (await contactContext(body.focus.id)) ?? "";
-      else if (body.focus.kind === "conversation" && has(user, "atendimento")) {
+      else if (body.focus.kind === "conversation" && inboxOn()) {
         const t = await conversationTranscript(body.focus.id);
         focusText = t ? `${t.header}\n${t.body}` : "";
       }
@@ -133,7 +136,7 @@ export async function POST(req: Request) {
   } else {
     const parts: string[] = [];
     if ("conversationId" in body && body.conversationId) {
-      if (!has(user, "atendimento")) return new Response("Sem acesso ao Atendimento", { status: 403 });
+      if (!inboxOn()) return new Response("Atendimento indisponível", { status: 403 });
       const t = await conversationTranscript(body.conversationId);
       if (!t) return new Response("Conversa não encontrada", { status: 404 });
       parts.push(`${t.header}\n${t.body}`);

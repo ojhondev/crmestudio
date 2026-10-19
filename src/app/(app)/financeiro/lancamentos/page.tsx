@@ -6,7 +6,7 @@ import { db, schema } from "@/lib/db";
 import { has, requireAccess } from "@/lib/auth";
 import { fmtDate, money, moneyInt, todayISO } from "@/lib/format";
 import { Button } from "@/components/ui/button";
-import { PageBody, PageHeader } from "@/components/page-header";
+import { PageBody } from "@/components/page-header";
 import { cn } from "@/lib/utils";
 import { FinanceTable, TransactionDialogLauncher } from "./finance-table";
 
@@ -86,13 +86,22 @@ export default async function FinancePage({ searchParams }: PageProps<"/financei
 
   return (
     <>
-      <PageHeader
-        eyebrow="Financeiro"
-        title="Fluxo de caixa"
-        description="Tudo o que entrou e saiu do caixa, mês a mês. Toque em “Novo lançamento” para registrar."
-        actions={
-          canEdit ? (
-          <TransactionDialogLauncher
+      <PageBody className="grid gap-5 pt-4">
+        <div className="flex items-center gap-2">
+          <Button asChild variant="outline" size="icon" aria-label="Mês anterior">
+            <Link href={`/financeiro/lancamentos?m=${shift(month, -1)}`}>
+              <ChevronLeft />
+            </Link>
+          </Button>
+          <Button asChild variant="outline" size="icon" aria-label="Próximo mês">
+            <Link href={`/financeiro/lancamentos?m=${shift(month, 1)}`}>
+              <ChevronRight />
+            </Link>
+          </Button>
+          <h2 className="ml-1 text-lg font-light capitalize">{fmtDate(`${month}-15`, "MMMM 'de' yyyy")}</h2>
+          {canEdit && (
+            <div data-tour="page-actions" className="ml-auto">
+              <TransactionDialogLauncher
             deals={deals.map(({ id, name }) => ({ id, name }))}
             contacts={contacts}
             openWith={
@@ -107,22 +116,8 @@ export default async function FinancePage({ searchParams }: PageProps<"/financei
                 : undefined
             }
           />
-          ) : undefined
-        }
-      />
-      <PageBody className="grid gap-5">
-        <div className="flex items-center gap-2">
-          <Button asChild variant="outline" size="icon" aria-label="Mês anterior">
-            <Link href={`/financeiro/lancamentos?m=${shift(month, -1)}`}>
-              <ChevronLeft />
-            </Link>
-          </Button>
-          <Button asChild variant="outline" size="icon" aria-label="Próximo mês">
-            <Link href={`/financeiro/lancamentos?m=${shift(month, 1)}`}>
-              <ChevronRight />
-            </Link>
-          </Button>
-          <h2 className="ml-1 text-lg font-light capitalize">{fmtDate(`${month}-15`, "MMMM 'de' yyyy")}</h2>
+            </div>
+          )}
         </div>
 
         <div data-tour="fin-kpis" className="grid grid-cols-2 gap-3 xl:grid-cols-4">

@@ -2,6 +2,7 @@
 
 import { createContext, use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnaSheet } from "./ana-sheet";
+import { ANA_UI_ENABLED } from "@/lib/ana-flag";
 
 /** Algo que a tela atual está mostrando e que a Ana deve considerar. */
 export type AnaFocus = { kind: "deal" | "contact" | "conversation"; id: string; label: string };
@@ -27,6 +28,7 @@ export function AnaProvider({ children, enabled }: { children: React.ReactNode; 
   const close = useCallback(() => setOpen(false), []);
 
   useEffect(() => {
+    if (!ANA_UI_ENABLED) return;
     const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "j") {
         e.preventDefault();
@@ -42,7 +44,7 @@ export function AnaProvider({ children, enabled }: { children: React.ReactNode; 
   return (
     <AnaContext value={value}>
       {children}
-      <AnaSheet open={isOpen} onOpenChange={setOpen} sendRef={sendRef} focus={focus} enabled={enabled} />
+      {ANA_UI_ENABLED && <AnaSheet open={isOpen} onOpenChange={setOpen} sendRef={sendRef} focus={focus} enabled={enabled} />}
     </AnaContext>
   );
 }

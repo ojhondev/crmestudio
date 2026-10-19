@@ -2,9 +2,8 @@ import type { Metadata } from "next";
 import { and, asc, desc, eq, isNull, or } from "drizzle-orm";
 import { db, schema } from "@/lib/db";
 import { has, requireAccess } from "@/lib/auth";
-import { PageBody, PageHeader } from "@/components/page-header";
 import { Tarefas } from "./tarefas";
-import type { TaskDTO } from "./actions";
+import type { TaskDTO } from "@/lib/tasks";
 
 export const metadata: Metadata = { title: "Tarefas" };
 
@@ -58,27 +57,28 @@ export default async function TarefasPage({ searchParams }: PageProps<"/tarefas"
     dealId: t.dealId,
     dealTitle,
     position: t.position,
+    createdAt: t.createdAt.toISOString(),
+    custom: t.custom ?? {},
+    subtasks: t.subtasks ?? [],
+    labels: t.labels ?? [],
+    links: t.links ?? [],
+    recur: t.recur ?? null,
   }));
 
   return (
-    <>
-      <PageHeader eyebrow="Operação" title="Tarefas" description="Organize o trabalho do estúdio em quadros, com responsável, prazo e situação — como num quadro de projetos." />
-      <PageBody>
-        <Tarefas
-          key={`${mode}:${board?.id ?? ""}`}
-          mode={mode}
-          boards={allBoards.map((b) => ({ id: b.id, name: b.name, color: b.color }))}
-          board={board ? { id: board.id, name: board.name, color: board.color } : null}
-          groups={groups}
-          tasks={tasks}
-          users={users}
-          meId={user.id}
-          canEdit={canEdit}
-          canManage={canManage}
-          boardNames={Object.fromEntries(allBoards.map((b) => [b.id, b.name]))}
-          view={view}
-        />
-      </PageBody>
-    </>
+    <Tarefas
+      key={`${mode}:${board?.id ?? ""}`}
+      mode={mode}
+      boards={allBoards.map((b) => ({ id: b.id, name: b.name, color: b.color }))}
+      board={board ? { id: board.id, name: board.name, color: board.color, columns: board.columns ?? [] } : null}
+      groups={groups}
+      tasks={tasks}
+      users={users}
+      meId={user.id}
+      canEdit={canEdit}
+      canManage={canManage}
+      boardNames={Object.fromEntries(allBoards.map((b) => [b.id, b.name]))}
+      view={view}
+    />
   );
 }

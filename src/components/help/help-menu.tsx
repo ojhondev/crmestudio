@@ -4,6 +4,7 @@ import Link from "next/link";
 import { BookOpen, CircleHelp, Map, MapPin, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { ANA_UI_ENABLED } from "@/lib/ana-flag";
 import { useAna } from "@/components/ana/ana-provider";
 import { useTour } from "./tour";
 
@@ -32,9 +33,11 @@ export function HelpMenu() {
             <BookOpen /> Central de ajuda
           </Link>
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTimeout(() => ana.open("Preciso de ajuda para usar o sistema. Por onde começo?"), 120)}>
-          <Sparkles className="text-brand" /> Perguntar à Ana
-        </DropdownMenuItem>
+        {ANA_UI_ENABLED && (
+          <DropdownMenuItem onClick={() => setTimeout(() => ana.open("Preciso de ajuda para usar o sistema. Por onde começo?"), 120)}>
+            <Sparkles className="text-brand" /> Perguntar à Ana
+          </DropdownMenuItem>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );

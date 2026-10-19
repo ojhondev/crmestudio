@@ -127,6 +127,8 @@ export const taskBoards = pgTable("task_boards", {
   position: integer("position").notNull().default(0),
   createdById: uuid("created_by_id").references(() => users.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  /** definição das colunas personalizadas do quadro */
+  columns: jsonb("columns").$type<TaskColumn[]>().notNull().default([]),
 });
 
 export const taskGroups = pgTable("task_groups", {
@@ -156,7 +158,39 @@ export const tasks = pgTable("tasks", {
   priority: text("priority").$type<TaskPriority>().notNull().default("media"),
   description: text("description"),
   position: doublePrecision("position").notNull().default(0),
+  /** valores das colunas personalizadas do quadro: { [columnId]: valor } */
+  custom: jsonb("custom").$type<Record<string, unknown>>().notNull().default({}),
+  /** checklist / subtarefas */
+  subtasks: jsonb("subtasks").$type<TaskSubtask[]>().notNull().default([]),
+  /** etiquetas livres */
+  labels: text("labels").array().notNull().default([]),
+  /** anexos por link */
+  links: jsonb("links").$type<TaskLink[]>().notNull().default([]),
+  /** recorrência simples: ao concluir, cria a próxima ocorrência */
+  recur: text("recur").$type<TaskRecur>(),
 });
+
+export type TaskSubtask = { id: string; text: string; done: boolean };
+export type TaskLink = { id: string; url: string; name: string };
+export type TaskRecur = "diaria" | "semanal" | "mensal";
+export type TaskColumnType = "texto" | "numero" | "data" | "selecao" | "pessoa" | "caixa" | "link";
+export type TaskColumn = { id: string; name: string; type: TaskColumnType; options?: string[] };
+
+/** Comentários e atividade (histórico de mudanças) de uma tarefa. */
+export const taskComments = pgTable(
+  "task_comments",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    taskId: uuid("task_id")
+      .notNull()
+      .references(() => tasks.id, { onDelete: "cascade" }),
+    userId: uuid("user_id").references(() => users.id, { onDelete: "set null" }),
+    kind: text("kind").$type<"comentario" | "atividade">().notNull().default("comentario"),
+    body: text("body").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("task_comments_task_idx").on(t.taskId)],
+);
 
 /** Uma conversa por número de WhatsApp. */
 export const conversations = pgTable("conversations", {
@@ -330,6 +364,65 @@ export const auditLog = pgTable(
   (t) => [index("audit_at_idx").on(t.at), index("audit_action_idx").on(t.action, t.entityId)],
 );
 
+/* ----------------------------------- Drive ---------------------------------- */
+
+/** Conexão com o Google Drive (tokens criptografados). Uma linha por conta conectada. */
+export const driveConnections = pgTable("drive_connections", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  provider: text("provider").notNull().default("google"),
+  accountEmail: text("account_email"),
+  accessTokenEnc: text("access_token_enc"),
+  refreshTokenEnc: text("refresh_token_enc"),
+  expiresAt: timestamp("expires_at", { withTimezone: true }),
+  scope: text("scope"),
+  connectedById: uuid("connected_by_id").references(() => users.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** Pastas virtuais do CRM (organização interna dos links do Drive). */
+export const driveFolders = pgTable(
+  "drive_folders",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    name: text("name").notNull(),
+    parentId: uuid("parent_id"),
+    createdById: uuid("created_by_id").references(() => users.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("drive_folders_parent_idx").on(t.parentId)],
+);
+
+export type DriveKind = "pasta" | "documento" | "planilha" | "apresentacao" | "pdf" | "imagem" | "video" | "formulario" | "outro";
+
+/** Arquivo ou pasta do Drive registrado por link (ou vindo da API do Google). */
+export const driveItems = pgTable(
+  "drive_items",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    provider: text("provider").notNull().default("links"), // links | google
+    kind: text("kind").$type<DriveKind>().notNull().default("outro"),
+    title: text("title").notNull(),
+    url: text("url").notNull(),
+    externalId: text("external_id"), // id do arquivo no Google Drive
+    folderId: uuid("folder_id").references(() => driveFolders.id, { onDelete: "set null" }),
+    contactId: uuid("contact_id").references(() => contacts.id, { onDelete: "set null" }),
+    dealId: uuid("deal_id").references(() => deals.id, { onDelete: "set null" }),
+    /** nome do projeto/obra (texto livre; sugere os projetos do site) */
+    project: text("project"),
+    tags: text("tags").array().notNull().default([]),
+    notes: text("notes"),
+    favorite: boolean("favorite").notNull().default(false),
+    createdById: uuid("created_by_id").references(() => users.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("drive_items_folder_idx").on(t.folderId), index("drive_items_contact_idx").on(t.contactId), index("drive_items_deal_idx").on(t.dealId)],
+);
+
+export type DriveItem = typeof driveItems.$inferSelect;
+export type DriveFolder = typeof driveFolders.$inferSelect;
+
 export type User = typeof users.$inferSelect;
 export type AuditEntry = typeof auditLog.$inferSelect;
 export type DocumentRow = typeof documents.$inferSelect;
@@ -347,3 +440,59 @@ export type Transaction = typeof transactions.$inferSelect;
 export type TaskRow = typeof tasks.$inferSelect;
 export type TaskBoard = typeof taskBoards.$inferSelect;
 export type TaskGroup = typeof taskGroups.$inferSelect;
+
+/* ------------------------------- Planilhas (módulo independente do Financeiro) ------------------------------- */
+
+export const sheets = pgTable(
+  "sheets",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    name: text("name").notNull(),
+    ownerId: uuid("owner_id").references(() => users.id, { onDelete: "set null" }),
+    dealId: uuid("deal_id").references(() => deals.id, { onDelete: "set null" }),
+    contactId: uuid("contact_id").references(() => contacts.id, { onDelete: "set null" }),
+    favorite: boolean("favorite").notNull().default(false),
+    /** sobe a cada salvamento: controle otimista de conflito */
+    version: integer("version").notNull().default(1),
+    /** última aba aberta, origem do arquivo etc. */
+    meta: jsonb("meta"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("sheets_updated_idx").on(t.updatedAt), index("sheets_deal_idx").on(t.dealId)],
+);
+
+export const sheetTabs = pgTable(
+  "sheet_tabs",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    sheetId: uuid("sheet_id")
+      .notNull()
+      .references(() => sheets.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    position: integer("position").notNull().default(0),
+    /** grade esparsa { linha: { coluna: { v, f, fmt, s } } } */
+    grid: jsonb("grid").notNull(),
+    /** larguras, alturas, congelamento, mesclagens, ocultos, filtro, dimensões */
+    layout: jsonb("layout").notNull(),
+  },
+  (t) => [index("sheet_tabs_sheet_idx").on(t.sheetId, t.position)],
+);
+
+export const sheetVersions = pgTable(
+  "sheet_versions",
+  {
+    id: serial("id").primaryKey(),
+    sheetId: uuid("sheet_id")
+      .notNull()
+      .references(() => sheets.id, { onDelete: "cascade" }),
+    label: text("label"),
+    /** todas as abas no momento do instantâneo */
+    snapshot: jsonb("snapshot").notNull(),
+    createdById: uuid("created_by_id").references(() => users.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("sheet_versions_sheet_idx").on(t.sheetId, t.createdAt)],
+);
+
+export type SheetRowDb = typeof sheets.$inferSelect;

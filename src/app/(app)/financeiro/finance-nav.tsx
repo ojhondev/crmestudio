@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { PageToolbar, ToolbarGroup } from "@/components/toolbar";
 
 const TABS = [
   { href: "/financeiro", label: "Painel" },
@@ -10,27 +11,34 @@ const TABS = [
   { href: "/financeiro/planilha", label: "Planilha" },
 ];
 
-/** Abas do módulo. Sem usar sub-menu da sidebar: funciona igual no celular. */
+/** Barra de ferramentas do módulo: título e abas. Sem usar sub-menu da sidebar: funciona igual no celular. */
 export function FinanceNav() {
   const pathname = usePathname();
   return (
-    <nav data-tour="fin-tabs" aria-label="Seções do financeiro" className="thin-scroll flex gap-6 overflow-x-auto border-b px-5 pt-3 sm:px-8 lg:px-10">
-      {TABS.map((t) => {
-        const active = t.href === "/financeiro" ? pathname === "/financeiro" : pathname.startsWith(t.href);
-        return (
-          <Link
-            key={t.href}
-            href={t.href}
-            aria-current={active ? "page" : undefined}
-            className={cn(
-              "border-b-2 px-0.5 pb-2.5 text-[13.5px] max-md:pt-2.5 whitespace-nowrap transition-colors",
-              active ? "border-brand font-medium text-foreground" : "border-transparent text-muted-foreground hover:text-foreground",
-            )}
-          >
-            {t.label}
-          </Link>
-        );
-      })}
-    </nav>
+    <PageToolbar
+      title="Financeiro"
+      filters={
+        <nav data-tour="fin-tabs" aria-label="Seções do financeiro">
+          <ToolbarGroup>
+            {TABS.map((t) => {
+              const active = t.href === "/financeiro" ? pathname === "/financeiro" : pathname.startsWith(t.href);
+              return (
+                <Link
+                  key={t.href}
+                  href={t.href}
+                  aria-current={active ? "page" : undefined}
+                  className={cn(
+                    "rounded-md px-3 py-1.5 text-[13px] whitespace-nowrap transition-colors max-md:min-h-9 max-md:py-2",
+                    active ? "bg-foreground font-medium text-background" : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  {t.label}
+                </Link>
+              );
+            })}
+          </ToolbarGroup>
+        </nav>
+      }
+    />
   );
 }

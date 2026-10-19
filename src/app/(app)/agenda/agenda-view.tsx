@@ -12,6 +12,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Field, SimpleSelect } from "@/components/form";
+import { PageToolbar, ToolArea } from "@/components/toolbar";
 import { ConfirmButton } from "@/components/crm/confirm-button";
 import { EVENT_TYPES } from "@/lib/constants";
 import { fmtDate, fmtTime, isoDateBR } from "@/lib/format";
@@ -56,6 +57,7 @@ export function AgendaView({
   openNew,
   presetDeal,
   canEdit = true,
+  sync,
 }: {
   month: string;
   days: string[];
@@ -69,6 +71,7 @@ export function AgendaView({
   openNew?: boolean;
   presetDeal?: string;
   canEdit?: boolean;
+  sync?: React.ReactNode;
 }) {
   const [dialog, setDialog] = useState<{ event?: Ev; date?: string; dealId?: string } | null>(
     openNew && canEdit ? { date: today, dealId: presetDeal } : null,
@@ -96,42 +99,51 @@ export function AgendaView({
   const monthLabel = fmtDate(month + "-15", "MMMM 'de' yyyy");
 
   return (
-    <div className="grid gap-5 px-5 pb-12 sm:px-8 lg:px-10 xl:grid-cols-[minmax(0,1fr)_300px]">
-      <div className="min-w-0">
-        <div className="mb-3 flex flex-wrap items-center gap-2">
-          <Button asChild variant="outline" size="icon" aria-label="Mês anterior">
-            <Link href={`/agenda?m=${shiftMonth(month, -1)}`}>
-              <ChevronLeft />
-            </Link>
-          </Button>
-          <Button asChild variant="outline" size="icon" aria-label="Próximo mês">
-            <Link href={`/agenda?m=${shiftMonth(month, 1)}`}>
-              <ChevronRight />
-            </Link>
-          </Button>
-          <h2 className="ml-1 text-lg font-light capitalize">{monthLabel}</h2>
-          {month !== today.slice(0, 7) && (
-            <Button asChild variant="ghost" size="sm">
-              <Link href="/agenda">Hoje</Link>
+    <>
+      <PageToolbar
+        title="Agenda"
+        filters={
+          <>
+            <Button asChild variant="outline" size="icon" aria-label="Mês anterior">
+              <Link href={`/agenda?m=${shiftMonth(month, -1)}`}>
+                <ChevronLeft />
+              </Link>
             </Button>
-          )}
-          <div className="ml-auto flex items-center gap-3">
+            <Button asChild variant="outline" size="icon" aria-label="Próximo mês">
+              <Link href={`/agenda?m=${shiftMonth(month, 1)}`}>
+                <ChevronRight />
+              </Link>
+            </Button>
+            <span className="min-w-36 text-center text-[14px] font-medium whitespace-nowrap capitalize">{monthLabel}</span>
+            {month !== today.slice(0, 7) && (
+              <Button asChild variant="ghost" size="sm">
+                <Link href="/agenda">Hoje</Link>
+              </Button>
+            )}
             {!isPartner && (
-              <div className="flex items-center gap-2 max-md:min-h-10">
+              <div className="flex items-center gap-2 whitespace-nowrap max-md:min-h-10">
                 <Switch id="mine" checked={mine} onCheckedChange={setMine} />
                 <Label htmlFor="mine" className="text-[12.5px] font-normal text-muted-foreground">
                   Só os meus
                 </Label>
               </div>
             )}
+          </>
+        }
+        actions={
+          <>
+            {sync}
             {canEdit && (
               <Button onClick={() => show({ date: today })}>
                 <Plus /> Novo evento
               </Button>
             )}
-          </div>
-        </div>
-
+          </>
+        }
+      />
+      <ToolArea>
+    <div className="grid gap-5 p-4 pb-8 sm:p-5 xl:grid-cols-[minmax(0,1fr)_300px]">
+      <div className="min-w-0">
         <div data-tour="agenda-grid" className="overflow-hidden rounded-xl border bg-card">
           <div className="grid grid-cols-7 border-b bg-muted/40">
             {WEEK.map((w) => (
@@ -214,6 +226,8 @@ export function AgendaView({
 
       <EventDialog state={dialog} onClose={() => setDialog(null)} deals={deals} contacts={contacts} team={team} isPartner={isPartner} />
     </div>
+      </ToolArea>
+    </>
   );
 }
 

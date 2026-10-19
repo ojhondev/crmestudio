@@ -1,7 +1,7 @@
 # Restaura App
 
 Gestão do Estúdio Restaura num app só: funil de negócios (Kanban), leads e contatos,
-atendimento por WhatsApp com a copiloto **Ana**, agenda sincronizável e financeiro.
+agenda sincronizável e financeiro.
 
 ```bash
 npm install

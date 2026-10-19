@@ -6,7 +6,7 @@ import { has, requireAccess } from "@/lib/auth";
 import { PROFILES, SELECTABLE_PROFILES, resolvePermissions, type ProfileKey } from "@/lib/permissions";
 import { fmtDateTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { PageBody, PageHeader } from "@/components/page-header";
+import { PageToolbar, ToolArea } from "@/components/toolbar";
 import { MemberList, NewMemberButton, type Member } from "./members";
 
 export const metadata: Metadata = { title: "Equipe e acessos" };
@@ -57,7 +57,7 @@ export default async function TeamPage({ searchParams }: PageProps<"/equipe">) {
   const tab = (key: string, label: string) => (
     <Link
       href={key === "pessoas" ? "/equipe" : "/equipe?aba=atividade"}
-      className={cn("border-b-2 px-1 pb-2.5 text-[13.5px] max-md:pt-2.5 transition-colors", aba === key ? "border-brand font-medium text-foreground" : "border-transparent text-muted-foreground hover:text-foreground")}
+      className={cn("rounded-md px-3 py-1.5 text-[13px] whitespace-nowrap transition-colors max-md:py-2.5", aba === key ? "bg-foreground font-medium text-background" : "text-muted-foreground hover:text-foreground")}
     >
       {label}
     </Link>
@@ -65,18 +65,18 @@ export default async function TeamPage({ searchParams }: PageProps<"/equipe">) {
 
   return (
     <>
-      <PageHeader
-        eyebrow="Acessos"
+      <PageToolbar
         title="Equipe e acessos"
-        description="Quem entra no sistema e o que cada pessoa pode ver e fazer."
+        filters={
+          <div data-tour="team-tabs" className="flex gap-1">
+            {tab("pessoas", `Pessoas (${members.filter((m) => m.active).length})`)}
+            {tab("atividade", "Atividade")}
+          </div>
+        }
         actions={canManage ? <NewMemberButton isAdmin={me.role === "admin"} /> : undefined}
       />
-      <PageBody className="grid gap-5">
-        <div data-tour="team-tabs" className="flex gap-6 border-b">
-          {tab("pessoas", `Pessoas (${members.filter((m) => m.active).length})`)}
-          {tab("atividade", "Atividade")}
-        </div>
-
+      <ToolArea>
+      <div className="grid gap-5 p-4 sm:p-5">
         {aba === "pessoas" ? (
           <>
             <details className="group rounded-xl border bg-card">
@@ -135,7 +135,8 @@ export default async function TeamPage({ searchParams }: PageProps<"/equipe">) {
             <p className="text-[12px] text-muted-foreground">Mostrando os 150 registros mais recentes. A trilha guarda acessos, alterações de permissão, lançamentos financeiros e exclusões.</p>
           </div>
         )}
-      </PageBody>
+      </div>
+      </ToolArea>
     </>
   );
 }

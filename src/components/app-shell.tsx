@@ -15,7 +15,6 @@ import {
   LifeBuoy,
   LogOut,
   Menu,
-  MessageCircle,
   Settings,
   Sparkles,
   UserCog,
@@ -27,6 +26,7 @@ import { initials } from "@/lib/format";
 import { logout } from "@/app/login/actions";
 import type { SessionUser } from "@/lib/auth";
 import { PROFILES, atLeast } from "@/lib/permissions";
+import { ANA_UI_ENABLED } from "@/lib/ana-flag";
 import { useAna } from "@/components/ana/ana-provider";
 import { HelpMenu } from "@/components/help/help-menu";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -57,13 +57,12 @@ type Group = { label: string; items: Item[] };
 const has = (u: SessionUser, m: keyof SessionUser["perms"]) => atLeast(u.perms[m], "view");
 const profileLabel = (u: SessionUser) => (u.profile in PROFILES ? PROFILES[u.profile as keyof typeof PROFILES].label : "Equipe");
 
-function groups(user: SessionUser, unread: number): Group[] {
+function groups(user: SessionUser): Group[] {
   const g: Group[] = [];
   const operacao: Item[] = [{ key: "painel", href: "/", label: "Painel", icon: LayoutDashboard }];
   if (has(user, "negocios")) operacao.push({ key: "negocios", href: "/negocios", label: "Negócios", icon: KanbanSquare });
   if (has(user, "tarefas")) operacao.push({ key: "tarefas", href: "/tarefas", label: "Tarefas", icon: ListChecks });
   if (has(user, "contatos")) operacao.push({ key: "contatos", href: "/contatos", label: "Leads e contatos", icon: Users });
-  if (has(user, "atendimento")) operacao.push({ key: "atendimento", href: "/atendimento", label: "Atendimento", icon: MessageCircle, badge: unread });
   if (has(user, "agenda")) operacao.push({ key: "agenda", href: "/agenda", label: "Agenda", icon: CalendarDays });
   g.push({ label: "Operação", items: operacao });
 
@@ -101,7 +100,7 @@ function Brand({ collapsedMark }: { collapsedMark?: boolean }) {
   );
 }
 
-function AppSidebar({ user, unread }: { user: SessionUser; unread: number }) {
+function AppSidebar({ user }: { user: SessionUser }) {
   const pathname = usePathname();
   const ana = useAna();
   const { isMobile, setOpenMobile, state } = useSidebar();
@@ -119,7 +118,7 @@ function AppSidebar({ user, unread }: { user: SessionUser; unread: number }) {
       </SidebarHeader>
 
       <SidebarContent className="thin-scroll gap-0 py-2">
-        {groups(user, unread).map((group) => (
+        {groups(user).map((group) => (
           <SidebarGroup key={group.label} className="py-1.5">
             <SidebarGroupLabel className="label h-6 px-2 text-xs tracking-[0.16em]">{group.label}</SidebarGroupLabel>
             <SidebarGroupContent>
@@ -143,25 +142,27 @@ function AppSidebar({ user, unread }: { user: SessionUser; unread: number }) {
 
       <SidebarFooter className="gap-2 p-2">
         <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              tooltip="Falar com a Ana"
-              onClick={() => {
-                close();
-                ana.open();
-              }}
-              className="h-11 border border-sidebar-border bg-card hover:border-brand/40 group-data-[collapsible=icon]:border-0 group-data-[collapsible=icon]:bg-transparent"
-              data-tour="ana"
-            >
-              <span className="grid size-6 shrink-0 place-items-center rounded-full bg-brand-soft text-brand">
-                <Sparkles className="size-3.5" />
-              </span>
-              <span className="grid text-left leading-tight">
-                <span className="text-[13px] font-medium">Falar com a Ana</span>
-                <span className="text-xs text-muted-foreground">copiloto · ⌘J</span>
-              </span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
+          {ANA_UI_ENABLED && (
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                tooltip="Falar com a Ana"
+                onClick={() => {
+                  close();
+                  ana.open();
+                }}
+                className="h-11 border border-sidebar-border bg-card hover:border-brand/40 group-data-[collapsible=icon]:border-0 group-data-[collapsible=icon]:bg-transparent"
+                data-tour="ana"
+              >
+                <span className="grid size-6 shrink-0 place-items-center rounded-full bg-brand-soft text-brand">
+                  <Sparkles className="size-3.5" />
+                </span>
+                <span className="grid text-left leading-tight">
+                  <span className="text-[13px] font-medium">Falar com a Ana</span>
+                  <span className="text-xs text-muted-foreground">copiloto · ⌘J</span>
+                </span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          )}
           <SidebarMenuItem>
             <SidebarMenuButton asChild tooltip="Central de ajuda" isActive={pathname.startsWith("/ajuda")}>
               <Link href="/ajuda" onClick={close} data-tour="nav-ajuda">
@@ -227,27 +228,28 @@ function TopBar() {
       <div className="ml-auto flex items-center gap-0.5">
         <HelpMenu />
         <ThemeToggle />
-        <button
-          onClick={() => ana.open()}
-          className="ml-1 flex h-10 items-center gap-1.5 rounded-full bg-brand-soft px-3.5 text-[13px] font-medium text-brand md:hidden"
-          data-tour="ana-top"
-        >
-          <Sparkles className="size-3.5" /> Ana
-        </button>
+        {ANA_UI_ENABLED && (
+          <button
+            onClick={() => ana.open()}
+            className="ml-1 flex h-10 items-center gap-1.5 rounded-full bg-brand-soft px-3.5 text-[13px] font-medium text-brand md:hidden"
+            data-tour="ana-top"
+          >
+            <Sparkles className="size-3.5" /> Ana
+          </button>
+        )}
       </div>
     </header>
   );
 }
 
 /** Menu inferior estilo app nativo (somente celular). "Mais" abre o menu completo. */
-function BottomNav({ user, unread }: { user: SessionUser; unread: number }) {
+function BottomNav({ user }: { user: SessionUser }) {
   const pathname = usePathname();
   const { setOpenMobile } = useSidebar();
   const tabs: Item[] = [
     { key: "painel", href: "/", label: "Painel", icon: LayoutDashboard },
     ...(has(user, "negocios") ? [{ key: "negocios", href: "/negocios", label: "Negócios", icon: KanbanSquare }] : []),
     ...(has(user, "tarefas") ? [{ key: "tarefas", href: "/tarefas", label: "Tarefas", icon: ListChecks }] : []),
-    ...(has(user, "atendimento") ? [{ key: "atendimento", href: "/atendimento", label: "Atendimento", icon: MessageCircle, badge: unread }] : []),
     ...(has(user, "agenda") ? [{ key: "agenda", href: "/agenda", label: "Agenda", icon: CalendarDays }] : []),
   ];
   return (
@@ -293,23 +295,21 @@ function BottomNav({ user, unread }: { user: SessionUser; unread: number }) {
 
 export function AppShell({
   user,
-  unread,
   defaultOpen,
   children,
 }: {
   user: SessionUser;
-  unread: number;
   defaultOpen: boolean;
   children: React.ReactNode;
 }) {
   return (
     <SidebarProvider defaultOpen={defaultOpen} style={{ "--sidebar-width": "15.5rem", "--sidebar-width-icon": "4rem" } as React.CSSProperties}>
-      <AppSidebar user={user} unread={unread} />
+      <AppSidebar user={user} />
       <SidebarInset className="min-w-0 bg-background">
         <TopBar />
         <div className="flex-1 pb-[calc(4.25rem+env(safe-area-inset-bottom))] md:pb-0">{children}</div>
       </SidebarInset>
-      <BottomNav user={user} unread={unread} />
+      <BottomNav user={user} />
     </SidebarProvider>
   );
 }

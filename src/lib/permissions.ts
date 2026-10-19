@@ -12,7 +12,7 @@ export const LEVELS: Level[] = ["none", "view", "edit", "manage"];
 export const LEVEL_LABEL: Record<Level, string> = { none: "Sem acesso", view: "Ver", edit: "Editar", manage: "Gerenciar" };
 const RANK: Record<Level, number> = { none: 0, view: 1, edit: 2, manage: 3 };
 
-export type ModuleKey = "negocios" | "tarefas" | "contatos" | "atendimento" | "agenda" | "financeiro" | "documentos" | "planilhas" | "drive" | "site" | "equipe" | "configuracoes";
+export type ModuleKey = "negocios" | "tarefas" | "contatos" | "agenda" | "financeiro" | "documentos" | "planilhas" | "drive" | "site" | "equipe" | "configuracoes";
 
 export const MODULES: {
   key: ModuleKey;
@@ -25,7 +25,6 @@ export const MODULES: {
   { key: "negocios", label: "Negócios", help: "Ver: consulta o funil · Editar: cria, move e registra · Gerenciar: exclui negócios" },
   { key: "tarefas", label: "Tarefas", help: "Ver: consulta quadros · Editar: cria e altera tarefas · Gerenciar: exclui quadros e grupos" },
   { key: "contatos", label: "Leads e contatos", help: "Ver: consulta · Editar: cadastra e altera · Gerenciar: exclui contatos" },
-  { key: "atendimento", label: "Atendimento", help: "Ver: lê conversas · Editar: responde, atribui e resolve" },
   { key: "agenda", label: "Agenda", help: "Ver: consulta · Editar: cria e altera eventos" },
   { key: "financeiro", label: "Financeiro", help: "Ver: consulta e exporta · Editar: lança e baixa · Gerenciar: exclui lançamentos" },
   { key: "documentos", label: "Contratos e apresentações", help: "Ver: consulta · Editar: cria e edita · Gerenciar: exclui e gerencia modelos" },
@@ -58,26 +57,27 @@ export const PROFILES: Record<
   },
   gestor: {
     label: "Gestor",
-    description: "Toca a operação inteira: negócios, atendimento, agenda, financeiro e documentos. Vê a equipe, mas não altera acessos.",
+    description: "Toca a operação inteira: negócios, agenda, financeiro e documentos. Vê a equipe, mas não altera acessos.",
     type: "equipe",
     ownOnly: false,
-    perms: make({ negocios: "manage", tarefas: "manage", contatos: "manage", atendimento: "manage", agenda: "manage", financeiro: "manage", documentos: "manage", planilhas: "manage", drive: "manage", site: "manage", equipe: "view", configuracoes: "view" }),
+    perms: make({ negocios: "manage", tarefas: "manage", contatos: "manage", agenda: "manage", financeiro: "manage", documentos: "manage", planilhas: "manage", drive: "manage", site: "manage", equipe: "view", configuracoes: "view" }),
     color: "#193f32",
   },
   comercial: {
     label: "Comercial",
-    description: "Vende: funil, contatos, atendimento, agenda e documentos. Sem financeiro.",
+    description: "Vende: funil, contatos, agenda e documentos. Sem financeiro.",
     type: "equipe",
     ownOnly: false,
-    perms: make({ negocios: "edit", tarefas: "edit", contatos: "edit", atendimento: "edit", agenda: "edit", documentos: "edit", planilhas: "edit", drive: "edit" }),
+    perms: make({ negocios: "edit", tarefas: "edit", contatos: "edit", agenda: "edit", documentos: "edit", planilhas: "edit", drive: "edit" }),
     color: "#537179",
   },
+  // legado: o módulo Atendimento foi retirado; o perfil continua válido para contas já criadas
   atendimento: {
     label: "Atendimento",
-    description: "Responde clientes (WhatsApp e e-mail) e cuida de contatos e agenda. Consulta o funil, sem alterar.",
+    description: "Cuida de contatos e agenda. Consulta o funil, sem alterar.",
     type: "equipe",
     ownOnly: false,
-    perms: make({ negocios: "view", tarefas: "edit", contatos: "edit", atendimento: "edit", agenda: "edit" }),
+    perms: make({ negocios: "view", tarefas: "edit", contatos: "edit", agenda: "edit" }),
     color: "#776157",
   },
   financeiro: {
@@ -107,7 +107,7 @@ export const PROFILES: Record<
 };
 
 /** Perfis que podem ser escolhidos ao criar uma conta (personalizado se ajusta depois). */
-export const SELECTABLE_PROFILES: ProfileKey[] = ["gestor", "comercial", "atendimento", "financeiro", "parceiro", "administrador"];
+export const SELECTABLE_PROFILES: ProfileKey[] = ["gestor", "comercial", "financeiro", "parceiro", "administrador"];
 
 export const isLevel = (v: unknown): v is Level => typeof v === "string" && v in RANK;
 export const isProfile = (v: unknown): v is ProfileKey => typeof v === "string" && v in PROFILES;
@@ -159,7 +159,6 @@ export function detectProfile(perms: Permissions, ownOnly: boolean): ProfileKey 
 /** Página inicial segura para quem não pode ver o módulo pedido. */
 export const FIRST_ALLOWED: { module: ModuleKey; href: string }[] = [
   { module: "negocios", href: "/negocios" },
-  { module: "atendimento", href: "/atendimento" },
   { module: "agenda", href: "/agenda" },
   { module: "contatos", href: "/contatos" },
   { module: "financeiro", href: "/financeiro" },
