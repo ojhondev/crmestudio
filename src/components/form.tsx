@@ -1,7 +1,7 @@
 "use client";
 
+import { ChevronDown } from "lucide-react";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 
 export function Field({
@@ -30,7 +30,10 @@ export function Field({
 
 type Opt = { value: string; label: string; hint?: string | null };
 
-/** Select do shadcn que funciona dentro de <form> (envia `name`). */
+/**
+ * Seletor NATIVO (<select>): abre na hora, não pesa na montagem do formulário e, no celular,
+ * usa o seletor do próprio aparelho. Funciona dentro de <form> (envia `name`).
+ */
 export function SimpleSelect({
   name,
   options,
@@ -55,25 +58,34 @@ export function SimpleSelect({
   id?: string;
 }) {
   const opts = options.map((o) => (typeof o === "string" ? { value: o, label: o } : o));
+  const initial = defaultValue ?? (allowNone ? "__none" : "");
+  const controlled = value !== undefined ? { value } : { defaultValue: initial };
   return (
-    <Select
-      name={name}
-      defaultValue={defaultValue ?? (allowNone ? "__none" : undefined)}
-      value={value}
-      onValueChange={onValueChange}
-    >
-      <SelectTrigger id={id} className={cn("w-full", className)}>
-        <SelectValue placeholder={placeholder} />
-      </SelectTrigger>
-      <SelectContent className="max-h-72">
-        {allowNone && <SelectItem value="__none">{noneLabel}</SelectItem>}
+    <div className="relative w-full">
+      <select
+        id={id}
+        name={name}
+        {...controlled}
+        onChange={onValueChange ? (e) => onValueChange(e.target.value) : undefined}
+        className={cn(
+          "h-9 w-full appearance-none truncate rounded-lg border border-input bg-transparent py-1 pr-8 pl-2.5 text-base transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50 md:h-8 md:text-sm dark:bg-input/30 [&>option]:bg-popover [&>option]:text-popover-foreground",
+          className,
+        )}
+      >
+        {!allowNone && !initial && value === undefined && (
+          <option value="" disabled>
+            {placeholder}
+          </option>
+        )}
+        {allowNone && <option value="__none">{noneLabel}</option>}
         {opts.map((o) => (
-          <SelectItem key={o.value} value={o.value}>
+          <option key={o.value} value={o.value}>
             {o.label}
-            {o.hint && <span className="text-muted-foreground"> · {o.hint}</span>}
-          </SelectItem>
+            {o.hint ? ` · ${o.hint}` : ""}
+          </option>
         ))}
-      </SelectContent>
-    </Select>
+      </select>
+      <ChevronDown className="pointer-events-none absolute top-1/2 right-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
+    </div>
   );
 }

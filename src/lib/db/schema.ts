@@ -10,6 +10,7 @@ import {
   doublePrecision,
   serial,
   index,
+  jsonb,
 } from "drizzle-orm/pg-core";
 
 /** admin = acesso total (tech) · equipe = operação · parceiro = só o que é dele */
@@ -24,6 +25,16 @@ export const users = pgTable("users", {
   title: text("title"), // cargo / empresa do parceiro
   phone: text("phone"),
   active: boolean("active").notNull().default(true),
+  /** perfil de acesso (ver lib/permissions.ts) e matriz de permissões por módulo */
+  profile: text("profile").notNull().default("gestor"),
+  permissions: jsonb("permissions"),
+  /** vê só os próprios negócios/agenda (ex.: parceiro comercial) */
+  ownOnly: boolean("own_only").notNull().default(false),
+  /** senha provisória: força a troca no primeiro acesso */
+  mustChangePassword: boolean("must_change_password").notNull().default(false),
+  /** muda ao trocar/redefinir senha ou desativar: derruba sessões antigas */
+  sessionVersion: integer("session_version").notNull().default(0),
+  lastLoginAt: timestamp("last_login_at", { withTimezone: true }),
   calendarToken: text("calendar_token").notNull(), // feed .ics privado
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
@@ -183,7 +194,25 @@ export const transactions = pgTable(
   (t) => [index("transactions_due_idx").on(t.dueDate)],
 );
 
+/** Trilha de auditoria: quem fez o quê (acessos, financeiro, exclusões, permissões). */
+export const auditLog = pgTable(
+  "audit_log",
+  {
+    id: serial("id").primaryKey(),
+    at: timestamp("at", { withTimezone: true }).notNull().defaultNow(),
+    actorId: uuid("actor_id"),
+    actorName: text("actor_name"),
+    action: text("action").notNull(), // login, login_falhou, usuario_criado, permissoes, lancamento_criado…
+    entity: text("entity"), // usuario, lancamento, negocio, contato…
+    entityId: text("entity_id"),
+    summary: text("summary").notNull(),
+    meta: jsonb("meta"),
+  },
+  (t) => [index("audit_at_idx").on(t.at), index("audit_action_idx").on(t.action, t.entityId)],
+);
+
 export type User = typeof users.$inferSelect;
+export type AuditEntry = typeof auditLog.$inferSelect;
 export type Contact = typeof contacts.$inferSelect;
 export type Stage = typeof stages.$inferSelect;
 export type Deal = typeof deals.$inferSelect;

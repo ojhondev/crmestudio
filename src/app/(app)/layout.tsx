@@ -8,15 +8,15 @@ import { AnaProvider } from "@/components/ana/ana-provider";
 import { TourProvider } from "@/components/help/tour";
 
 export default async function AppLayout({ children }: LayoutProps<"/">) {
-  const user = await requireUser();
-  let unread = 0;
-  if (user.role !== "parceiro") {
-    const [row] = await db
+  // as duas consultas não dependem uma da outra: rodam juntas (uma viagem ao banco a menos)
+  const [user, [row]] = await Promise.all([
+    requireUser(),
+    db
       .select({ n: sql<number>`count(*)::int` })
       .from(schema.conversations)
-      .where(and(gt(schema.conversations.unread, 0), eq(schema.conversations.status, "aberta")));
-    unread = row?.n ?? 0;
-  }
+      .where(and(gt(schema.conversations.unread, 0), eq(schema.conversations.status, "aberta"))),
+  ]);
+  const unread = user.role !== "parceiro" ? (row?.n ?? 0) : 0;
   // lembra se o menu lateral estava recolhido (cookie gravado pelo componente da sidebar)
   const defaultOpen = (await cookies()).get("sidebar_state")?.value !== "false";
   return (

@@ -212,7 +212,7 @@ function AppSidebar({ user, unread }: { user: SessionUser; unread: number }) {
 function TopBar() {
   const ana = useAna();
   return (
-    <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-1.5 border-b bg-background/85 px-3 backdrop-blur md:px-4">
+    <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-1.5 border-b bg-background px-3 md:px-4">
       <SidebarTrigger className="hidden md:inline-flex" data-tour="sidebar-toggle" aria-label="Recolher ou expandir menu" />
       <Link href="/" className="flex items-center md:hidden" aria-label="Início">
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -247,7 +247,7 @@ function BottomNav({ user, unread }: { user: SessionUser; unread: number }) {
   return (
     <nav
       aria-label="Navegação principal"
-      className="safe-bottom fixed inset-x-0 bottom-0 z-40 border-t bg-background/95 backdrop-blur md:hidden"
+      className="safe-bottom fixed inset-x-0 bottom-0 z-40 border-t bg-background md:hidden"
       data-tour="bottom-nav"
     >
       <ul className="mx-auto flex h-16 max-w-xl items-stretch">
