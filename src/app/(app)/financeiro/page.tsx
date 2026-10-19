@@ -120,7 +120,7 @@ export default async function FinancePage({ searchParams }: PageProps<"/financei
           <h2 className="ml-1 text-lg font-light capitalize">{fmtDate(`${month}-15`, "MMMM 'de' yyyy")}</h2>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <div data-tour="fin-kpis" className="grid grid-cols-2 gap-3 xl:grid-cols-4">
           <Kpi label="Recebido no mês" value={money(inDone)} sub={`de ${money(inPlanned)} previstos`} progress={inPlanned ? inDone / inPlanned : 0} />
           <Kpi label="Pago no mês" value={money(outDone)} sub={`de ${money(outPlanned)} previstos`} progress={outPlanned ? outDone / outPlanned : 0} tone="muted" />
           <Kpi label="Resultado do mês" value={money(inDone - outDone)} sub={`previsto ${money(inPlanned - outPlanned)}`} tone={inDone - outDone < 0 ? "bad" : "good"} />
@@ -177,9 +177,9 @@ function Kpi({
   tone?: "good" | "bad" | "muted";
 }) {
   return (
-    <div className="grid gap-1 rounded-xl border bg-white p-4">
+    <div className="grid gap-1 rounded-xl border bg-card p-4">
       <span className="label">{label}</span>
-      <span className={cn("text-2xl font-light tabular-nums", tone === "bad" && "text-destructive", tone === "good" && "text-success")}>{value}</span>
+      <span className={cn("num-xl text-[22px] whitespace-nowrap sm:text-[26px]", tone === "bad" && "text-destructive", tone === "good" && "text-success")}>{value}</span>
       <span className="text-[12px] text-muted-foreground">{sub}</span>
       {progress !== undefined && (
         <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-muted">

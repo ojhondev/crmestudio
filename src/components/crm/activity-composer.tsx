@@ -18,7 +18,7 @@ export function ActivityComposer({ dealId, contactId }: { dealId?: string; conta
     .filter(([k]) => k !== "etapa")
     .map(([value, label]) => ({ value, label }));
   return (
-    <form ref={ref} action={action} className="grid gap-2 rounded-xl border bg-white p-3">
+    <form ref={ref} action={action} className="grid gap-2 rounded-xl border bg-card p-3">
       {dealId && <input type="hidden" name="dealId" value={dealId} />}
       {contactId && <input type="hidden" name="contactId" value={contactId} />}
       <Textarea name="body" rows={2} placeholder="Registrar nota, ligação, visita…" className="resize-none border-0 p-1 shadow-none focus-visible:ring-0" />

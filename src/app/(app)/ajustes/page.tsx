@@ -110,7 +110,7 @@ function Integration({
         <span
           className={cn(
             "ml-auto rounded-full px-2 py-0.5 text-[11px]",
-            on ? "bg-success/10 text-success" : "bg-amber-50 text-amber-800",
+            on ? "bg-success/10 text-success" : "bg-amber-50 text-amber-800 dark:bg-amber-500/10 dark:text-amber-200",
           )}
         >
           {on ? onText : offText}

@@ -96,7 +96,7 @@ export function Kanban({ stages, deals: initial }: { stages: Stage[]; deals: Boa
 
   return (
     <DndContext id="deals-board" sensors={sensors} onDragStart={onDragStart} onDragEnd={onDragEnd} onDragCancel={() => setActiveId(null)}>
-      <div className="thin-scroll flex min-h-0 flex-1 gap-3 overflow-x-auto px-5 pb-6 sm:px-8 lg:px-10">
+      <div data-tour="kanban" className="thin-scroll flex min-h-0 flex-1 snap-x snap-proximity gap-3 overflow-x-auto scroll-px-5 px-5 pb-6 sm:px-8 lg:px-10">
         {stages.map((s) => {
           const list = byStage.get(s.id) ?? [];
           const total = list.reduce((sum, d) => sum + d.valueCents, 0);
@@ -128,7 +128,7 @@ function Column({
     <section
       ref={setNodeRef}
       className={cn(
-        "flex w-[272px] shrink-0 flex-col rounded-xl bg-muted/60 transition-colors",
+        "flex w-[80vw] max-w-[300px] shrink-0 snap-start flex-col rounded-xl bg-muted/60 transition-colors sm:w-[272px]",
         isOver && "bg-brand-soft/70 ring-1 ring-brand/30",
       )}
     >
@@ -174,7 +174,7 @@ function Card({ deal, overlay }: { deal: BoardDeal; overlay?: boolean }) {
       href={`/negocios/${deal.id}`}
       draggable={false}
       className={cn(
-        "block rounded-lg border border-black/[0.06] bg-white p-3 transition-shadow hover:border-black/15",
+        "block rounded-lg border bg-card p-3 transition-shadow hover:border-foreground/25",
         overlay && "rotate-[1.5deg] cursor-grabbing shadow-lg",
       )}
     >
@@ -187,7 +187,7 @@ function Card({ deal, overlay }: { deal: BoardDeal; overlay?: boolean }) {
         </p>
       )}
       <div className="mt-2.5 flex items-center gap-2 text-[11.5px] text-muted-foreground">
-        <span className="font-medium text-foreground tabular-nums">{deal.valueCents ? money(deal.valueCents) : "—"}</span>
+        <span className="num text-[13px] text-foreground">{deal.valueCents ? money(deal.valueCents) : "—"}</span>
         {deal.location && (
           <span className="flex min-w-0 items-center gap-0.5 truncate">
             <MapPin className="size-3 shrink-0" />

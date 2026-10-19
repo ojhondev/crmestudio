@@ -111,7 +111,7 @@ export default async function Dashboard() {
       </header>
 
       <PageBody className="grid gap-5">
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <div data-tour="dash-kpis" className="grid grid-cols-2 gap-3 xl:grid-cols-4">
           <Kpi label="No funil" value={moneyShort(openTotal)} sub={`${openCount} negócios em andamento`} href="/negocios" />
           <Kpi label="Fechado no mês" value={moneyShort(Number(won?.total ?? 0))} sub={`${won?.n ?? 0} negócios ganhos`} href="/negocios" />
           {!partner ? (
@@ -140,6 +140,7 @@ export default async function Dashboard() {
 
         <div className="grid items-start gap-5 lg:grid-cols-3">
           <Section
+            tour="dash-funnel"
             title="Funil"
             className="lg:col-span-2"
             action={
@@ -158,7 +159,7 @@ export default async function Dashboard() {
                   <div className="h-2 overflow-hidden rounded-full bg-muted">
                     <div className="h-full rounded-full" style={{ width: `${(Number(s.total) / maxStage) * 100}%`, background: s.color }} />
                   </div>
-                  <span className="w-28 text-right text-muted-foreground tabular-nums">
+                  <span className="num w-28 text-right text-[12.5px] text-muted-foreground">
                     {s.n} · {moneyShort(Number(s.total))}
                   </span>
                 </div>
@@ -242,9 +243,9 @@ export default async function Dashboard() {
 
 function Kpi({ label, value, sub, href, alert }: { label: string; value: string; sub: string; href: string; alert?: boolean }) {
   return (
-    <Link href={href} className="group grid gap-1 rounded-xl border bg-white p-4 transition-colors hover:border-foreground/20">
+    <Link href={href} className="group grid gap-1 rounded-xl border bg-card p-4 transition-colors hover:border-foreground/20">
       <span className="label">{label}</span>
-      <span className="text-[28px] leading-tight font-light tabular-nums">{value}</span>
+      <span className="num-xl text-[25px] whitespace-nowrap sm:text-[30px]">{value}</span>
       <span className={alert ? "text-[12px] text-brand" : "text-[12px] text-muted-foreground"}>{sub}</span>
     </Link>
   );

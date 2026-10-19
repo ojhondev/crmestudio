@@ -125,7 +125,7 @@ export function AgendaView({
           </div>
         </div>
 
-        <div className="overflow-hidden rounded-xl border bg-white">
+        <div data-tour="agenda-grid" className="overflow-hidden rounded-xl border bg-card">
           <div className="grid grid-cols-7 border-b bg-muted/40">
             {WEEK.map((w) => (
               <div key={w} className="px-2 py-2 text-center text-[11px] tracking-wider text-muted-foreground uppercase">
@@ -187,7 +187,7 @@ export function AgendaView({
         <h3 className="label">Próximos</h3>
         {upcoming.length ? (
           upcoming.map((e) => (
-            <button key={e.id} onClick={() => setDialog({ event: e })} className="grid gap-0.5 rounded-lg border bg-white p-3 text-left hover:border-foreground/20">
+            <button key={e.id} onClick={() => setDialog({ event: e })} className="grid gap-0.5 rounded-lg border bg-card p-3 text-left hover:border-foreground/20">
               <span className="flex items-center gap-1.5 text-[11.5px] text-muted-foreground">
                 <span className="size-1.5 rounded-full" style={{ background: EVENT_TYPES[e.type]?.color }} />
                 {fmtDate(e.startsAt, "EEE, dd/MM")} {e.allDay ? "· dia todo" : `· ${fmtTime(e.startsAt)}`}

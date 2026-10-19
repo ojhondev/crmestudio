@@ -54,7 +54,7 @@ export function FinanceTable({ rows, today, deals, contacts }: { rows: Row[]; to
 
   return (
     <>
-      <div className="overflow-x-auto rounded-xl border bg-white">
+      <div data-tour="fin-table" className="overflow-x-auto rounded-xl border bg-card">
         <table className="w-full min-w-[720px] text-[13px]">
           <thead>
             <tr className="border-b text-left text-[11.5px] text-muted-foreground">

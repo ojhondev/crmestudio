@@ -91,6 +91,44 @@
   --sidebar-ring: #b75928;
 }
 
+.dark {
+  --background: #141312;
+  --foreground: #f1efec;
+  --card: #1b1a18;
+  --card-foreground: #f1efec;
+  --popover: #1f1e1c;
+  --popover-foreground: #f1efec;
+  --primary: #f1efec;
+  --primary-foreground: #1a1918;
+  --secondary: #262422;
+  --secondary-foreground: #f1efec;
+  --muted: #232120;
+  --muted-foreground: #a39d96;
+  --accent: #2a2826;
+  --accent-foreground: #f1efec;
+  --destructive: #ef6b5b;
+  --border: rgb(255 255 255 / 9%);
+  --input: rgb(255 255 255 / 13%);
+  --ring: #e2683a;
+  --brand: #e2683a;
+  --brand-soft: rgb(226 104 58 / 14%);
+  --success: #5fb48a;
+  --chart-1: #e2683a;
+  --chart-2: #5fb48a;
+  --chart-3: #7ba3ad;
+  --chart-4: #c2a393;
+  --chart-5: #8fb6c4;
+  --sidebar: #100f0e;
+  --sidebar-foreground: #f1efec;
+  --sidebar-primary: #e2683a;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #211f1d;
+  --sidebar-accent-foreground: #f1efec;
+  --sidebar-border: rgb(255 255 255 / 8%);
+  --sidebar-ring: #e2683a;
+  color-scheme: dark;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -115,13 +153,31 @@
 /* Barras de rolagem discretas (kanban, inbox) */
 .thin-scroll {
   scrollbar-width: thin;
-  scrollbar-color: #d9d6d3 transparent;
+  scrollbar-color: color-mix(in srgb, currentColor 22%, transparent) transparent;
 }
 
+/* Hierarquia de pesos — títulos leves, números pesados, rótulos médios */
 .h-display {
   font-weight: 300;
   letter-spacing: -0.022em;
   line-height: 1.05;
+}
+.h-section {
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+/* números em destaque (KPIs, valores): semibold, tabulares */
+.num {
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+.num-xl {
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
 }
 
 .label {
@@ -130,4 +186,9 @@
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: color-mix(in srgb, currentColor 58%, transparent);
+}
+
+/* Barra inferior / áreas seguras (notch, barra de gestos) */
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
 }

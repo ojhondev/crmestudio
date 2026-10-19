@@ -97,10 +97,10 @@ export function Thread({
   );
 
   return (
-    <div className="flex h-full min-h-0">
+    <div className="flex h-full min-h-0 max-lg:fixed max-lg:inset-0 max-lg:z-[45] max-lg:h-auto max-lg:bg-background">
       <AnaFocusSetter kind="conversation" id={conv.id} label={conv.name} />
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex items-center gap-3 border-b bg-white px-4 py-3">
+        <header className="flex items-center gap-3 border-b bg-card px-3 pt-[max(0.75rem,env(safe-area-inset-top))] pb-3 sm:px-4 lg:pt-3">
           <Link href="/atendimento" className="-ml-1 grid size-8 place-items-center rounded-md hover:bg-muted lg:hidden" aria-label="Voltar">
             <ArrowLeft className="size-4" />
           </Link>
@@ -140,12 +140,12 @@ export function Thread({
             {conv.status === "aberta" ? <CircleCheck /> : <RotateCcw />}
             <span className="hidden sm:inline">{conv.status === "aberta" ? "Resolver" : "Reabrir"}</span>
           </Button>
-          <Button variant="outline" size="sm" className="xl:hidden" onClick={() => setSideOpen(true)}>
+          <Button variant="outline" size="sm" className="xl:hidden" data-tour="thread-ana-button" onClick={() => setSideOpen(true)}>
             <Sparkles className="text-brand" /> Ana
           </Button>
         </header>
 
-        <div className="thin-scroll min-h-0 flex-1 overflow-y-auto bg-[#f7f5f3] px-4 py-5 sm:px-8">
+        <div className="thin-scroll min-h-0 flex-1 overflow-y-auto bg-muted/50 px-4 py-5 sm:px-8">
           <div className="mx-auto grid max-w-3xl gap-1.5">
             {messages.map((m, i) => {
               const date = new Date(m.createdAt);
@@ -154,7 +154,7 @@ export function Thread({
               return (
                 <div key={m.id} className="grid gap-1.5">
                   {newDay && (
-                    <p className="my-3 justify-self-center rounded-full bg-white px-3 py-1 text-[11px] text-muted-foreground">
+                    <p className="my-3 justify-self-center rounded-full bg-card px-3 py-1 text-[11px] text-muted-foreground">
                       {fmtDate(date, "EEEE, d 'de' MMMM")}
                     </p>
                   )}
@@ -167,13 +167,13 @@ export function Thread({
           </div>
         </div>
 
-        <div className="border-t bg-white p-3">
+        <div data-tour="thread-composer" className="safe-bottom border-t bg-card p-3">
           {!conv.windowOpen && !note && (
-            <p className="mb-2 flex items-center gap-1.5 rounded-md bg-amber-50 px-3 py-2 text-[12px] text-amber-800">
+            <p className="mb-2 flex items-center gap-1.5 rounded-md bg-amber-50 px-3 py-2 text-[12px] text-amber-800 dark:bg-amber-500/10 dark:text-amber-200">
               <Clock className="size-3.5" /> Passaram 24h desde a última mensagem do cliente: a Meta só libera texto livre depois que ele escrever de novo.
             </p>
           )}
-          <div className={cn("rounded-xl border transition-colors", note && "border-amber-300 bg-amber-50/60")}>
+          <div className={cn("rounded-xl border transition-colors", note && "border-amber-300 bg-amber-50/60 dark:border-amber-500/40 dark:bg-amber-500/10")}>
             <Textarea
               value={text}
               onChange={(e) => setText(e.target.value)}
@@ -183,7 +183,7 @@ export function Thread({
                   send();
                 }
               }}
-              placeholder={note ? "Nota interna (o cliente não vê)…" : "Escreva uma mensagem…  (Enter envia, Shift+Enter quebra linha)"}
+              placeholder={note ? "Nota interna (o cliente não vê)…" : "Escreva uma mensagem…"}
               rows={2}
               className="max-h-48 min-h-[56px] resize-none border-0 bg-transparent shadow-none focus-visible:ring-0"
             />
@@ -193,7 +193,7 @@ export function Thread({
                 variant="ghost"
                 size="sm"
                 onClick={() => setNote((v) => !v)}
-                className={cn("text-muted-foreground", note && "bg-amber-100 text-amber-900 hover:bg-amber-100")}
+                className={cn("text-muted-foreground", note && "bg-amber-100 text-amber-900 hover:bg-amber-100 dark:bg-amber-500/20 dark:text-amber-200 dark:hover:bg-amber-500/20")}
               >
                 <StickyNote /> Nota
               </Button>
@@ -207,7 +207,7 @@ export function Thread({
         </div>
       </div>
 
-      <aside className="thin-scroll hidden w-[340px] shrink-0 overflow-y-auto border-l bg-white xl:block">{side}</aside>
+      <aside data-tour="thread-side" className="thin-scroll hidden w-[340px] shrink-0 overflow-y-auto border-l bg-card xl:block">{side}</aside>
       <Sheet open={sideOpen} onOpenChange={setSideOpen}>
         <SheetContent className="w-full overflow-y-auto p-0 sm:max-w-sm">
           <SheetTitle className="sr-only">Ana e contato</SheetTitle>
@@ -222,9 +222,9 @@ function Bubble({ m }: { m: Msg }) {
   const time = fmtTime(m.createdAt);
   if (m.direction === "note")
     return (
-      <div className="my-1 justify-self-center rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[12.5px] text-amber-900 sm:max-w-[80%]">
+      <div className="my-1 justify-self-center rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[12.5px] text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200 sm:max-w-[80%]">
         <span className="font-medium">Nota de {m.author ?? "equipe"}:</span> <span className="whitespace-pre-wrap">{m.body}</span>
-        <span className="ml-2 text-[10.5px] text-amber-700/70">{time}</span>
+        <span className="ml-2 text-[10.5px] text-amber-700/70 dark:text-amber-300/60">{time}</span>
       </div>
     );
   const out = m.direction === "out";
@@ -232,11 +232,11 @@ function Bubble({ m }: { m: Msg }) {
     <div
       className={cn(
         "max-w-[85%] rounded-2xl px-3.5 py-2 text-[13.5px] leading-snug sm:max-w-[70%]",
-        out ? "justify-self-end rounded-br-md bg-[#1c1c1c] text-white" : "justify-self-start rounded-bl-md bg-white",
+        out ? "justify-self-end rounded-br-md bg-primary text-primary-foreground" : "justify-self-start rounded-bl-md bg-card",
       )}
     >
       <p className="whitespace-pre-wrap">{m.body}</p>
-      <p className={cn("mt-0.5 flex items-center justify-end gap-1 text-[10.5px]", out ? "text-white/55" : "text-muted-foreground")}>
+      <p className={cn("mt-0.5 flex items-center justify-end gap-1 text-[10.5px]", out ? "text-primary-foreground/60" : "text-muted-foreground")}>
         {out && m.author && <span className="mr-auto pr-3">{m.author.split(" ")[0]}</span>}
         {time}
         {out &&
@@ -339,7 +339,7 @@ function SidePanel({
             <div className="grid gap-2 rounded-lg bg-muted/60 p-2.5">
               <p className="text-[12.5px] whitespace-pre-wrap">{reply.text}</p>
               {!reply.loading && (
-                <Button size="xs" variant="outline" className="w-fit bg-white" onClick={() => onUseReply(reply.text.trim())}>
+                <Button size="xs" variant="outline" className="w-fit bg-card" onClick={() => onUseReply(reply.text.trim())}>
                   Usar no campo de mensagem
                 </Button>
               )}

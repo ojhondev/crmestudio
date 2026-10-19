@@ -99,7 +99,7 @@ export function MemberList({ users, meId }: { users: Member[]; meId: string }) {
   const [pending, start] = useTransition();
   const [reset, setReset] = useState<{ email: string; password: string } | null>(null);
   return (
-    <div className="overflow-hidden rounded-xl border bg-white">
+    <div className="overflow-hidden rounded-xl border bg-card">
       {users.map((u) => (
         <div key={u.id} className={cn("flex flex-wrap items-center gap-3 border-b px-4 py-3 last:border-0", !u.active && "opacity-55")}>
           <Avatar className="size-9">

@@ -81,7 +81,7 @@ export default async function ContactsPage({ searchParams }: PageProps<"/contato
         actions={<NewContactButton team={options.team} />}
       />
       <PageBody className="grid gap-4">
-        <form className="flex flex-wrap items-center gap-2">
+        <form data-tour="contacts-search" className="flex flex-wrap items-center gap-2">
           <div className="relative w-full max-w-sm">
             <Search className="absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input name="q" defaultValue={q} placeholder="Buscar por nome, instituição, e-mail ou telefone" className="pl-8" />
@@ -107,7 +107,7 @@ export default async function ContactsPage({ searchParams }: PageProps<"/contato
             {q || origem ? "Tente outro termo de busca." : "Cadastre o primeiro lead ou aguarde mensagens chegarem pelo WhatsApp."}
           </EmptyState>
         ) : (
-          <div className="overflow-x-auto rounded-xl border bg-white">
+          <div data-tour="contacts-list" className="overflow-x-auto rounded-xl border bg-card">
             <table className="w-full min-w-[760px] text-[13px]">
               <thead>
                 <tr className="border-b text-left text-[11.5px] text-muted-foreground">

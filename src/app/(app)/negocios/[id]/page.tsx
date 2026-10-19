@@ -81,7 +81,7 @@ export default async function DealPage({ params }: PageProps<"/negocios/[id]">) 
             </div>
             <h1 className="h-display text-[28px] sm:text-[32px]">{deal.title}</h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              <span className="text-lg font-light text-foreground tabular-nums">{money(deal.valueCents)}</span>
+              <span className="num text-xl text-foreground">{money(deal.valueCents)}</span>
               {deal.expectedClose && <> · previsão {fmtDate(deal.expectedClose)}</>}
               {deal.location && <> · {deal.location}</>}
             </p>
@@ -109,7 +109,7 @@ export default async function DealPage({ params }: PageProps<"/negocios/[id]">) 
             <ActivityComposer dealId={deal.id} contactId={deal.contactId} />
             <Timeline items={activities} />
           </TabsContent>
-          <TabsContent value="detalhes" className="mt-4 rounded-xl border bg-white p-5">
+          <TabsContent value="detalhes" className="mt-4 rounded-xl border bg-card p-5">
             <EditDealForm options={options} deal={deal} isPartner={partner} />
           </TabsContent>
         </Tabs>

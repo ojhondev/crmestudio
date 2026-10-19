@@ -23,7 +23,7 @@ export function Timeline({ items }: { items: TimelineItem[] }) {
         const isStage = a.type === "etapa";
         return (
           <li key={a.id} className="relative flex gap-3">
-            <span className="z-10 grid size-7 shrink-0 place-items-center rounded-full border bg-white text-muted-foreground">
+            <span className="z-10 grid size-7 shrink-0 place-items-center rounded-full border bg-card text-muted-foreground">
               <Icon className="size-3.5" />
             </span>
             <div className="min-w-0 flex-1 pt-0.5">

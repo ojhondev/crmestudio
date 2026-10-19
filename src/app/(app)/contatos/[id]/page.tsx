@@ -105,7 +105,7 @@ export default async function ContactPage({ params }: PageProps<"/contatos/[id]"
             <ActivityComposer contactId={contact.id} />
             <Timeline items={activities} />
           </TabsContent>
-          <TabsContent value="dados" className="mt-4 rounded-xl border bg-white p-5">
+          <TabsContent value="dados" className="mt-4 rounded-xl border bg-card p-5">
             <EditContactForm contact={contact} team={options.team} />
           </TabsContent>
         </Tabs>
