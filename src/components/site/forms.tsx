@@ -16,11 +16,12 @@ import { GalleryEditor } from "./gallery-editor";
 import { ParagraphEditor } from "./paragraph-editor";
 import { deleteJob, deletePost, deleteProject, saveJob, savePost, saveProject, type JobInput, type PostInput, type ProjectInput } from "@/app/(app)/site/actions";
 
-const card = "grid gap-4 rounded-xl border bg-card p-4 sm:p-5";
+// celular: campos de 44px (o Input já usa 16px de fonte)
+const card = "grid gap-4 rounded-xl border bg-card p-4 sm:p-5 max-md:[&_input:not([type=checkbox])]:h-11";
 
 function Toggle({ label, hint, checked, onChange }: { label: string; hint?: string; checked: boolean; onChange: (v: boolean) => void }) {
   return (
-    <label className="flex items-center gap-3 text-[13px]">
+    <label className="flex items-center gap-3 text-[13px] max-md:min-h-11">
       <Switch checked={checked} onCheckedChange={onChange} />
       <span className="grid leading-tight">
         <span className="font-medium">{label}</span>
@@ -48,24 +49,24 @@ function Footer({
   isNew: boolean;
 }) {
   return (
-    <div className="sticky bottom-0 z-10 -mx-3 flex flex-wrap items-center gap-2 border-t bg-background/95 px-3 py-3 backdrop-blur sm:-mx-5 sm:px-5">
+    <div className="sticky bottom-0 z-10 -mx-3 flex flex-wrap items-center gap-2 border-t bg-background/95 px-3 py-3 backdrop-blur max-md:bottom-[calc(4.25rem+env(safe-area-inset-bottom))] sm:-mx-5 sm:px-5">
       {canEdit && (
-        <Button type="submit" disabled={pending}>
+        <Button type="submit" disabled={pending} className="max-md:h-11">
           {pending ? <Loader2 className="animate-spin" /> : <Save />} Salvar
         </Button>
       )}
-      <Button asChild variant="ghost">
+      <Button asChild variant="ghost" className="max-md:h-11">
         <Link href={backHref}>Voltar</Link>
       </Button>
       {viewUrl && (
-        <Button asChild variant="outline" size="sm">
+        <Button asChild variant="outline" size="sm" className="max-md:h-11">
           <a href={viewUrl} target="_blank" rel="noreferrer">
             <ExternalLink /> Ver no site
           </a>
         </Button>
       )}
       {!isNew && canDelete && onDelete && (
-        <span className="ml-auto">
+        <span className="ml-auto max-md:[&_button]:h-11 max-md:[&_button]:min-w-11">
           <ConfirmButton action={onDelete} title="Excluir definitivamente?" description="O item sai do site e não dá para desfazer." />
         </span>
       )}

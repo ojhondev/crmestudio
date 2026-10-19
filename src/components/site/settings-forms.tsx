@@ -38,7 +38,7 @@ export function SettingGroupForm({ k, title, desc, fields, initial, canEdit }: {
         e.preventDefault();
         save(v);
       }}
-      className="grid gap-4 rounded-xl border bg-card p-4 sm:p-5"
+      className="grid gap-4 rounded-xl border bg-card p-4 sm:p-5 max-md:[&_input:not([type=checkbox])]:h-11"
     >
       <header>
         <h2 className="text-[15px] font-medium">{title}</h2>
@@ -64,7 +64,7 @@ export function SettingGroupForm({ k, title, desc, fields, initial, canEdit }: {
       </fieldset>
       {canEdit && (
         <div>
-          <Button type="submit" disabled={pending}>
+          <Button type="submit" disabled={pending} className="max-md:h-11">
             {pending ? <Loader2 className="animate-spin" /> : <Save />} Salvar
           </Button>
         </div>
@@ -101,8 +101,8 @@ export function SectionImagesForm({ slots, initial, canEdit }: { slots: { key: s
         ))}
       </fieldset>
       {canEdit && (
-        <div className="sticky bottom-0 -mx-3 border-t bg-background/95 px-3 py-3 backdrop-blur sm:-mx-5 sm:px-5">
-          <Button type="submit" disabled={pending}>
+        <div className="sticky bottom-0 -mx-3 border-t bg-background/95 px-3 py-3 backdrop-blur max-md:bottom-[calc(4.25rem+env(safe-area-inset-bottom))] sm:-mx-5 sm:px-5">
+          <Button type="submit" disabled={pending} className="max-md:h-11">
             {pending ? <Loader2 className="animate-spin" /> : <Save />} Salvar imagens
           </Button>
         </div>

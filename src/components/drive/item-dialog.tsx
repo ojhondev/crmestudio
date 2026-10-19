@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Field, SimpleSelect } from "@/components/form";
+import { DialogCloseBtn } from "@/components/touch-close";
 import { addLink, updateItem } from "@/app/(app)/drive/actions";
 import { KINDS, KIND_LABEL, detectDriveUrl } from "@/lib/drive/detect";
 import type { DriveKind } from "@/lib/db/schema";
@@ -58,7 +59,9 @@ export function ItemDialog({ open, onOpenChange, item, defaults, fixedLinks, fol
   // o estado reinicia sempre que o diálogo abre (a chave muda), então o formulário nasce com os valores certos
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-lg">{open && <Form key={item?.id ?? "novo"} {...{ onOpenChange, item, defaults, fixedLinks, folders, contacts, deals, projects }} />}</DialogContent>
+      <DialogContent className="max-h-[92dvh] overflow-y-auto sm:max-h-[90dvh] sm:max-w-lg" showCloseButton={false}>
+        <DialogCloseBtn />
+        {open && <Form key={item?.id ?? "novo"} {...{ onOpenChange, item, defaults, fixedLinks, folders, contacts, deals, projects }} />}</DialogContent>
     </Dialog>
   );
 }
@@ -93,13 +96,13 @@ function Form({ onOpenChange, item, defaults, fixedLinks, folders = [], contacts
   }
 
   return (
-    <form onSubmit={submit} className="grid gap-4">
-      <DialogHeader>
+    <form onSubmit={submit} className="grid gap-4 max-md:[&_input]:h-11">
+      <DialogHeader className="pr-10">
         <DialogTitle className="font-normal">{item ? "Editar item" : "Adicionar link do Drive"}</DialogTitle>
         <DialogDescription>Cole o link de uma pasta ou arquivo do Google Drive (compartilhe com a equipe lá no Drive).</DialogDescription>
       </DialogHeader>
       <Field label="Link do Drive" hint={det ? (det.ok ? `Detectado: ${KIND_LABEL[det.kind]}` : det.error) : undefined}>
-        <Input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://drive.google.com/drive/folders/…" required inputMode="url" autoFocus />
+        <Input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://drive.google.com/drive/folders/…" required inputMode="url" autoFocus={typeof window !== "undefined" && window.matchMedia("(min-width: 768px)").matches} />
       </Field>
       <div className="grid gap-4 sm:grid-cols-[1fr_9rem]">
         <Field label="Título">
@@ -140,7 +143,7 @@ function Form({ onOpenChange, item, defaults, fixedLinks, folders = [], contacts
           <Textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />
         </Field>
       )}
-      <DialogFooter>
+      <DialogFooter className="max-md:[&_button]:h-11">
         <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
           Cancelar
         </Button>

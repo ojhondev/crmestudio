@@ -5,6 +5,7 @@ import { ImagePlus, Images, Loader2, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { DialogCloseBtn } from "@/components/touch-close";
 import { listLibrary } from "@/app/(app)/site/actions";
 import { cn } from "@/lib/utils";
 
@@ -93,21 +94,22 @@ export function LibraryDialog({ open, onOpenChange, onPick, multiple }: { open: 
         onOpenChange(o);
       }}
     >
-      <DialogContent className="max-h-[88dvh] overflow-y-auto sm:max-w-3xl">
-        <DialogHeader>
+      <DialogContent className="max-h-[92dvh] overflow-y-auto sm:max-h-[88dvh] sm:max-w-3xl" showCloseButton={false}>
+        <DialogCloseBtn />
+        <DialogHeader className="pr-10">
           <DialogTitle className="font-normal">Biblioteca de imagens do site</DialogTitle>
           <DialogDescription>Escolha uma imagem já enviada ou envie novas (são comprimidas automaticamente).</DialogDescription>
         </DialogHeader>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <input ref={fileRef} type="file" accept="image/*" multiple={multiple} hidden onChange={(e) => onFiles(e.target.files)} />
-          <Button type="button" variant="outline" size="sm" disabled={busy} onClick={() => fileRef.current?.click()}>
+          <Button type="button" variant="outline" size="sm" className="max-md:h-11" disabled={busy} onClick={() => fileRef.current?.click()}>
             {busy ? <Loader2 className="animate-spin" /> : <Upload />} Enviar {multiple ? "imagens" : "imagem"}
           </Button>
           {multiple && (
             <Button
               type="button"
               size="sm"
-              className="ml-auto"
+              className="ml-auto max-md:h-11"
               disabled={!sel.length}
               onClick={() => {
                 onPick(sel);
@@ -168,11 +170,11 @@ export function ImageField({ label, value, onChange, hint }: { label: string; va
           )}
         </div>
         <div className="flex flex-wrap items-center gap-1.5">
-          <Button type="button" variant="outline" size="sm" onClick={() => setOpen(true)}>
+          <Button type="button" variant="outline" size="sm" className="max-md:h-11" onClick={() => setOpen(true)}>
             <Images /> {value ? "Trocar" : "Escolher / enviar"}
           </Button>
           {value && (
-            <Button type="button" variant="ghost" size="sm" className="text-muted-foreground hover:text-destructive" onClick={() => onChange("")}>
+            <Button type="button" variant="ghost" size="sm" className="text-muted-foreground hover:text-destructive max-md:h-11" onClick={() => onChange("")}>
               <Trash2 /> Remover
             </Button>
           )}

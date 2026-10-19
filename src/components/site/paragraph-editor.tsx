@@ -51,7 +51,7 @@ export function ParagraphEditor({ value, onChange, placeholder = "Escreva aqui鈥
       Placeholder.configure({ placeholder }),
     ],
     content: toDoc(value),
-    editorProps: { attributes: { class: "outline-none text-[15px] leading-7 [&_p]:mb-4", style: `min-height:${minHeight}px` } },
+    editorProps: { attributes: { class: "outline-none text-[15px] leading-7 max-md:text-base [&_p]:mb-4", style: `min-height:${minHeight}px` } },
     onUpdate: ({ editor: e }) => onChange(fromDoc(e.getJSON())),
   });
 
@@ -67,17 +67,18 @@ export function ParagraphEditor({ value, onChange, placeholder = "Escreva aqui鈥
   return (
     <div className="rounded-lg border bg-card focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/40">
       <div className="flex items-center gap-1 border-b px-2 py-1">
-        <Button type="button" variant="ghost" size="icon-sm" aria-label="Desfazer" onMouseDown={(e) => e.preventDefault()} onClick={() => editor?.chain().focus().undo().run()}>
+        <Button type="button" variant="ghost" size="icon-sm" className="max-md:size-11" aria-label="Desfazer" onMouseDown={(e) => e.preventDefault()} onClick={() => editor?.chain().focus().undo().run()}>
           <Undo2 />
         </Button>
-        <Button type="button" variant="ghost" size="icon-sm" aria-label="Refazer" onMouseDown={(e) => e.preventDefault()} onClick={() => editor?.chain().focus().redo().run()}>
+        <Button type="button" variant="ghost" size="icon-sm" className="max-md:size-11" aria-label="Refazer" onMouseDown={(e) => e.preventDefault()} onClick={() => editor?.chain().focus().redo().run()}>
           <Redo2 />
         </Button>
-        <span className="ml-auto text-xs text-muted-foreground">
-          {paras} par谩grafo{paras === 1 ? "" : "s"} 路 {words} palavra{words === 1 ? "" : "s"} 路 Enter cria novo par谩grafo
+        <span className="ml-auto min-w-0 text-right text-xs text-muted-foreground">
+          {paras} par谩grafo{paras === 1 ? "" : "s"} 路 {words} palavra{words === 1 ? "" : "s"}
+          <span className="max-md:hidden"> 路 Enter cria novo par谩grafo</span>
         </span>
       </div>
-      <div className="px-4 py-3">
+      <div className="px-4 py-3 max-md:px-3">
         <EditorContent editor={editor} />
       </div>
     </div>

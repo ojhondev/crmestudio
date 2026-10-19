@@ -16,6 +16,7 @@ export function RegisterButton({ entry }: { entry: { id: string; name: string; u
       type="button"
       variant="outline"
       size="sm"
+      className="max-md:h-11"
       disabled={pending}
       onClick={() =>
         start(async () => {

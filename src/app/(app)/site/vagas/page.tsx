@@ -21,7 +21,7 @@ export default async function VagasPage() {
         tabs={<SiteTabs />}
         actions={
           canEdit && (
-            <Button asChild size="sm">
+            <Button asChild size="sm" className="max-md:h-11">
               <Link href="/site/vagas/novo">
                 <Plus /> Nova vaga
               </Link>

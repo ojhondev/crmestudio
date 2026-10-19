@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { DndContext, DragOverlay, PointerSensor, TouchSensor, pointerWithin, useDraggable, useDroppable, useSensor, useSensors, type DragEndEvent, type DragStartEvent } from "@dnd-kit/core";
-import { ChevronRight, ExternalLink, Folder, FolderPlus, Home, LayoutGrid, Link2, List, MoreHorizontal, Pencil, Search, Star, Trash2 } from "lucide-react";
+import { Check, ChevronRight, ExternalLink, Folder, FolderInput, FolderPlus, Home, LayoutGrid, Link2, List, MoreHorizontal, Pencil, Search, Star, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { PageToolbar, ToolbarGroup } from "@/components/toolbar";
 import { Button } from "@/components/ui/button";
@@ -12,13 +12,14 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { ConfirmButton } from "@/components/crm/confirm-button";
+import { DialogCloseBtn } from "@/components/touch-close";
 import { SimpleSelect } from "@/components/form";
 import { cn } from "@/lib/utils";
 import { KIND_LABEL, KINDS } from "@/lib/drive/detect";
 import { createFolder, deleteFolder, deleteItem, moveItem, renameFolder, toggleFavorite } from "@/app/(app)/drive/actions";
 import { DriveTabs } from "./drive-tabs";
 import { KindIcon } from "./kind-icon";
-import { ItemDialog, type FolderRow, type ItemRow } from "./item-dialog";
+import { ItemDialog, folderOptions, type FolderRow, type ItemRow } from "./item-dialog";
 
 type Opt = { value: string; label: string };
 type Sort = "recentes" | "nome" | "tipo";
@@ -73,6 +74,7 @@ export function DriveBrowser({
   const [kind, setKind] = useState("");
   const [dialog, setDialog] = useState<{ item?: ItemRow | null } | null>(null);
   const [folderDlg, setFolderDlg] = useState<{ id?: string; name: string } | null>(null);
+  const [moving, setMoving] = useState<ItemRow | null>(null);
   const [dragging, setDragging] = useState<ItemRow | null>(null);
 
   const changeView = setView;
@@ -158,7 +160,7 @@ export function DriveBrowser({
           <>
             <div className="relative">
               <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
-              <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar em tudo…" aria-label="Buscar arquivos" className="h-9 w-36 pl-8 sm:w-44" />
+              <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar em tudo…" aria-label="Buscar arquivos" className="h-9 w-36 pl-8 max-md:h-11 sm:w-44" />
             </div>
             <div className="w-32">
               <SimpleSelect value={kind || "__all"} onValueChange={(v) => setKind(v === "__all" ? "" : v)} options={[{ value: "__all", label: "Todos os tipos" }, ...KINDS.map((k) => ({ value: k, label: KIND_LABEL[k] }))]} />
@@ -166,14 +168,14 @@ export function DriveBrowser({
             <div className="w-32">
               <SimpleSelect value={sort} onValueChange={(v) => setSort(v as Sort)} options={[{ value: "recentes", label: "Mais recentes" }, { value: "nome", label: "Nome (A–Z)" }, { value: "tipo", label: "Tipo" }]} />
             </div>
-            <Button type="button" variant={favOnly ? "default" : "outline"} size="sm" aria-pressed={favOnly} onClick={() => setFavOnly((v) => !v)}>
+            <Button type="button" variant={favOnly ? "default" : "outline"} size="sm" className="max-md:h-11" aria-pressed={favOnly} onClick={() => setFavOnly((v) => !v)}>
               <Star className={cn(favOnly && "fill-current")} /> Favoritos
             </Button>
             <ToolbarGroup>
-              <Button type="button" variant={view === "grade" ? "secondary" : "ghost"} size="icon-sm" aria-label="Visão em grade" aria-pressed={view === "grade"} onClick={() => changeView("grade")}>
+              <Button type="button" variant={view === "grade" ? "secondary" : "ghost"} size="icon-sm" className="max-md:size-11" aria-label="Visão em grade" aria-pressed={view === "grade"} onClick={() => changeView("grade")}>
                 <LayoutGrid />
               </Button>
-              <Button type="button" variant={view === "lista" ? "secondary" : "ghost"} size="icon-sm" aria-label="Visão em lista" aria-pressed={view === "lista"} onClick={() => changeView("lista")}>
+              <Button type="button" variant={view === "lista" ? "secondary" : "ghost"} size="icon-sm" className="max-md:size-11" aria-label="Visão em lista" aria-pressed={view === "lista"} onClick={() => changeView("lista")}>
                 <List />
               </Button>
             </ToolbarGroup>
@@ -182,10 +184,10 @@ export function DriveBrowser({
         actions={
           canEdit && (
             <>
-              <Button type="button" variant="outline" size="sm" onClick={() => setFolderDlg({ name: "" })}>
+              <Button type="button" variant="outline" size="sm" className="max-md:h-11" onClick={() => setFolderDlg({ name: "" })}>
                 <FolderPlus /> Nova pasta
               </Button>
-              <Button type="button" size="sm" onClick={() => setDialog({})}>
+              <Button type="button" size="sm" className="max-md:h-11" onClick={() => setDialog({})}>
                 <Link2 /> Adicionar link
               </Button>
             </>
@@ -212,19 +214,19 @@ export function DriveBrowser({
 
         <section className="min-w-0 p-3 sm:p-5">
           <nav aria-label="Caminho" className="mb-3 flex flex-wrap items-center gap-1 text-[13px]">
-            <Link href={href(null)} className={cn("rounded px-1.5 py-0.5 hover:bg-muted", !current && "font-medium")}>
+            <Link href={href(null)} className={cn("inline-flex items-center rounded px-1.5 py-0.5 hover:bg-muted max-md:min-h-11", !current && "font-medium")}>
               Todos os arquivos
             </Link>
             {crumbs.map((c) => (
               <span key={c.id} className="flex items-center gap-1">
                 <ChevronRight className="size-3.5 text-muted-foreground" />
-                <Link href={href(c.id)} className={cn("rounded px-1.5 py-0.5 hover:bg-muted", c.id === current && "font-medium")}>
+                <Link href={href(c.id)} className={cn("inline-flex items-center rounded px-1.5 py-0.5 hover:bg-muted max-md:min-h-11", c.id === current && "font-medium")}>
                   {c.name}
                 </Link>
               </span>
             ))}
             {current && canEdit && (
-              <span className="ml-auto flex items-center gap-1">
+              <span className="ml-auto flex items-center gap-1 max-md:[&_button]:h-11">
                 <Button type="button" variant="ghost" size="xs" onClick={() => setFolderDlg({ id: current, name: folderById.get(current)?.name ?? "" })}>
                   <Pencil /> Renomear
                 </Button>
@@ -250,12 +252,12 @@ export function DriveBrowser({
           {searching && <p className="mb-3 text-[13px] text-muted-foreground">{visibleItems.length} resultado{visibleItems.length === 1 ? "" : "s"} em todas as pastas.</p>}
 
           {subfolders.length > 0 && (
-            <ul className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-4">
+            <ul className="mb-4 grid grid-cols-1 gap-2 min-[420px]:grid-cols-2 sm:grid-cols-3 xl:grid-cols-4">
               {subfolders.map((f) => (
                 <li key={f.id}>
                   <DropZone id={`f:${f.id}`} activeClass="ring-2 ring-brand bg-brand-soft" className="rounded-xl">
                     {() => (
-                      <Link href={href(f.id)} className="flex items-center gap-2.5 rounded-xl border bg-card px-3 py-2.5 hover:border-foreground/30">
+                      <Link href={href(f.id)} className="flex items-center gap-2.5 rounded-xl border bg-card px-3 py-2.5 hover:border-foreground/30 max-md:min-h-14">
                         <Folder className="size-5 shrink-0 text-amber-600 dark:text-amber-400" />
                         <span className="grid min-w-0 leading-tight">
                           <span className="truncate text-[13.5px] font-medium">{f.name}</span>
@@ -283,10 +285,10 @@ export function DriveBrowser({
                 <li key={i.id}>
                   {canEdit ? (
                     <DragItem id={i.id}>
-                      <ItemCard i={i} view="grade" canEdit canManage={canManage} onEdit={() => setDialog({ item: i })} />
+                      <ItemCard i={i} view="grade" canEdit canManage={canManage} onEdit={() => setDialog({ item: i })} onMove={() => setMoving(i)} />
                     </DragItem>
                   ) : (
-                    <ItemCard i={i} view="grade" canEdit={false} canManage={false} onEdit={() => {}} />
+                    <ItemCard i={i} view="grade" canEdit={false} canManage={false} onEdit={() => {}} onMove={() => {}} />
                   )}
                 </li>
               ))}
@@ -297,10 +299,10 @@ export function DriveBrowser({
                 <li key={i.id}>
                   {canEdit ? (
                     <DragItem id={i.id}>
-                      <ItemCard i={i} view="lista" canEdit canManage={canManage} onEdit={() => setDialog({ item: i })} />
+                      <ItemCard i={i} view="lista" canEdit canManage={canManage} onEdit={() => setDialog({ item: i })} onMove={() => setMoving(i)} />
                     </DragItem>
                   ) : (
-                    <ItemCard i={i} view="lista" canEdit={false} canManage={false} onEdit={() => {}} />
+                    <ItemCard i={i} view="lista" canEdit={false} canManage={false} onEdit={() => {}} onMove={() => {}} />
                   )}
                 </li>
               ))}
@@ -319,13 +321,14 @@ export function DriveBrowser({
 
       <ItemDialog open={!!dialog} onOpenChange={(o) => !o && setDialog(null)} item={dialog?.item} defaults={{ folderId: current }} folders={folders} contacts={contacts} deals={deals} projects={projects} />
       <FolderDialog state={folderDlg} onClose={() => setFolderDlg(null)} parentId={current} />
+      <MoveDialog item={moving} folders={folders} onClose={() => setMoving(null)} />
     </DndContext>
   );
 }
 
 /* -------------------------------------------- cartão -------------------------------------------- */
 
-function ItemCard({ i, view, canEdit, canManage, onEdit }: { i: ItemRow; view: "grade" | "lista"; canEdit: boolean; canManage: boolean; onEdit: () => void }) {
+function ItemCard({ i, view, canEdit, canManage, onEdit, onMove }: { i: ItemRow; view: "grade" | "lista"; canEdit: boolean; canManage: boolean; onEdit: () => void; onMove: () => void }) {
   const router = useRouter();
   const links = [i.contactName && { label: i.contactName, href: `/contatos/${i.contactId}` }, i.dealTitle && { label: i.dealTitle, href: `/negocios/${i.dealId}` }].filter(Boolean) as { label: string; href: string }[];
   const star = async () => {
@@ -336,11 +339,11 @@ function ItemCard({ i, view, canEdit, canManage, onEdit }: { i: ItemRow; view: "
   const menu = (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button type="button" variant="ghost" size="icon-sm" aria-label={`Ações de ${i.title}`} onPointerDown={(e) => e.stopPropagation()}>
+        <Button type="button" variant="ghost" size="icon-sm" className="max-md:size-11" aria-label={`Ações de ${i.title}`} onPointerDown={(e) => e.stopPropagation()}>
           <MoreHorizontal />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
+      <DropdownMenuContent align="end" className="max-md:min-w-56 max-md:[&_[role=menuitem]]:min-h-11">
         <DropdownMenuItem asChild>
           <a href={i.url} target="_blank" rel="noreferrer">
             <ExternalLink /> Abrir no Drive
@@ -348,7 +351,12 @@ function ItemCard({ i, view, canEdit, canManage, onEdit }: { i: ItemRow; view: "
         </DropdownMenuItem>
         {canEdit && (
           <DropdownMenuItem onSelect={onEdit}>
-            <Pencil /> Editar / mover
+            <Pencil /> Editar
+          </DropdownMenuItem>
+        )}
+        {canEdit && (
+          <DropdownMenuItem onSelect={onMove}>
+            <FolderInput /> Mover para pasta…
           </DropdownMenuItem>
         )}
         {canManage && (
@@ -373,7 +381,7 @@ function ItemCard({ i, view, canEdit, canManage, onEdit }: { i: ItemRow; view: "
     </DropdownMenu>
   );
   const starBtn = (
-    <Button type="button" variant="ghost" size="icon-sm" aria-label={i.favorite ? "Tirar dos favoritos" : "Favoritar"} aria-pressed={i.favorite} disabled={!canEdit} onPointerDown={(e) => e.stopPropagation()} onClick={star}>
+    <Button type="button" variant="ghost" size="icon-sm" className="max-md:size-11" aria-label={i.favorite ? "Tirar dos favoritos" : "Favoritar"} aria-pressed={i.favorite} disabled={!canEdit} onPointerDown={(e) => e.stopPropagation()} onClick={star}>
       <Star className={cn(i.favorite && "fill-current text-amber-500")} />
     </Button>
   );
@@ -389,7 +397,7 @@ function ItemCard({ i, view, canEdit, canManage, onEdit }: { i: ItemRow; view: "
     return (
       <div className="flex items-center gap-3 rounded-xl border bg-card px-3 py-2 hover:border-foreground/30">
         <KindIcon kind={i.kind} />
-        <a href={i.url} target="_blank" rel="noreferrer" className="grid min-w-0 flex-1 leading-tight">
+        <a href={i.url} target="_blank" rel="noreferrer" className="grid min-w-0 flex-1 leading-tight max-md:min-h-11 max-md:content-center">
           <span className="truncate text-[13.5px] font-medium">{i.title}</span>
           <span className="truncate text-xs text-muted-foreground">{meta}</span>
         </a>
@@ -415,7 +423,7 @@ function ItemCard({ i, view, canEdit, canManage, onEdit }: { i: ItemRow; view: "
       {links.length > 0 && (
         <p className="flex flex-wrap gap-x-2 text-xs text-muted-foreground">
           {links.map((l) => (
-            <Link key={l.href} href={l.href} onPointerDown={(e) => e.stopPropagation()} className="truncate underline-offset-2 hover:text-foreground hover:underline">
+            <Link key={l.href} href={l.href} onPointerDown={(e) => e.stopPropagation()} className="truncate underline-offset-2 hover:text-foreground hover:underline max-md:py-2.5">
               {l.label}
             </Link>
           ))}
@@ -438,9 +446,10 @@ function FolderDialog({ state, onClose, parentId }: { state: { id?: string; name
   }
   return (
     <Dialog open={!!state} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="sm:max-w-sm">
+      <DialogContent className="sm:max-w-sm" showCloseButton={false}>
+        <DialogCloseBtn />
         <form
-          className="grid gap-4"
+          className="grid gap-4 max-md:[&_input]:h-11"
           onSubmit={async (e) => {
             e.preventDefault();
             setBusy(true);
@@ -452,12 +461,12 @@ function FolderDialog({ state, onClose, parentId }: { state: { id?: string; name
             router.refresh();
           }}
         >
-          <DialogHeader>
+          <DialogHeader className="pr-10">
             <DialogTitle className="font-normal">{state?.id ? "Renomear pasta" : "Nova pasta"}</DialogTitle>
             <DialogDescription>{state?.id ? "" : parentId ? "Será criada dentro da pasta atual." : "Será criada na raiz."} Pastas do CRM só organizam os links; não mudam nada no Drive.</DialogDescription>
           </DialogHeader>
           <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nome da pasta" maxLength={120} required autoFocus />
-          <DialogFooter>
+          <DialogFooter className="max-md:[&_button]:h-11">
             <Button type="button" variant="ghost" onClick={onClose}>
               Cancelar
             </Button>
@@ -471,4 +480,45 @@ function FolderDialog({ state, onClose, parentId }: { state: { id?: string; name
   );
 }
 
+/* ------------------------------------ mover por botão (toque) ------------------------------------ */
 
+function MoveDialog({ item, folders, onClose }: { item: ItemRow | null; folders: FolderRow[]; onClose: () => void }) {
+  const router = useRouter();
+  const [busy, setBusy] = useState<string | null>(null);
+  const opts = useMemo(() => folderOptions(folders), [folders]);
+  async function move(target: string | null) {
+    if (!item) return;
+    setBusy(target ?? ROOT);
+    const r = await moveItem(item.id, target);
+    setBusy(null);
+    if (!r.ok) return void toast.error(r.error);
+    toast.success(`“${item.title}” movido${target ? ` para ${opts.find((o) => o.value === target)?.label ?? "a pasta"}` : " para a raiz"}.`);
+    onClose();
+    router.refresh();
+  }
+  const row = (key: string, label: string, target: string | null, icon: React.ReactNode) => (
+    <li key={key}>
+      <button type="button" disabled={busy !== null} onClick={() => move(target)} className={cn("flex min-h-12 w-full items-center gap-3 rounded-lg border px-3 text-left text-[14px] hover:bg-muted disabled:opacity-60", item?.folderId === target && "border-brand bg-brand-soft")}>
+        {icon}
+        <span className="min-w-0 flex-1 truncate">{label}</span>
+        {item?.folderId === target && <Check className="size-4 text-brand" aria-label="Pasta atual" />}
+      </button>
+    </li>
+  );
+  return (
+    <Dialog open={!!item} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-h-[88dvh] min-w-0 overflow-y-auto sm:max-w-md" showCloseButton={false}>
+        <DialogCloseBtn />
+        <DialogHeader className="pr-10">
+          <DialogTitle className="font-normal">Mover para pasta</DialogTitle>
+          <DialogDescription className="truncate">{item?.title}</DialogDescription>
+        </DialogHeader>
+        <ul className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-1.5">
+          {row(ROOT, "Raiz (sem pasta)", null, <Home className="size-4 shrink-0" />)}
+          {opts.map((o) => row(o.value, o.label, o.value, <Folder className="size-4 shrink-0 text-amber-600 dark:text-amber-400" />))}
+        </ul>
+        {opts.length === 0 && <p className="text-[13px] text-muted-foreground">Ainda não há pastas. Crie uma em “Nova pasta”.</p>}
+      </DialogContent>
+    </Dialog>
+  );
+}

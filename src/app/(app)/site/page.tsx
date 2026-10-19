@@ -29,7 +29,7 @@ export default async function SiteHome() {
         title="Site"
         tabs={<SiteTabs />}
         actions={
-          <Button asChild variant="outline" size="sm">
+          <Button asChild variant="outline" size="sm" className="max-md:h-11">
             <a href={SITE_URL} target="_blank" rel="noreferrer">
               <ArrowUpRight /> Ver no site
             </a>

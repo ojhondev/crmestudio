@@ -41,9 +41,9 @@ export function MediaLibrary({ items, canEdit, canManage }: { items: MediaItem[]
   return (
     <div className="grid gap-4">
       {canEdit && (
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <input ref={ref} type="file" accept="image/*" multiple hidden onChange={(e) => onFiles(e.target.files)} />
-          <Button onClick={() => ref.current?.click()} disabled={busy}>
+          <Button onClick={() => ref.current?.click()} disabled={busy} className="max-md:h-11">
             {busy ? <Loader2 className="animate-spin" /> : <Upload />} Enviar imagens
           </Button>
           <span className="text-xs text-muted-foreground">Comprimidas automaticamente (lado maior 2000 px).</span>
@@ -64,12 +64,12 @@ export function MediaLibrary({ items, canEdit, canManage }: { items: MediaItem[]
                   defaultValue={m.label}
                   disabled={!canEdit}
                   aria-label="Nome da imagem"
-                  className="h-8 text-xs"
+                  className="h-8 text-xs max-md:h-11 max-md:text-base"
                   onBlur={(e) => {
                     if (e.target.value !== m.label) renameMedia(m.id, e.target.value);
                   }}
                 />
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1 max-md:[&_button]:min-h-11">
                   <Button
                     type="button"
                     variant="ghost"

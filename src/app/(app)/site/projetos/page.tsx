@@ -21,7 +21,7 @@ export default async function ProjetosPage() {
         tabs={<SiteTabs />}
         actions={
           canEdit && (
-            <Button asChild size="sm">
+            <Button asChild size="sm" className="max-md:h-11">
               <Link href="/site/projetos/novo">
                 <Plus /> Novo projeto
               </Link>
@@ -30,7 +30,7 @@ export default async function ProjetosPage() {
         }
       />
       <div className="mx-auto grid max-w-4xl gap-3 p-3 sm:p-5">
-        <p className="text-[13px] text-muted-foreground">{canEdit ? "Arraste pela alça para mudar a ordem em que aparecem no site. " : ""}A estrela marca os destaques da home.</p>
+        <p className="text-[13px] text-muted-foreground">{canEdit ? "Arraste pela alça (ou use as setas ↑↓ no celular) para mudar a ordem em que aparecem no site. " : ""}A estrela marca os destaques da home.</p>
         {rows.length === 0 ? (
           <p className="rounded-xl border border-dashed px-6 py-12 text-center text-[13px] text-muted-foreground">Nenhum projeto ainda. Enquanto não houver, o site mostra projetos de exemplo.</p>
         ) : (

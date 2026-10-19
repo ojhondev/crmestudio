@@ -22,7 +22,7 @@ export default async function BlogPage() {
         tabs={<SiteTabs />}
         actions={
           canEdit && (
-            <Button asChild size="sm">
+            <Button asChild size="sm" className="max-md:h-11">
               <Link href="/site/blog/novo">
                 <Plus /> Novo artigo
               </Link>
