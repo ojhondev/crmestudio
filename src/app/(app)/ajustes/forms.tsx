@@ -5,6 +5,7 @@ import { ArrowDown, ArrowUp, Loader2, Plus, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/password-input";
 import { Field, SimpleSelect } from "@/components/form";
 import { ConfirmButton } from "@/components/crm/confirm-button";
 import type { Stage, StageKind } from "@/lib/db/schema";
@@ -51,10 +52,10 @@ export function PasswordForm() {
   return (
     <form ref={ref} action={action} className="grid gap-3">
       <Field label="Senha atual" htmlFor="pw-cur">
-        <Input id="pw-cur" name="current" type="password" autoComplete="current-password" required />
+        <PasswordInput id="pw-cur" name="current" autoComplete="current-password" required />
       </Field>
       <Field label="Nova senha" htmlFor="pw-new" hint="Mínimo de 8 caracteres">
-        <Input id="pw-new" name="next" type="password" autoComplete="new-password" required minLength={8} />
+        <PasswordInput id="pw-new" name="next" autoComplete="new-password" required minLength={8} />
       </Field>
       {state?.error && <p className="text-sm text-destructive">{state.error}</p>}
       <Button className="w-fit" disabled={pending}>

@@ -10,6 +10,8 @@ import { neon } from "@neondatabase/serverless";
 import { drizzle } from "drizzle-orm/neon-http";
 import { asc, eq, like } from "drizzle-orm";
 import * as schema from "../src/lib/db/schema";
+import * as siteSchema from "../src/lib/site-schema";
+import { del } from "@vercel/blob";
 import { hashPassword } from "../src/lib/password";
 
 const db = drizzle(neon(process.env.DATABASE_URL!), { schema });
@@ -41,7 +43,25 @@ async function main() {
     for (const x of docs) await db.delete(schema.documents).where(eq(schema.documents.id, x.id));
     await db.delete(schema.deals).where(like(schema.deals.title, "QA —%"));
     await db.delete(schema.contacts).where(eq(schema.contacts.source, "qa-docs"));
+    // Drive (itens e pastas de QA)
+    await db.delete(schema.driveItems).where(like(schema.driveItems.title, "QA%"));
+    await db.delete(schema.driveFolders).where(like(schema.driveFolders.name, "QA%"));
+    // Site (banco separado): projetos, artigos, vagas e mídia de QA
+    if (process.env.SITE_DATABASE_URL) {
+      const sdb = drizzle(neon(process.env.SITE_DATABASE_URL), { schema: siteSchema });
+      await sdb.delete(siteSchema.projects).where(like(siteSchema.projects.title, "QA%"));
+      await sdb.delete(siteSchema.posts).where(like(siteSchema.posts.title, "QA%"));
+      await sdb.delete(siteSchema.jobs).where(like(siteSchema.jobs.title, "QA%"));
+      const media = await sdb.select().from(siteSchema.media).where(like(siteSchema.media.label, "QA%"));
+      for (const m of media) {
+        try {
+          await del(m.url, { token: process.env.SITE_BLOB_READ_WRITE_TOKEN });
+        } catch {}
+        await sdb.delete(siteSchema.media).where(eq(siteSchema.media.id, m.id));
+      }
+    }
     await db.delete(schema.auditLog).where(like(schema.auditLog.actorName, "QA Documentos"));
+    await db.delete(schema.sheets).where(like(schema.sheets.name, "QA%")); // planilhas de teste (abas e versões saem em cascata)
     await db.delete(schema.taskBoards).where(like(schema.taskBoards.name, "QA%"));
     await db.delete(schema.users).where(eq(schema.users.email, EMAIL));
     if (fs.existsSync(FILE)) fs.unlinkSync(FILE);

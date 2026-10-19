@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/password-input";
 import { Label } from "@/components/ui/label";
 import { login } from "./actions";
 
@@ -17,7 +18,7 @@ export function LoginForm() {
       </div>
       <div className="grid gap-1.5">
         <Label htmlFor="password">Senha</Label>
-        <Input id="password" name="password" type="password" autoComplete="current-password" required className="h-10" />
+        <PasswordInput id="password" name="password" autoComplete="current-password" required className="h-10" />
       </div>
       {state?.error && <p className="text-sm text-destructive">{state.error}</p>}
       <Button type="submit" size="lg" className="mt-2 h-10" disabled={pending}>

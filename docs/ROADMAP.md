@@ -68,6 +68,15 @@ upload de imagens em Blob (hoje: imagem reduzida embutida ou URL https).
 - Tarefas dentro de negócios/contatos: concluir sincroniza `status` (`doneAt` segue como fonte de "concluída") e mostram
   situação/prioridade; botão de excluir visível no toque.
 
+## Planilhas ✅ (entregue 2026-10-19)
+Módulo independente do Financeiro (permissão `planilhas`), muito parecido com o Google Sheets. Serve para materiais, custo por projeto, orçamento de obra, fluxo de caixa e cronograma.
+- **Lista** `/planilhas`: busca, ordenação (recentes/nome/criação), favoritas, nova em branco ou de **modelo** (Controle de materiais, Custo por projeto, Orçamento de obra, Fluxo de caixa simples, Cronograma), **importar** (arrastar e soltar, prévia antes de confirmar), duplicar, renomear, vincular a negócio/contato, excluir (Gerenciar).
+- **Editor** `/planilhas/[id]` em tela cheia: menus Arquivo/Editar/Ver/Inserir/Formatar/Dados, barra de ícones, caixa de nome + barra de fórmulas, abas na base. Grade **virtualizada** (milhares de linhas fluidas), seleção, edição inline, teclado como no Sheets, copiar/colar TSV de e para Excel/Sheets, alça de preenchimento (séries e fórmulas), redimensionar, inserir/excluir/ocultar linhas e colunas, congelar, ordenar, filtrar por valores, formatação (negrito/itálico/sublinhado/tachado, cores, bordas, alinhamento, quebra, mesclar), formatos (número, moeda R$, %, data, hora, texto), abas (criar/renomear/duplicar/mover/excluir), tema claro/escuro, toque no celular (toque duplo edita; barra de fórmulas).
+- **Fórmulas**: motor próprio (sem dependência), nomes em português **e** inglês, `;` ou `,`, intervalos, `$`, outras abas, ajuste automático ao inserir/excluir linhas e colunas. Cobre SOMA, MÉDIA, MÍNIMO, MÁXIMO, CONT.VALORES, CONT.NÚM, SE, SOMASE(S), CONT.SE(S), PROCV, ÍNDICE, CORRESP, ARRED, HOJE, TEXTO, CONCATENAR, SEERRO, E/OU, DATA e mais.
+- **Importar**: `.xlsx`, `.xls`, `.ods`, `.csv`, `.tsv` (≤ 15 MB, processado no servidor): abas, valores, fórmulas, formatos de número, largura de colunas, negrito/cores/bordas e mesclagens. `.xls` entra com valores (fórmulas viram valores). **Exportar**: `.xlsx` (fórmulas, formatos, estilos, mesclagens, congelamento), CSV Brasil (`;`), CSV internacional, `.tsv`; imprimir/PDF pelo navegador.
+- **Dados**: tabelas `sheets`, `sheet_tabs` (grade esparsa em jsonb) e `sheet_versions`. **Autosave** com indicador "Salvo", **controle de versão otimista** (conflito pergunta o que manter) e **histórico** com instantâneos automáticos e restauração. Auditoria em criar/importar/excluir/exportar/restaurar.
+- Limitações conhecidas: gráficos, imagens e formatação condicional não são importados; sem edição simultânea em tempo real (conflito simples); no Vercel o corpo de uma requisição é limitado a ~4,5 MB (importações maiores precisam de upload direto ao Blob).
+
 ## Fase 6 — CMS do site + Drive ✅ (entregue 2026-10-19)
 **Site** (`/site`, permissão `site`): projetos (capa, galeria arrastável, destaque, ordem por arrastar), blog (rascunho/publicado, data,
 capa), vagas, imagens (biblioteca de mídia + imagem de cada seção da home) e textos/vídeo da home. O CRM usa um cliente separado

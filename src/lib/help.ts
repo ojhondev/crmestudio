@@ -483,6 +483,63 @@ export const articles: Article[] = [
     ],
   },
   {
+    slug: "planilhas",
+    module: "Gestão",
+    title: "Planilhas",
+    summary: "Planilhas completas, parecidas com o Google Sheets: materiais, custos por projeto, orçamentos. Importam e exportam Excel.",
+    href: "/planilhas",
+    tour: "/planilhas",
+    keywords: ["planilha", "excel", "xlsx", "xls", "ods", "csv", "sheets", "fórmula", "soma", "importar", "exportar", "materiais", "custo", "orçamento", "cronograma", "fluxo de caixa", "abas"],
+    body: [
+      { t: "p", text: "Planilhas é um módulo independente do Financeiro: serve para controle de materiais, custo por projeto, orçamento de obra, cronograma e o que mais precisar. A tela de edição ocupa a tela toda, com menus como os do Google Sheets." },
+      {
+        t: "steps",
+        title: "Criar ou importar",
+        items: [
+          "Em Planilhas, toque em “Nova planilha” e escolha em branco ou um modelo: Controle de materiais, Custo por projeto, Orçamento de obra, Fluxo de caixa simples ou Cronograma.",
+          "Para trazer uma planilha que já existe, toque em “Importar” (ou arraste o arquivo para a tela). Aceita .xlsx, .xls, .ods, .csv e .tsv do Excel, Google Sheets e LibreOffice, até 15 MB.",
+          "Confira a prévia (abas, linhas, fórmulas) e toque em “Importar e abrir”. Você continua editando de onde parou: abas, valores, fórmulas, formatos de número, largura das colunas e, quando o arquivo traz, negrito, cores e células mescladas.",
+          "Do Google Sheets: Arquivo → Fazer download → Microsoft Excel (.xlsx). Do Excel e do LibreOffice, basta salvar normalmente.",
+        ],
+      },
+      {
+        t: "list",
+        title: "Editar",
+        items: [
+          "Clique (ou toque) numa célula e digite; Enter confirma e desce, Tab confirma e vai para a direita, Esc cancela, F2 ou duplo clique edita o que já existe. A barra de fórmulas mostra e edita o conteúdo.",
+          "Setas movem; Shift+setas selecionam; Ctrl+setas pulam até a borda dos dados; Delete limpa. Ctrl+C, Ctrl+X, Ctrl+V copiam, recortam e colam — inclusive de e para o Excel e o Google Sheets. Ctrl+Z e Ctrl+Y desfazem e refazem.",
+          "Alça de preenchimento: arraste o quadradinho no canto da seleção para copiar ou continuar uma série (1, 2, 3… ou Item 1, Item 2…). Ctrl+D e Ctrl+R preenchem para baixo e para a direita.",
+          "Arraste a borda de um cabeçalho para mudar a largura da coluna ou a altura da linha. Clique com o botão direito (ou segure no celular) para inserir, excluir, ocultar e mais.",
+          "Formatar: negrito, itálico, sublinhado, cores, bordas, alinhamento, quebra de texto, mesclar células, e formatos de número (número, moeda R$, porcentagem, data, hora, texto).",
+          "Dados: ordenar A→Z/Z→A e “Criar um filtro” (a setinha de cada título filtra por valores). Ver → Congelar mantém linhas e colunas fixas ao rolar.",
+          "Abas na base: toque no + para criar, dê dois cliques para renomear e use a setinha para duplicar, mover ou excluir. Arraste uma aba para reordenar.",
+        ],
+      },
+      {
+        t: "list",
+        title: "Fórmulas",
+        items: [
+          "Comece com =. Nomes em português ou inglês: =SOMA(B2:B9) ou =SUM(B2:B9); separe argumentos com ; ou ,.",
+          "Principais: SOMA, MÉDIA, MÍNIMO, MÁXIMO, CONT.VALORES, CONT.NÚM, SE, SOMASE, SOMASES, CONT.SE, PROCV, ÍNDICE, CORRESP, ARRED, HOJE, TEXTO, CONCATENAR, SEERRO, E, OU, DATA, ANO, MÊS e outras.",
+          "Referências como A1, intervalos B2:B9, colunas inteiras (A:A), $ para fixar ($B$2) e outras abas: ='Custos obra'!B2.",
+          "Ao inserir ou excluir linhas e colunas, as fórmulas se ajustam. Enquanto edita uma fórmula, clique (ou use as setas) em uma célula para inserir a referência.",
+        ],
+      },
+      {
+        t: "list",
+        title: "Salvar, versões e compartilhar",
+        items: [
+          "Tudo é salvo sozinho poucos segundos depois de editar: o selo ao lado do nome mostra “Salvo”. Se outra pessoa salvar a mesma planilha ao mesmo tempo, o sistema avisa e deixa você escolher qual versão manter.",
+          "Arquivo → Histórico de versões: o sistema guarda instantâneos automáticos e você pode restaurar um deles (o estado de agora também fica guardado) ou salvar uma versão manualmente.",
+          "Arquivo → Fazer download: Excel (.xlsx, com fórmulas, formatos, cores e mesclagens), CSV para Excel Brasil (;), CSV internacional (,) e .tsv. Arquivo → Imprimir abre uma página limpa para imprimir ou salvar como PDF.",
+          "Na lista, favorite com a estrela, duplique, renomeie e vincule a planilha a um negócio ou contato. A permissão Ver abre e baixa; Editar cria, edita e importa; Gerenciar também exclui.",
+        ],
+      },
+      { t: "tip", text: "Arquivos .xls antigos entram com valores, formatos e mesclagens, mas as fórmulas viram valores. Para manter fórmulas e cores, salve o arquivo como .xlsx antes de importar." },
+      { t: "warn", text: "Gráficos, imagens e formatação condicional de arquivos importados não são trazidos. As cores fixas e os valores são mantidos." },
+    ],
+  },
+  {
     slug: "atalhos",
     module: "Começando",
     title: "Atalhos do teclado",
@@ -570,6 +627,24 @@ export const tours: Record<string, { label: string; steps: TourStep[] }> = {
       { target: ["page-actions"], title: "Novo lançamento", body: "Registre receitas e despesas, inclusive parceladas em vários meses." },
       { target: ["fin-kpis"], title: "Resumo do mês", body: "Recebido, pago, resultado e atrasos. Use as setas para mudar de mês." },
       { target: ["fin-table"], title: "Lançamentos", body: "Marque como pago tocando na caixinha. Toque na linha para editar." },
+    ],
+  },
+  "/planilhas": {
+    label: "Tour de Planilhas",
+    steps: [
+      { target: ["sheets-new"], title: "Nova planilha", body: "Comece em branco ou de um modelo: controle de materiais, custo por projeto, orçamento de obra, fluxo de caixa ou cronograma." },
+      { target: ["sheets-import"], title: "Importar", body: "Traga arquivos do Excel, Google Sheets ou LibreOffice (.xlsx, .xls, .ods, .csv). Você vê uma prévia antes de confirmar e continua editando de onde parou." },
+      { target: ["sheets-search"], title: "Buscar e ordenar", body: "Procure pelo nome, ordene por recentes, nome ou criação e filtre as favoritas." },
+      { target: ["sheets-list"], title: "Suas planilhas", body: "Toque para abrir. No menu de cada uma: favoritar, renomear, duplicar, vincular a negócio ou contato, baixar em .xlsx ou excluir." },
+    ],
+  },
+  "/planilhas/": {
+    label: "Tour do editor de planilhas",
+    steps: [
+      { target: ["sheet-editor"], title: "Editor de planilhas", body: "Menus Arquivo, Editar, Ver, Inserir, Formatar e Dados, barra de ícones, barra de fórmulas e abas na base — como no Google Sheets. Tudo é salvo sozinho." },
+      { title: "Editar e navegar", body: "Digite numa célula e use Enter, Tab e as setas. F2 edita, Ctrl+C/V copia e cola do Excel, Ctrl+Z desfaz. No celular, toque duas vezes na célula ou use a barra de fórmulas." },
+      { title: "Fórmulas", body: "Comece com =, por exemplo =SOMA(B2:B9) ou =SE(B2>0;\"ok\";\"falta\"). Funcionam nomes em português e em inglês, intervalos, outras abas e $ para fixar referências." },
+      { title: "Importar e exportar", body: "Arquivo → Fazer download exporta .xlsx (com fórmulas e formatos) e .csv. Arquivo → Histórico de versões restaura uma versão anterior." },
     ],
   },
   "/financeiro/planilha": {
