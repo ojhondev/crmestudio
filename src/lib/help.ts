@@ -67,12 +67,12 @@ export const articles: Article[] = [
       {
         t: "steps",
         title: "No iPhone (Safari)",
-        items: ["Abra gestao.estudiorestaura.com.br no Safari.", "Toque no botão de compartilhar (quadrado com seta).", "Escolha “Adicionar à Tela de Início” e confirme."],
+        items: ["Abra crm.estudiorestaura.com.br no Safari.", "Toque no botão de compartilhar (quadrado com seta).", "Escolha “Adicionar à Tela de Início” e confirme."],
       },
       {
         t: "steps",
         title: "No Android (Chrome)",
-        items: ["Abra gestao.estudiorestaura.com.br no Chrome.", "Toque nos três pontinhos no canto superior.", "Escolha “Instalar aplicativo” (ou “Adicionar à tela inicial”)."],
+        items: ["Abra crm.estudiorestaura.com.br no Chrome.", "Toque nos três pontinhos no canto superior.", "Escolha “Instalar aplicativo” (ou “Adicionar à tela inicial”)."],
       },
       { t: "tip", text: "Use sempre o mesmo e-mail e a mesma senha. Se o app pedir login de novo, é só entrar outra vez." },
     ],

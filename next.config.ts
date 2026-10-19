@@ -14,14 +14,13 @@ const nextConfig: NextConfig = {
   // imagens de apresentações vão dentro do documento (já comprimidas no navegador)
   experimental: { serverActions: { bodySizeLimit: "8mb" } },
   async redirects() {
-    return [
-      {
-        source: "/:path*",
-        has: [{ type: "host", value: "app.estudiorestaura.com.br" }],
-        destination: "https://gestao.estudiorestaura.com.br/:path*",
-        permanent: true,
-      },
-    ];
+    // endereços antigos (app. e gestao.) levam ao endereço atual do CRM
+    return ["app.estudiorestaura.com.br", "gestao.estudiorestaura.com.br"].map((host) => ({
+      source: "/:path*",
+      has: [{ type: "host" as const, value: host }],
+      destination: "https://crm.estudiorestaura.com.br/:path*",
+      permanent: true,
+    }));
   },
   turbopack: {
     rules: {

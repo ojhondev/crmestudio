@@ -31,7 +31,7 @@ export default async function ConexaoPage({ searchParams }: PageProps<"/drive/co
   const st = await googleStatus();
   const canManage = has(user, "drive", "manage");
   const erro = typeof sp.erro === "string" ? ERRORS[sp.erro] : null;
-  const base = process.env.GOOGLE_REDIRECT_URI || "https://gestao.estudiorestaura.com.br/api/drive/callback";
+  const base = process.env.GOOGLE_REDIRECT_URI || "https://crm.estudiorestaura.com.br/api/drive/callback";
 
   return (
     <>

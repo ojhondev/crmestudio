@@ -21,7 +21,7 @@ const lora = Lora({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://gestao.estudiorestaura.com.br"),
+  metadataBase: new URL("https://crm.estudiorestaura.com.br"),
   title: { default: "Restaura Gestão", template: "%s · Restaura" },
   description: "Gestão do Estúdio Restaura — CRM, agenda, financeiro e documentos.",
   applicationName: "Restaura Gestão",
