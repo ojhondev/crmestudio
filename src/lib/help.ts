@@ -275,6 +275,60 @@ export const articles: Article[] = [
     ],
   },
   {
+    slug: "documentos",
+    module: "Gestão",
+    title: "Contratos e apresentações",
+    summary: "Monte contratos e propostas comerciais com os dados do cliente, envie um link e receba o aceite online.",
+    href: "/documentos",
+    tour: "/documentos",
+    keywords: ["contrato", "proposta", "apresentação", "slides", "pdf", "aceite", "assinatura", "cláusula", "modelo", "variável", "link", "cpf", "cnpj"],
+    body: [
+      { t: "p", text: "Em Documentos você cria dois tipos de peça: o Contrato (texto com cláusulas e aceite do cliente) e a Apresentação (proposta comercial em slides). Os dados do cliente, do negócio e do estúdio entram sozinhos." },
+      {
+        t: "steps",
+        title: "Criar um contrato",
+        items: [
+          "Em Documentos (ou dentro de um negócio), toque em “Novo documento” e escolha Contrato.",
+          "Escolha o modelo (restauro, projeto, laudo, consultoria ou em branco) e o negócio. Cliente, valor e local são preenchidos pelo negócio.",
+          "No editor, ajuste o texto. Na aba Variáveis toque em um item para inserir dados que o sistema preenche; em Cláusulas, insira trechos prontos; em Campos, preencha o que é específico deste contrato (prazo, escopo, forma de pagamento).",
+          "Veja a Prévia: o que ainda estiver vazio aparece destacado em laranja.",
+          "Toque em “Enviar ao cliente”. O sistema congela esta versão e gera um link.",
+        ],
+      },
+      {
+        t: "steps",
+        title: "Criar uma apresentação",
+        items: [
+          "Escolha Apresentação em “Novo documento”. Já vem uma proposta completa: capa, escopo, cronograma, investimento, condições e encerramento.",
+          "Selecione um slide na faixa, edite os textos e, se quiser, mude o layout. Use “Slide” para acrescentar mais, e Subir/Descer para reordenar.",
+          "Para fotos, toque em “Enviar imagem” (a foto é reduzida automaticamente) ou cole o endereço de uma imagem.",
+        ],
+      },
+      {
+        t: "steps",
+        title: "O que o cliente vê",
+        items: [
+          "Você copia o link e envia por WhatsApp ou e-mail. O cliente abre sem precisar de login, lê e pode baixar o PDF.",
+          "No contrato ele informa nome e CPF/CNPJ, marca a confirmação e toca em “Aceitar e assinar”. Ficam registrados data, horário, IP e navegador.",
+          "Se algo precisa mudar, ele toca em “Pedir ajustes” e escreve uma mensagem — ela aparece no Histórico do documento e no negócio.",
+        ],
+      },
+      {
+        t: "list",
+        title: "Situações do documento",
+        items: [
+          "Rascunho: você ainda pode editar. Salva sozinho enquanto digita.",
+          "Enviado: o cliente vê a versão congelada. Para mudar, use “Reabrir para editar” e envie de novo.",
+          "Aceito: travado. Para uma nova versão, use “Duplicar”.",
+          "Cancelado: o link deixa de funcionar.",
+        ],
+      },
+      { t: "tip", text: "Preencha uma vez em Ajustes → Dados do estúdio (CNPJ, endereço, responsável, foro) e no cadastro do contato (CPF/CNPJ e endereço). Assim os contratos saem completos." },
+      { t: "warn", text: "Os modelos de contrato são um ponto de partida em linguagem simples. Peça a um advogado para revisar e adaptar antes de usar com clientes." },
+      { t: "p", text: "Quem tem o nível Gerenciar também cria modelos próprios (“Salvar como modelo” dentro do documento) e cláusulas novas em “Modelos e cláusulas”, e pode excluir documentos." },
+    ],
+  },
+  {
     slug: "equipe-acessos",
     module: "Sistema",
     title: "Equipe e acessos",
@@ -479,6 +533,22 @@ export const tours: Record<string, { label: string; steps: TourStep[] }> = {
       { target: ["sheet-period"], title: "Período", body: "Veja um mês, só o que está em aberto ou tudo. A planilha mostra e edita exatamente esses lançamentos." },
       { target: ["sheet-toolbar"], title: "Linha, Importar e Exportar", body: "Adicione linhas, importe um CSV do Excel/Sheets e exporte nos dois formatos. Só grava quando você toca em Salvar." },
       { target: ["sheet-grid"], title: "A grade", body: "Toque numa célula e digite. Enter desce. Você também pode copiar células do Excel ou do Sheets e colar aqui — as linhas viram lançamentos." },
+    ],
+  },
+  "/documentos": {
+    label: "Tour de Documentos",
+    steps: [
+      { target: ["page-actions"], title: "Novo documento", body: "Crie um contrato ou uma apresentação a partir de um modelo. Se escolher um negócio, os dados do cliente entram sozinhos." },
+      { target: ["docs-list"], title: "Seus documentos", body: "Cada linha mostra a situação: rascunho, enviado, aceito ou cancelado. Use os filtros acima para achar mais rápido." },
+    ],
+  },
+  "/documentos/": {
+    label: "Tour do editor de documento",
+    steps: [
+      { target: ["doc-header"], title: "Título e situação", body: "O texto salva sozinho enquanto você escreve. Aqui também ficam o PDF, o link do cliente e o menu com duplicar, reabrir e cancelar." },
+      { target: ["doc-tabs"], title: "Editar, Prévia e Histórico", body: "A Prévia mostra como o cliente verá, com os dados já preenchidos. O Histórico guarda quando foi enviado, visto e aceito." },
+      { target: ["doc-side", "deck-strip"], title: "Variáveis, cláusulas e slides", body: "No contrato, insira variáveis e cláusulas prontas. Na apresentação, escolha e organize os slides." },
+      { target: ["doc-send"], title: "Enviar ao cliente", body: "Congela esta versão e gera o link. O cliente lê, baixa o PDF e aceita online." },
     ],
   },
   "/equipe": {

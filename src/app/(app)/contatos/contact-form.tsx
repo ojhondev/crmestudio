@@ -37,6 +37,12 @@ function ContactFields({ contact, team }: { contact?: Contact; team: Team }) {
       <Field label="E-mail" htmlFor="email">
         <Input id="email" name="email" type="email" defaultValue={contact?.email ?? ""} />
       </Field>
+      <Field label="CPF / CNPJ" htmlFor="document" hint="Aparece nos contratos.">
+        <Input id="document" name="document" inputMode="numeric" defaultValue={contact?.document ?? ""} />
+      </Field>
+      <Field label="Endereço" htmlFor="address" hint="Rua, número, bairro — usado nos contratos.">
+        <Input id="address" name="address" defaultValue={contact?.address ?? ""} />
+      </Field>
       <div className="grid grid-cols-[1fr_72px] gap-2">
         <Field label="Cidade" htmlFor="city">
           <Input id="city" name="city" defaultValue={contact?.city ?? ""} />

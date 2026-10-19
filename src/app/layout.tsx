@@ -15,7 +15,8 @@ const montserrat = Montserrat({
 const lora = Lora({
   variable: "--font-lora",
   subsets: ["latin"],
-  weight: ["400"],
+  weight: ["400", "500", "600"],
+  style: ["normal", "italic"],
   display: "swap",
 });
 

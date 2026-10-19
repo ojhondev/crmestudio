@@ -50,6 +50,9 @@ export const contacts = pgTable(
     role: text("role"), // cargo do contato (padre, ecônomo, arquiteto…)
     city: text("city"),
     state: text("state"),
+    /** CPF ou CNPJ (aparece nos contratos) */
+    document: text("document"),
+    address: text("address"),
     source: text("source"), // site, indicação, instagram, whatsapp, evento, exemplo
     tags: text("tags").array().notNull().default([]),
     notes: text("notes"),
@@ -196,6 +199,90 @@ export const transactions = pgTable(
   (t) => [index("transactions_due_idx").on(t.dueDate)],
 );
 
+export type DocKind = "contrato" | "apresentacao";
+export type DocStatus = "rascunho" | "enviado" | "aceito" | "cancelado";
+
+/** Contratos e apresentações comerciais. O conteúdo editável fica em `content`; ao enviar, uma cópia congelada vai para `snapshot`. */
+export const documents = pgTable(
+  "documents",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    kind: text("kind").$type<DocKind>().notNull(),
+    number: text("number").unique(), // CT-2026-0001 / PR-2026-0001
+    title: text("title").notNull(),
+    status: text("status").$type<DocStatus>().notNull().default("rascunho"),
+    dealId: uuid("deal_id").references(() => deals.id, { onDelete: "set null" }),
+    contactId: uuid("contact_id").references(() => contacts.id, { onDelete: "set null" }),
+    templateSlug: text("template_slug"),
+    content: jsonb("content").notNull(),
+    snapshot: jsonb("snapshot"),
+    publicToken: text("public_token").unique(),
+    sentAt: timestamp("sent_at", { withTimezone: true }),
+    acceptedAt: timestamp("accepted_at", { withTimezone: true }),
+    acceptedName: text("accepted_name"),
+    acceptedDocument: text("accepted_document"),
+    acceptedIp: text("accepted_ip"),
+    acceptedUserAgent: text("accepted_user_agent"),
+    version: integer("version").notNull().default(1),
+    createdById: uuid("created_by_id").references(() => users.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("documents_kind_idx").on(t.kind, t.status), index("documents_deal_idx").on(t.dealId)],
+);
+
+export const documentVersions = pgTable(
+  "document_versions",
+  {
+    id: serial("id").primaryKey(),
+    documentId: uuid("document_id")
+      .notNull()
+      .references(() => documents.id, { onDelete: "cascade" }),
+    version: integer("version").notNull(),
+    content: jsonb("content").notNull(),
+    note: text("note"),
+    createdById: uuid("created_by_id").references(() => users.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("document_versions_doc_idx").on(t.documentId, t.version)],
+);
+
+/** Linha do tempo do documento: criado, enviado, visualizado, aceito, ajuste pedido… */
+export const documentEvents = pgTable(
+  "document_events",
+  {
+    id: serial("id").primaryKey(),
+    documentId: uuid("document_id")
+      .notNull()
+      .references(() => documents.id, { onDelete: "cascade" }),
+    type: text("type").notNull(),
+    meta: jsonb("meta"),
+    at: timestamp("at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("document_events_doc_idx").on(t.documentId, t.at)],
+);
+
+/** Modelos de contrato/apresentação e biblioteca de cláusulas. `slug` só existe nos modelos que acompanham o sistema. */
+export const docTemplates = pgTable("doc_templates", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  kind: text("kind").$type<"contrato" | "apresentacao" | "clausula">().notNull(),
+  slug: text("slug").unique(),
+  name: text("name").notNull(),
+  description: text("description"),
+  content: jsonb("content").notNull(),
+  builtin: boolean("builtin").notNull().default(false),
+  createdById: uuid("created_by_id").references(() => users.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** Configurações do estúdio (dados que entram nos contratos). */
+export const appSettings = pgTable("app_settings", {
+  key: text("key").primaryKey(),
+  value: jsonb("value").notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 /** Trilha de auditoria: quem fez o quê (acessos, financeiro, exclusões, permissões). */
 export const auditLog = pgTable(
   "audit_log",
@@ -215,6 +302,8 @@ export const auditLog = pgTable(
 
 export type User = typeof users.$inferSelect;
 export type AuditEntry = typeof auditLog.$inferSelect;
+export type DocumentRow = typeof documents.$inferSelect;
+export type DocTemplate = typeof docTemplates.$inferSelect;
 export type Contact = typeof contacts.$inferSelect;
 export type Stage = typeof stages.$inferSelect;
 export type Deal = typeof deals.$inferSelect;

@@ -27,7 +27,7 @@ export const MODULES: {
   { key: "atendimento", label: "Atendimento", help: "Ver: lê conversas · Editar: responde, atribui e resolve" },
   { key: "agenda", label: "Agenda", help: "Ver: consulta · Editar: cria e altera eventos" },
   { key: "financeiro", label: "Financeiro", help: "Ver: consulta e exporta · Editar: lança e baixa · Gerenciar: exclui lançamentos" },
-  { key: "documentos", label: "Contratos e apresentações", help: "Ver: consulta · Editar: cria e edita · Gerenciar: exclui e gerencia modelos", soon: true },
+  { key: "documentos", label: "Contratos e apresentações", help: "Ver: consulta · Editar: cria e edita · Gerenciar: exclui e gerencia modelos" },
   { key: "site", label: "Site (projetos, blog, vagas)", help: "Ver: consulta · Editar: publica e altera · Gerenciar: exclui", soon: true },
   { key: "equipe", label: "Equipe e acessos", help: "Ver: vê quem tem acesso · Gerenciar: cria contas e altera permissões", levels: ["none", "view", "manage"] },
   { key: "configuracoes", label: "Configurações do sistema", help: "Ver: consulta etapas e integrações · Gerenciar: altera", levels: ["none", "view", "manage"] },

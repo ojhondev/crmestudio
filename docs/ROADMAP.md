@@ -41,7 +41,7 @@ Cada pessoa pode ter permissões ajustadas individualmente. Filtro de dados cont
 - Respostas rápidas, modelos, atribuição, status, notas internas, SLA (tempo sem resposta).
 - Ana: resumo, resposta sugerida, e-mail redigido, classificação de intenção.
 
-## Fase 5 — Documentos
+## Fase 5 — Documentos ✅ (entregue 2026-10-19)
 - **Gerador de contratos**: modelos (restauro, projeto, laudo, consultoria), editor de texto
   rico próprio com **variáveis** (`{{cliente.nome}}`, `{{negocio.valor}}`, `{{valor.extenso}}`…),
   biblioteca de cláusulas, versões, geração de PDF, envio por link, status (rascunho → enviado → aceito).
@@ -49,6 +49,15 @@ Cada pessoa pode ter permissões ajustadas individualmente. Filtro de dados cont
   blocos (capa, escopo, cronograma, portfólio do site, investimento, condições), tema do estúdio,
   puxa dados do negócio, exporta PDF e gera **link público** de visualização.
 - Assinatura eletrônica: v1 = aceite por link + PDF. Integração Clicksign/ZapSign = opcional depois.
+
+**Como ficou:** `/documentos` (lista, filtros, novo documento), `/documentos/[id]` (editor Tiptap com variáveis,
+cláusulas e campos do contrato; editor de slides 1280×720; prévia; histórico/versões), `/documentos/modelos`
+(modelos próprios + cláusulas), `/p/[token]` (página pública: leitura, PDF, aceite com nome/CPF/IP/navegador,
+"pedir ajustes", rastreio de visualização). PDF via Chromium (`puppeteer-core` + `@sparticuz/chromium`; local usa
+`CHROME_PATH`); `?formato=html` na rota do PDF devolve a versão para impressão. Dados do estúdio em
+Ajustes; CPF/CNPJ e endereço no contato. Ao enviar, o conteúdo é **congelado** (snapshot) e aceito = travado.
+Pendente (opcional): bloco "portfólio do site" nas apresentações (depende da Fase 6 / `SITE_DATABASE_URL`) e
+upload de imagens em Blob (hoje: imagem reduzida embutida ou URL https).
 
 ## Fase 6 — CMS do site dentro do CRM
 Projetos, blog, vagas, seções/imagens, vídeo da home e configurações passam a ser editados aqui

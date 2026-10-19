@@ -9,6 +9,8 @@ import { Field, SimpleSelect } from "@/components/form";
 import { ConfirmButton } from "@/components/crm/confirm-button";
 import type { Stage, StageKind } from "@/lib/db/schema";
 import { addStage, changePassword, clearDemoData, moveStage, removeStage, saveStage, updateProfile } from "./actions";
+import { saveStudio } from "../documentos/actions";
+import type { StudioProfile } from "@/lib/docs/types";
 
 function useToastState(state: { ok?: boolean; msg?: string; error?: string } | null, reset?: () => void) {
   useEffect(() => {
@@ -162,5 +164,33 @@ export function DemoDataButton() {
         toast.success(`${r.n} contatos de exemplo removidos`);
       }}
     />
+  );
+}
+
+export function StudioForm({ studio }: { studio: StudioProfile }) {
+  const [state, action, pending] = useActionState(saveStudio, null);
+  useToastState(state);
+  const f = (name: keyof StudioProfile, label: string, extra?: { hint?: string; span?: boolean }) => (
+    <Field label={label} htmlFor={`st-${name}`} hint={extra?.hint} className={extra?.span ? "sm:col-span-2" : undefined}>
+      <Input id={`st-${name}`} name={name} defaultValue={studio[name]} />
+    </Field>
+  );
+  return (
+    <form action={action} className="grid gap-3 sm:grid-cols-2">
+      {f("name", "Nome do estúdio")}
+      {f("legalName", "Razão social")}
+      {f("document", "CNPJ")}
+      {f("phone", "Telefone")}
+      {f("email", "E-mail")}
+      {f("city", "Cidade / UF")}
+      {f("address", "Endereço completo", { span: true })}
+      {f("responsible", "Responsável técnico / signatário")}
+      {f("responsibleDocument", "CPF do responsável")}
+      {f("forum", "Foro (comarca)", { hint: "Ex.: São Paulo/SP — entra na cláusula de foro dos contratos.", span: true })}
+      {state?.error && <p className="text-sm text-destructive sm:col-span-2">{state.error}</p>}
+      <Button className="w-fit" disabled={pending}>
+        {pending && <Loader2 className="animate-spin" />} Salvar dados
+      </Button>
+    </form>
   );
 }

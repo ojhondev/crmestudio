@@ -19,6 +19,9 @@ import { TaskList } from "@/components/crm/tasks";
 import { ConfirmButton } from "@/components/crm/confirm-button";
 import { EmailDraftButton } from "@/components/ana/email-draft";
 import { AnaFocusSetter } from "@/components/ana/ana-provider";
+import { DocStatusBadge } from "@/components/docs/status";
+import { templateOptions } from "@/lib/docs/server";
+import { NewDocumentButton } from "../../documentos/new-document";
 import { EditDealForm } from "../deal-form";
 import { deleteDeal } from "../actions";
 
@@ -68,6 +71,14 @@ export default async function DealPage({ params }: PageProps<"/negocios/[id]">) 
       : null,
   ]);
   const stage = options.stages.find((s) => s.id === deal.stageId)!;
+  const canDocs = has(user, "documentos");
+  const canDocsEdit = has(user, "documentos", "edit");
+  const [docRows, docTpl] = canDocs
+    ? await Promise.all([
+        db.select({ id: schema.documents.id, title: schema.documents.title, number: schema.documents.number, kind: schema.documents.kind, status: schema.documents.status }).from(schema.documents).where(eq(schema.documents.dealId, id)).orderBy(desc(schema.documents.updatedAt)),
+        canDocsEdit ? templateOptions() : null,
+      ])
+    : [[], null];
 
   return (
     <>
@@ -194,6 +205,28 @@ export default async function DealPage({ params }: PageProps<"/negocios/[id]">) 
               <p className="text-[13px] text-muted-foreground">Nada agendado.</p>
             )}
           </Section>
+
+          {canDocs && (
+            <Section
+              title="Documentos"
+              action={docTpl ? <NewDocumentButton {...docTpl} deals={[{ value: deal.id, label: deal.title }]} defaultDealId={deal.id} label="Novo" variant="outline" /> : undefined}
+            >
+              {docRows.length ? (
+                <ul className="grid gap-2 text-[13px]">
+                  {docRows.map((d) => (
+                    <li key={d.id} className="flex items-center gap-2">
+                      <Link href={`/documentos/${d.id}`} className="min-w-0 flex-1 truncate hover:underline">
+                        {d.title}
+                      </Link>
+                      <DocStatusBadge status={d.status} />
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-[13px] text-muted-foreground">Nenhum contrato ou proposta ainda.</p>
+              )}
+            </Section>
+          )}
 
           {canFinance && (
             <Section

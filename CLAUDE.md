@@ -4,7 +4,7 @@
 
 App interno (CRM + atendimento WhatsApp + agenda + financeiro + copiloto "Ana") do
 Estúdio Restaura. Domínio alvo: **app.estudiorestaura.com.br**. Site institucional
-fica em outro repo (`A:\estudiorestaura`) — logos/cores vieram de lá.
+fica em outro repo (`A:\Claude Code\estudiorestaura`) — logos/cores vieram de lá.
 
 ## Stack
 - Next.js 16.4 (App Router, Server Actions, Turbopack). **`cacheComponents` desligado**
@@ -13,7 +13,7 @@ fica em outro repo (`A:\estudiorestaura`) — logos/cores vieram de lá.
   (carvão `#1c1c1c` + acento ember `#b75928`, Montserrat + Lora).
 - Neon Postgres + Drizzle (`src/lib/db/schema.ts`). `npm run db:push` aplica o schema.
 - Ana = Claude (`@anthropic-ai/sdk`, modelo `claude-opus-5-5`, streaming, `fallbacks: "default"`).
-- Dev: `npm run dev` → porta **3021** (entrada `restaura-app` em `A:\Velo\.claude\launch.json`).
+- Dev: `npm run dev` → porta **3021** (entrada `restaura-app` em `A:\Claude Code\Velo\.claude\launch.json`).
 
 ## Regras do projeto
 - **Fuso horário**: o servidor roda em UTC. Toda formatação de data passa por

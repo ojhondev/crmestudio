@@ -20,6 +20,8 @@ function contactFields(form: FormData) {
     phone: normalizePhone(str(form.get("phone"))),
     company: str(form.get("company")),
     role: str(form.get("role")),
+    document: str(form.get("document")),
+    address: str(form.get("address")),
     city: str(form.get("city")),
     state: str(form.get("state"))?.toUpperCase().slice(0, 2) ?? null,
     source: str(form.get("source")),

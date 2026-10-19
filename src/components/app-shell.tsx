@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   CalendarDays,
+  FileSignature,
   ChevronsUpDown,
   KanbanSquare,
   LayoutDashboard,
@@ -63,6 +64,7 @@ function groups(user: SessionUser, unread: number): Group[] {
 
   const gestao: Item[] = [];
   if (has(user, "financeiro")) gestao.push({ key: "financeiro", href: "/financeiro", label: "Financeiro", icon: Wallet });
+  if (has(user, "documentos")) gestao.push({ key: "documentos", href: "/documentos", label: "Documentos", icon: FileSignature });
   if (gestao.length) g.push({ label: "Gestão", items: gestao });
 
   const sistema: Item[] = [];

@@ -4,7 +4,7 @@ import { usePathname } from "next/navigation";
 import { ThemeProvider as NextThemes } from "next-themes";
 
 /** Telas de entrada sempre em tema claro, independente da escolha da pessoa. */
-const ALWAYS_LIGHT = ["/login", "/primeiro-acesso"];
+const ALWAYS_LIGHT = ["/login", "/primeiro-acesso", "/p/"];
 
 /**
  * O padrão é o tema CLARO. O escuro é opcional (botão de tema no topo) e a escolha

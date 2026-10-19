@@ -9,7 +9,8 @@ import { whatsappConnected } from "@/lib/whatsapp";
 import { PageBody, PageHeader } from "@/components/page-header";
 import { Section } from "@/components/crm/section";
 import { cn } from "@/lib/utils";
-import { DemoDataButton, PasswordForm, ProfileForm, StagesEditor } from "./forms";
+import { getStudio } from "@/lib/docs/server";
+import { DemoDataButton, PasswordForm, ProfileForm, StagesEditor, StudioForm } from "./forms";
 
 export const metadata: Metadata = { title: "Ajustes" };
 
@@ -17,10 +18,11 @@ export default async function SettingsPage() {
   const user = await requireUser();
   const canView = has(user, "configuracoes", "view");
   const canManage = has(user, "configuracoes", "manage");
-  const [[me], stages, [demo]] = await Promise.all([
+  const [[me], stages, [demo], studio] = await Promise.all([
     db.select({ name: schema.users.name, phone: schema.users.phone }).from(schema.users).where(eq(schema.users.id, user.id)),
     db.select().from(schema.stages).orderBy(asc(schema.stages.position)),
     db.select({ n: count() }).from(schema.contacts).where(eq(schema.contacts.source, "exemplo")),
+    canManage ? getStudio() : null,
   ]);
   const h = await headers();
   const origin = `${h.get("x-forwarded-proto") ?? "https"}://${h.get("host")}`;
@@ -35,6 +37,13 @@ export default async function SettingsPage() {
         <Section title="Senha">
           <PasswordForm />
         </Section>
+
+        {canManage && studio && (
+          <Section title="Dados do estúdio" className="lg:col-span-2">
+            <p className="mb-3 text-[13px] text-muted-foreground">Entram automaticamente nos contratos e apresentações (CNPJ, endereço, responsável e foro).</p>
+            <StudioForm studio={studio} />
+          </Section>
+        )}
 
         {canView && (
           <Section title="Integrações" className="lg:col-span-2">
