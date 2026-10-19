@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useSyncExternalStore } from "react";
 import { EditorContent, useEditor, useEditorState, type Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import TextAlign from "@tiptap/extension-text-align";
@@ -20,6 +20,7 @@ import {
   Quote,
   Redo2,
   Scissors,
+  Variable as VariableIcon,
   Table2,
   Underline as UnderlineIcon,
   Undo2,
@@ -27,6 +28,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { PageBreak, Variable } from "./editor-extensions";
 import { BUILTIN_CLAUSES, FIELD_LABELS } from "@/lib/docs/templates";
@@ -44,6 +46,19 @@ export const EDITOR_CSS = `
 .rs-editor td,.rs-editor th{min-width:60px}
 .rs-editor .selectedCell{background:#f7ece5}
 `;
+
+/** true quando a tela é larga o bastante para o painel lateral (lg = 1024px). */
+function useWide() {
+  return useSyncExternalStore(
+    (cb) => {
+      const m = window.matchMedia("(min-width: 1024px)");
+      m.addEventListener("change", cb);
+      return () => m.removeEventListener("change", cb);
+    },
+    () => window.matchMedia("(min-width: 1024px)").matches,
+    () => true,
+  );
+}
 
 type ClauseOption = { id: string; name: string; description?: string | null; html: string };
 
@@ -130,6 +145,8 @@ export function ContractEditor({
   customClauses?: ClauseOption[];
 }) {
   const [html, setHtml] = useState(value.html);
+  const wide = useWide();
+  const [panelOpen, setPanelOpen] = useState(false);
   const editor = useEditor({
     immediatelyRender: false,
     editable: !readOnly,
@@ -159,21 +176,16 @@ export function ContractEditor({
     ...BUILTIN_CLAUSES.map((c) => ({ id: c.slug, name: c.name, description: c.description, html: c.html })),
   ];
 
-  const insertVar = (key: string) => editor?.chain().focus().insertContent({ type: "variable", attrs: { key } }).insertContent(" ").run();
-  const insertClause = (h: string) => editor?.chain().focus().insertContent(h).run();
+  const insertVar = (key: string) => {
+    editor?.chain().focus().insertContent({ type: "variable", attrs: { key } }).insertContent(" ").run();
+    if (!wide) setPanelOpen(false);
+  };
+  const insertClause = (h: string) => {
+    editor?.chain().focus().insertContent(h).run();
+    if (!wide) setPanelOpen(false);
+  };
 
-  return (
-    <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
-      <div className="min-w-0 overflow-hidden rounded-xl border bg-muted/40">
-        <style dangerouslySetInnerHTML={{ __html: EDITOR_CSS }} />
-        {editor && !readOnly && <Toolbar editor={editor} />}
-        <div className="rs-doc thin-scroll max-h-[calc(100dvh-15rem)] min-h-[420px] overflow-y-auto p-2 sm:p-5">
-          <div className="mx-auto max-w-[794px] overflow-hidden rounded-md bg-white shadow-sm ring-1 ring-black/5">
-            <EditorContent editor={editor} />
-          </div>
-        </div>
-      </div>
-
+  const side = (
       <aside data-tour="doc-side" className="min-w-0">
         <Tabs defaultValue="variaveis">
           <TabsList className="w-full">
@@ -186,7 +198,7 @@ export function ContractEditor({
 
           <TabsContent value="variaveis" className="mt-3">
             <p className="mb-3 text-[12.5px] text-muted-foreground">Clique para inserir no ponto do cursor. O sistema troca pelos dados do cliente, do negócio e do estúdio.</p>
-            <div className="thin-scroll grid max-h-[52dvh] gap-4 overflow-y-auto pr-1">
+            <div className="thin-scroll grid lg:max-h-[52dvh] max-lg:max-h-none gap-4 overflow-y-auto pr-1">
               {VAR_GROUPS.map((g) => (
                 <div key={g}>
                   <p className="label mb-1.5">{g}</p>
@@ -212,7 +224,7 @@ export function ContractEditor({
 
           <TabsContent value="clausulas" className="mt-3">
             <p className="mb-3 text-[12.5px] text-muted-foreground">Insere a cláusula no cursor. Você pode editar o texto depois.</p>
-            <ul className="thin-scroll grid max-h-[52dvh] gap-1.5 overflow-y-auto pr-1">
+            <ul className="thin-scroll grid lg:max-h-[52dvh] gap-1.5 overflow-y-auto pr-1">
               {clauses.map((c) => (
                 <li key={c.id}>
                   <button
@@ -252,6 +264,41 @@ export function ContractEditor({
           </TabsContent>
         </Tabs>
       </aside>
+  );
+
+  return (
+    <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+      <div className="min-w-0 overflow-hidden rounded-xl border bg-muted/40">
+        <style dangerouslySetInnerHTML={{ __html: EDITOR_CSS }} />
+        {editor && !readOnly && (
+          <button
+            type="button"
+            onClick={() => setPanelOpen(true)}
+            className="flex w-full items-center justify-center gap-2 border-b bg-brand-soft px-3 py-2.5 text-sm font-medium text-brand lg:hidden"
+          >
+            <VariableIcon className="size-4" /> Inserir variável ou cláusula
+          </button>
+        )}
+        {editor && !readOnly && <Toolbar editor={editor} />}
+        <div className="rs-doc thin-scroll max-h-[calc(100dvh-15rem)] min-h-[420px] overflow-y-auto p-2 sm:p-5">
+          <div className="mx-auto max-w-[794px] overflow-hidden rounded-md bg-white shadow-sm ring-1 ring-black/5">
+            <EditorContent editor={editor} />
+          </div>
+        </div>
+      </div>
+
+      {wide ? side : null}
+      {!wide && (
+        <Sheet open={panelOpen} onOpenChange={setPanelOpen}>
+          <SheetContent side="bottom" className="data-[side=bottom]:h-[88dvh] gap-0 rounded-t-2xl pb-[env(safe-area-inset-bottom)]">
+            <SheetHeader className="pr-14">
+              <SheetTitle>Inserir no contrato</SheetTitle>
+              <SheetDescription>Toque para inserir no ponto do cursor.</SheetDescription>
+            </SheetHeader>
+            <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-6">{side}</div>
+          </SheetContent>
+        </Sheet>
+      )}
     </div>
   );
 }

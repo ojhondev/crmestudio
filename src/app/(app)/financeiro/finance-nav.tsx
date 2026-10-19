@@ -28,7 +28,7 @@ export function FinanceNav() {
                   href={t.href}
                   aria-current={active ? "page" : undefined}
                   className={cn(
-                    "rounded-md px-3 py-1.5 text-[13px] whitespace-nowrap transition-colors max-md:min-h-9 max-md:py-2",
+                    "rounded-md px-3 py-1.5 text-[13px] whitespace-nowrap transition-colors max-md:inline-flex max-md:min-h-11 max-md:items-center",
                     active ? "bg-foreground font-medium text-background" : "text-muted-foreground hover:text-foreground",
                   )}
                 >

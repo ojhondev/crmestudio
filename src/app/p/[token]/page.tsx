@@ -40,14 +40,14 @@ export default async function PublicDocument({ params }: PageProps<"/p/[token]">
   const studioName = (doc.snapshot as { studioName?: string } | null)?.studioName ?? "Estúdio Restaura";
 
   return (
-    <div className="rs-doc min-h-dvh bg-[#f5f4f3] px-3 py-6 sm:px-6 sm:py-10">
+    <div className="rs-doc min-h-dvh bg-[#f5f4f3] px-3 py-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:px-6 sm:py-10">
       <style dangerouslySetInnerHTML={{ __html: DOC_CSS }} />
       <header className="mx-auto mb-5 flex w-full max-w-[794px] items-center justify-between gap-4">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/logo.png" alt={studioName} className="h-8 w-auto object-contain" />
+        <img src="/logo.png" alt={studioName} className="h-8 w-auto min-w-0 object-contain" />
         <a
           href={`/p/${token}/pdf`}
-          className="inline-flex items-center gap-1.5 rounded-full border bg-white px-3.5 py-1.5 text-[13px] text-[#1c1c1c] hover:border-[#1c1c1c]/40"
+          className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full border bg-white px-4 py-1.5 text-[13px] text-[#1c1c1c] hover:border-[#1c1c1c]/40"
           style={{ fontFamily: "var(--sans)" }}
         >
           <Download className="size-3.5" /> Baixar PDF

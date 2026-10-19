@@ -61,7 +61,7 @@ function DialogContent({
       <DialogPrimitive.Content
         data-slot="dialog-content"
         className={cn(
-          "fixed z-50 grid w-full gap-4 bg-popover p-4 text-sm text-popover-foreground ring-1 ring-foreground/10 duration-150 outline-none max-sm:inset-x-0 max-sm:bottom-0 max-sm:max-h-[92svh] max-sm:overflow-y-auto max-sm:rounded-t-2xl max-sm:pb-[max(1rem,env(safe-area-inset-bottom))] max-sm:data-open:slide-in-from-bottom-16 max-sm:data-closed:slide-out-to-bottom-16 sm:top-1/2 sm:left-1/2 sm:max-w-sm sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-xl sm:data-open:zoom-in-95 sm:data-closed:zoom-out-95 data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0",
+          "fixed z-50 grid w-full gap-4 bg-popover p-4 text-sm text-popover-foreground ring-1 ring-foreground/10 duration-150 outline-none max-sm:inset-x-0 max-sm:bottom-0 max-sm:max-h-[92dvh] max-sm:overflow-y-auto max-sm:rounded-t-2xl max-sm:pb-[max(1rem,env(safe-area-inset-bottom))] max-sm:data-open:slide-in-from-bottom-16 max-sm:data-closed:slide-out-to-bottom-16 sm:top-1/2 sm:left-1/2 sm:max-w-sm sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-xl sm:data-open:zoom-in-95 sm:data-closed:zoom-out-95 data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0",
           className
         )}
         {...props}
@@ -71,12 +71,12 @@ function DialogContent({
           <DialogPrimitive.Close data-slot="dialog-close" asChild>
             <Button
               variant="ghost"
-              className="absolute top-2 right-2"
+              className="absolute top-2 right-2 max-md:top-1.5 max-md:right-1.5"
               size="icon-sm"
             >
               <XIcon
               />
-              <span className="sr-only">Close</span>
+              <span className="sr-only">Fechar</span>
             </Button>
           </DialogPrimitive.Close>
         )}
@@ -89,7 +89,7 @@ function DialogHeader({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="dialog-header"
-      className={cn("flex flex-col gap-2", className)}
+      className={cn("flex flex-col gap-2 pr-9", className)}
       {...props}
     />
   )
@@ -115,7 +115,7 @@ function DialogFooter({
       {children}
       {showCloseButton && (
         <DialogPrimitive.Close asChild>
-          <Button variant="outline">Close</Button>
+          <Button variant="outline">Fechar</Button>
         </DialogPrimitive.Close>
       )}
     </div>

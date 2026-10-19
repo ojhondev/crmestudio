@@ -39,14 +39,14 @@ export function PageToolbar({
   return (
     <div data-tour="page-header" className={cn("sticky top-14 z-20 border-b bg-background", className)}>
       <div className="flex min-h-12 items-center gap-3 px-3 sm:px-5">
-        <h1 className="shrink-0 text-[15px] font-semibold tracking-tight whitespace-nowrap">{title}</h1>
+        <h1 className="min-w-0 shrink-0 truncate text-[15px] font-semibold tracking-tight whitespace-nowrap max-md:max-w-[42%]">{title}</h1>
         {(filters || actions) && (
-          <div className="thin-scroll min-w-0 flex-1 overflow-x-auto py-1.5">
-            <div className="flex w-max min-w-full items-center justify-center gap-2 [&_button]:shrink-0 [&_input]:shrink-0">
-              {filters}
+          <div className="no-scrollbar min-w-0 flex-1 overflow-x-auto overscroll-x-contain py-1.5 max-md:[mask-image:linear-gradient(to_right,black_calc(100%-20px),transparent)]">
+            <div className="flex w-max min-w-full items-center justify-center gap-2 max-md:justify-start max-md:pr-6 [&_button]:shrink-0 [&_input]:shrink-0">
+              {filters && <div className="flex items-center gap-2 max-md:order-2">{filters}</div>}
               {filters && actions && <ToolbarSep />}
               {actions && (
-                <div data-tour="page-actions" className="flex items-center gap-2">
+                <div data-tour="page-actions" className="flex items-center gap-2 max-md:order-1">
                   {actions}
                 </div>
               )}
@@ -60,7 +60,7 @@ export function PageToolbar({
 }
 
 export function ToolbarSep() {
-  return <span aria-hidden className="mx-0.5 h-5 w-px shrink-0 bg-border" />;
+  return <span aria-hidden className="mx-0.5 h-5 w-px shrink-0 bg-border max-md:hidden" />;
 }
 
 export function ToolbarGroup({ children, className }: { children: React.ReactNode; className?: string }) {

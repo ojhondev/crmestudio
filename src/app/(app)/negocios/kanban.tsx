@@ -97,7 +97,7 @@ export function Kanban({ stages, deals: initial, canEdit = true, canLaunch = tru
 
   return (
     <DndContext id="deals-board" sensors={canEdit ? sensors : []} onDragStart={onDragStart} onDragEnd={onDragEnd} onDragCancel={() => setActiveId(null)}>
-      <div data-tour="kanban" className="thin-scroll flex min-h-0 flex-1 snap-x snap-proximity gap-3 overflow-x-auto scroll-px-3 p-3 sm:scroll-px-5 sm:px-5">
+      <div data-tour="kanban" className="thin-scroll flex min-h-0 flex-1 snap-x snap-proximity max-md:snap-mandatory gap-3 overflow-x-auto scroll-px-3 p-3 sm:scroll-px-5 sm:px-5">
         {stages.map((s) => {
           const list = byStage.get(s.id) ?? [];
           const total = list.reduce((sum, d) => sum + d.valueCents, 0);
@@ -211,7 +211,7 @@ function Card({ deal, overlay }: { deal: BoardDeal; overlay?: boolean }) {
         {deal.ownerName && (
           <span
             title={deal.ownerName}
-            className="ml-auto grid size-6 shrink-0 place-items-center rounded-full bg-foreground text-[11px] font-semibold text-background"
+            className="ml-auto grid size-6 shrink-0 place-items-center rounded-full bg-foreground text-[12px] font-semibold text-background"
           >
             {initials(deal.ownerName)}
           </span>

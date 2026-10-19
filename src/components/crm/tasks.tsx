@@ -82,7 +82,7 @@ export function TaskList({
             <button
               aria-label="Excluir tarefa"
               onClick={() => start(() => deleteTask(t.id))}
-              className="grid size-6 place-items-center rounded opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100 max-md:size-10 max-md:opacity-100"
+              className="grid size-6 place-items-center rounded opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100 max-md:size-11 max-md:opacity-100"
             >
               <X className="size-3.5 text-muted-foreground" />
             </button>

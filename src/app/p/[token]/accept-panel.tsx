@@ -38,7 +38,7 @@ export function AcceptPanel({ token, kind }: { token: string; kind: "contrato" |
 
   return (
     <section aria-labelledby="accept-title" className="mx-auto mt-8 w-full max-w-[794px] rounded-2xl border bg-card p-5 shadow-sm sm:p-7">
-      <div className="flex gap-2" role="tablist" aria-label="Resposta ao documento">
+      <div className="flex flex-wrap gap-2" role="tablist" aria-label="Resposta ao documento">
         {(
           [
             ["accept", isContract ? "Aceitar contrato" : "Aceitar proposta"],
@@ -54,7 +54,7 @@ export function AcceptPanel({ token, kind }: { token: string; kind: "contrato" |
               setMode(k);
               setError(null);
             }}
-            className={`rounded-full border px-3.5 py-1.5 text-[13px] ${mode === k ? "border-foreground bg-foreground text-background" : "hover:border-foreground/40"}`}
+            className={`min-h-11 rounded-full border px-4 py-1.5 text-[13px] max-sm:flex-1 ${mode === k ? "border-foreground bg-foreground text-background" : "hover:border-foreground/40"}`}
           >
             {l}
           </button>
@@ -79,8 +79,8 @@ export function AcceptPanel({ token, kind }: { token: string; kind: "contrato" |
               <Input id="acc-doc" value={doc} onChange={(e) => setDoc(e.target.value)} inputMode="numeric" />
             </Field>
           </div>
-          <label className="flex items-start gap-2.5 text-[13.5px]">
-            <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} className="mt-0.5 size-4 accent-brand" />
+          <label className="-mx-2 flex min-h-11 items-start gap-3 rounded-lg px-2 py-2.5 text-[13.5px]">
+            <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} className="mt-0.5 size-5 shrink-0 accent-brand" />
             <span>{isContract ? "Li e concordo com todos os termos deste contrato." : "Li a proposta e quero seguir com o estúdio."}</span>
           </label>
           {error && (
@@ -88,7 +88,7 @@ export function AcceptPanel({ token, kind }: { token: string; kind: "contrato" |
               {error}
             </p>
           )}
-          <Button type="button" onClick={accept} disabled={pending} className="justify-self-start">
+          <Button type="button" onClick={accept} disabled={pending} className="justify-self-start max-sm:w-full">
             {pending ? <Loader2 className="animate-spin" /> : <Check />} {isContract ? "Aceitar e assinar" : "Aceitar proposta"}
           </Button>
         </div>
@@ -109,7 +109,7 @@ export function AcceptPanel({ token, kind }: { token: string; kind: "contrato" |
               {error}
             </p>
           )}
-          <Button type="button" variant="outline" onClick={changes} disabled={pending} className="justify-self-start">
+          <Button type="button" variant="outline" onClick={changes} disabled={pending} className="justify-self-start max-sm:w-full">
             {pending ? <Loader2 className="animate-spin" /> : <MessageSquare />} Enviar pedido
           </Button>
         </div>

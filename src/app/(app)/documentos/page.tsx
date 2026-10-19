@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { and, desc, eq } from "drizzle-orm";
-import { FileSignature, FileText, Presentation } from "lucide-react";
+import { BookOpen, FileSignature, FileText, Presentation } from "lucide-react";
 import { db, schema } from "@/lib/db";
 import { has, requireAccess } from "@/lib/auth";
 import { dealScope } from "@/lib/deals";
@@ -90,7 +90,7 @@ export default async function DocumentsPage({ searchParams }: PageProps<"/docume
           <>
             {canManage && (
               <Button asChild variant="outline" size="sm">
-                <Link href="/documentos/modelos">Modelos e cláusulas</Link>
+                <Link href="/documentos/modelos" aria-label="Modelos e cláusulas"><BookOpen className="md:hidden" /><span className="max-md:hidden">Modelos e cláusulas</span></Link>
               </Button>
             )}
             {canEdit && <NewDocumentButton {...tpl} deals={deals.map((d) => ({ value: d.id, label: d.title }))} />}

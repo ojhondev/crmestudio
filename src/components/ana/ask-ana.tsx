@@ -27,7 +27,7 @@ export function AskAna() {
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="Pergunte à Ana sobre clientes, funil, agenda ou caixa…"
-          className="h-9 max-md:h-10 w-full rounded-full border bg-card pr-12 pl-4 text-[13.5px] outline-none placeholder:text-muted-foreground focus:border-brand/40"
+          className="h-9 max-md:h-11 w-full rounded-full border bg-card pr-12 pl-4 text-[13.5px] outline-none placeholder:text-muted-foreground focus:border-brand/40"
         />
         <button aria-label="Perguntar" className="absolute top-1/2 right-1.5 grid size-7 max-md:size-8 -translate-y-1/2 place-items-center rounded-full bg-brand text-on-brand">
           <ArrowUp className="size-3.5" />

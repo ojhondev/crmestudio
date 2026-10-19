@@ -80,6 +80,9 @@ export function AgendaView({
     if (canEdit) setDialog(v);
   };
   const [mine, setMine] = useState(false);
+  // celular: o toque num dia seleciona e lista os eventos dele logo abaixo do calendário
+  const [sel, setSel] = useState(() => (today.slice(0, 7) === month ? today : month + "-01"));
+  const isPhone = () => typeof window !== "undefined" && window.matchMedia("(max-width: 639px)").matches;
 
   const byDay = useMemo(() => {
     const map = new Map<string, Ev[]>();
@@ -97,39 +100,41 @@ export function AgendaView({
 
   const upcoming = events.filter((e) => isoDateBR(new Date(e.endsAt)) >= today && (!mine || e.userId === userId)).slice(0, 12);
   const monthLabel = fmtDate(month + "-15", "MMMM 'de' yyyy");
+  const selList = byDay.get(sel) ?? [];
+  const nav = (sfx: string) => (
+    <>
+      <Button asChild variant="outline" size="icon" aria-label="Mês anterior">
+        <Link href={`/agenda?m=${shiftMonth(month, -1)}`}>
+          <ChevronLeft />
+        </Link>
+      </Button>
+      <Button asChild variant="outline" size="icon" aria-label="Próximo mês">
+        <Link href={`/agenda?m=${shiftMonth(month, 1)}`}>
+          <ChevronRight />
+        </Link>
+      </Button>
+      <span className="min-w-36 text-center text-[14px] font-medium whitespace-nowrap first-letter:uppercase max-md:flex-1 max-md:text-left max-md:text-base">{monthLabel}</span>
+      {month !== today.slice(0, 7) && (
+        <Button asChild variant="ghost" size="sm">
+          <Link href="/agenda">Hoje</Link>
+        </Button>
+      )}
+      {!isPartner && (
+        <div className="flex items-center gap-2 whitespace-nowrap max-md:min-h-11">
+          <Switch id={"mine" + sfx} checked={mine} onCheckedChange={setMine} />
+          <Label htmlFor={"mine" + sfx} className="text-[12.5px] font-normal text-muted-foreground">
+            Só os meus
+          </Label>
+        </div>
+      )}
+    </>
+  );
 
   return (
     <>
       <PageToolbar
         title="Agenda"
-        filters={
-          <>
-            <Button asChild variant="outline" size="icon" aria-label="Mês anterior">
-              <Link href={`/agenda?m=${shiftMonth(month, -1)}`}>
-                <ChevronLeft />
-              </Link>
-            </Button>
-            <Button asChild variant="outline" size="icon" aria-label="Próximo mês">
-              <Link href={`/agenda?m=${shiftMonth(month, 1)}`}>
-                <ChevronRight />
-              </Link>
-            </Button>
-            <span className="min-w-36 text-center text-[14px] font-medium whitespace-nowrap capitalize">{monthLabel}</span>
-            {month !== today.slice(0, 7) && (
-              <Button asChild variant="ghost" size="sm">
-                <Link href="/agenda">Hoje</Link>
-              </Button>
-            )}
-            {!isPartner && (
-              <div className="flex items-center gap-2 whitespace-nowrap max-md:min-h-10">
-                <Switch id="mine" checked={mine} onCheckedChange={setMine} />
-                <Label htmlFor="mine" className="text-[12.5px] font-normal text-muted-foreground">
-                  Só os meus
-                </Label>
-              </div>
-            )}
-          </>
-        }
+        filters={<div className="flex items-center gap-2 max-md:hidden">{nav("-bar")}</div>}
         actions={
           <>
             {sync}
@@ -143,11 +148,12 @@ export function AgendaView({
       />
       <ToolArea>
     <div className="grid gap-5 p-4 pb-8 sm:p-5 xl:grid-cols-[minmax(0,1fr)_300px]">
+      <div className="flex flex-wrap items-center gap-2 md:hidden">{nav("-m")}</div>
       <div className="min-w-0">
         <div data-tour="agenda-grid" className="overflow-hidden rounded-xl border bg-card">
           <div className="grid grid-cols-7 border-b bg-muted/40">
             {WEEK.map((w) => (
-              <div key={w} className="px-2 py-2 text-center text-xs tracking-wider text-muted-foreground uppercase">
+              <div key={w} className="px-0.5 py-2 text-center text-xs tracking-wider text-muted-foreground uppercase sm:px-2">
                 {w}
               </div>
             ))}
@@ -159,13 +165,14 @@ export function AgendaView({
               return (
                 <div
                   key={d}
-                  onClick={() => show({ date: d })}
+                  onClick={() => (isPhone() ? setSel(d) : show({ date: d }))}
                   className={cn(
-                    "group min-h-[92px] cursor-pointer border-r border-b p-1.5 transition-colors last:border-r-0 hover:bg-muted/40 sm:min-h-[112px] [&:nth-child(7n)]:border-r-0",
+                    "group min-h-[56px] cursor-pointer max-sm:p-1 sm:min-h-[112px] border-r border-b p-1.5 transition-colors last:border-r-0 hover:bg-muted/40 [&:nth-child(7n)]:border-r-0",
                     outside && "bg-muted/25",
+                    d === sel && "max-sm:bg-brand-soft max-sm:ring-2 max-sm:ring-brand max-sm:ring-inset",
                   )}
                 >
-                  <div className="mb-1 flex items-center">
+                  <div className="mb-1 flex items-center max-sm:justify-center">
                     <span
                       className={cn(
                         "grid size-6 place-items-center rounded-full text-[12px]",
@@ -175,9 +182,14 @@ export function AgendaView({
                     >
                       {Number(d.slice(8))}
                     </span>
-                    <Plus className="ml-auto size-3.5 text-muted-foreground opacity-0 group-hover:opacity-100" />
+                    <Plus className="ml-auto size-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 max-sm:hidden" />
                   </div>
-                  <div className="grid gap-0.5">
+                  <div className="flex flex-wrap justify-center gap-0.5 sm:hidden">
+                    {list.slice(0, 4).map((e) => (
+                      <span key={e.id} className="size-1.5 rounded-full" style={{ background: EVENT_TYPES[e.type]?.color ?? "#776157" }} />
+                    ))}
+                  </div>
+                  <div className="grid gap-0.5 max-sm:hidden">
                     {list.slice(0, 3).map((e) => (
                       <button
                         key={e.id}
@@ -202,7 +214,34 @@ export function AgendaView({
         </div>
       </div>
 
-      <aside className="grid content-start gap-3">
+      <section className="grid gap-2 sm:hidden" aria-label="Eventos do dia selecionado">
+        <h3 className="text-base font-medium first-letter:uppercase">{fmtDate(sel, "EEEE, dd 'de' MMMM")}</h3>
+        {selList.length ? (
+          selList.map((e) => (
+            <button key={e.id} onClick={() => show({ event: e })} className="grid gap-0.5 rounded-lg border bg-card p-3 text-left">
+              <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <span className="size-2 rounded-full" style={{ background: EVENT_TYPES[e.type]?.color }} />
+                {e.allDay ? "Dia todo" : `${fmtTime(e.startsAt)} – ${fmtTime(e.endsAt)}`}
+              </span>
+              <span className="text-sm font-medium break-words">{e.title}</span>
+              {e.location && (
+                <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <MapPin className="size-3 shrink-0" /> <span className="min-w-0 break-words">{e.location}</span>
+                </span>
+              )}
+            </button>
+          ))
+        ) : (
+          <p className="text-[13px] text-muted-foreground">Nada marcado neste dia.</p>
+        )}
+        {canEdit && (
+          <Button variant="outline" onClick={() => show({ date: sel })}>
+            <Plus /> Novo evento neste dia
+          </Button>
+        )}
+      </section>
+
+      <aside className="grid content-start gap-3 max-sm:hidden">
         <h3 className="label">Próximos</h3>
         {upcoming.length ? (
           upcoming.map((e) => (
@@ -270,7 +309,7 @@ function EventDialog({
 
   return (
     <Dialog open={!!state} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-h-[92svh] overflow-y-auto sm:max-w-lg">
+      <DialogContent className="max-h-[92dvh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle className="font-normal">{e ? "Editar evento" : "Novo evento"}</DialogTitle>
         </DialogHeader>

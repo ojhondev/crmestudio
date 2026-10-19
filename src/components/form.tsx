@@ -68,7 +68,7 @@ export function SimpleSelect({
         {...controlled}
         onChange={onValueChange ? (e) => onValueChange(e.target.value) : undefined}
         className={cn(
-          "h-9 max-md:h-10 w-full appearance-none truncate rounded-lg border border-input bg-transparent py-1 pr-8 pl-2.5 text-base transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50 md:h-8 md:text-sm dark:bg-input/30 [&>option]:bg-popover [&>option]:text-popover-foreground",
+          "h-9 max-md:h-11 w-full appearance-none truncate rounded-lg border border-input bg-transparent py-1 pr-8 pl-2.5 text-base transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50 md:h-8 md:text-sm dark:bg-input/30 [&>option]:bg-popover [&>option]:text-popover-foreground",
           className,
         )}
       >

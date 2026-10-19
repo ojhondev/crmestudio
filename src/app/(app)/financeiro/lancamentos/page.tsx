@@ -87,7 +87,7 @@ export default async function FinancePage({ searchParams }: PageProps<"/financei
   return (
     <>
       <PageBody className="grid gap-5 pt-4">
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Button asChild variant="outline" size="icon" aria-label="Mês anterior">
             <Link href={`/financeiro/lancamentos?m=${shift(month, -1)}`}>
               <ChevronLeft />
@@ -98,9 +98,9 @@ export default async function FinancePage({ searchParams }: PageProps<"/financei
               <ChevronRight />
             </Link>
           </Button>
-          <h2 className="ml-1 text-lg font-light capitalize">{fmtDate(`${month}-15`, "MMMM 'de' yyyy")}</h2>
+          <h2 className="ml-1 min-w-0 flex-1 text-lg font-light first-letter:uppercase max-sm:basis-28">{fmtDate(`${month}-15`, "MMMM 'de' yyyy")}</h2>
           {canEdit && (
-            <div data-tour="page-actions" className="ml-auto">
+            <div data-tour="page-actions" className="ml-auto max-sm:w-full max-sm:[&_button]:w-full">
               <TransactionDialogLauncher
             deals={deals.map(({ id, name }) => ({ id, name }))}
             contacts={contacts}

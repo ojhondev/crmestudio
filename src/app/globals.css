@@ -233,3 +233,59 @@
   --pr-urgent: #ef6b5b;
   --on-st: #141312;
 }
+
+/* ───────── Celular / tablet estreito (< 768px) ─────────
+   Regras globais: sem zoom do iOS em campos, alvos de toque ≥ 44px, sem estouro lateral. */
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+body {
+  overflow-wrap: break-word;
+}
+@media (max-width: 767px) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]),
+  select,
+  textarea,
+  [contenteditable="true"] {
+    font-size: 16px !important;
+  }
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="hidden"]),
+  select {
+    min-height: 44px;
+  }
+  button:not([role="switch"]):not([role="checkbox"]):not([role="radio"]):not([data-slot="checkbox"]):not(.tap-auto),
+  [role="tab"],
+  [role="menuitem"],
+  [role="menuitemcheckbox"],
+  [role="menuitemradio"],
+  [role="option"],
+  a:is(.inline-flex, .flex, .grid):not(.tap-auto) {
+    min-height: 44px;
+  }
+  button:not([role="switch"]):not([role="checkbox"]):not([role="radio"]):not([data-slot="checkbox"]):not(.tap-auto),
+  a:is(.inline-flex, .flex, .grid):not(.tap-auto) {
+    min-width: 44px;
+  }
+  /* interruptores e caixas de marcação: área de toque estendida sem mudar o visual */
+  [role="switch"]::after,
+  [role="checkbox"]::after {
+    content: "";
+    position: absolute;
+    inset: -13px -8px;
+  }
+}
+/* Popups ficam acima do teclado virtual */
+@supports (height: 100dvh) {
+  [data-slot="dialog-content"] {
+    max-height: 92dvh;
+  }
+}
+
+/* Rolagem sem barra visível (faixas de filtros, abas, calendários) */
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}

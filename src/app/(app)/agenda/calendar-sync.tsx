@@ -13,11 +13,11 @@ export function CalendarSync({ token, origin }: { token: string; origin: string 
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button variant="outline">
-          <SyncIcon /> Sincronizar
+        <Button variant="outline" aria-label="Sincronizar agenda">
+          <SyncIcon /> <span className="max-md:sr-only">Sincronizar</span>
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="end" className="grid w-[340px] gap-3 text-[13px]">
+      <PopoverContent align="end" className="grid w-[min(340px,calc(100vw-1.5rem))] gap-3 text-[13px]">
         <p className="font-medium">Ver esta agenda no celular</p>
         <p className="text-muted-foreground">
           Assine o link abaixo no <strong>Google Agenda</strong> (Outras agendas → “Do URL”) ou no <strong>iPhone</strong> (toque em

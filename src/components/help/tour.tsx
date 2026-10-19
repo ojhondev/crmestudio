@@ -235,12 +235,12 @@ export function TourProvider({ userId, children }: { userId: string; children: R
             ) : (
               <div className="absolute inset-0 bg-black/62" />
             )}
-            <div className={cn("absolute rounded-2xl border bg-popover p-4 text-popover-foreground shadow-2xl")} style={cardStyle}>
+            <div className={cn("absolute max-h-[70dvh] overflow-y-auto rounded-2xl border bg-popover p-4 text-popover-foreground shadow-2xl")} style={cardStyle}>
               <div className="mb-1 flex items-start gap-2">
                 <p className="label">
                   {index + 1} de {steps.length}
                 </p>
-                <button onClick={stop} aria-label="Fechar tour" className="-mt-1 -mr-1 ml-auto grid size-8 max-md:size-10 place-items-center rounded-md text-muted-foreground hover:bg-muted">
+                <button onClick={stop} aria-label="Fechar tour" className="-mt-1 -mr-1 ml-auto grid size-8 max-md:size-11 place-items-center rounded-md text-muted-foreground hover:bg-muted">
                   <X className="size-4" />
                 </button>
               </div>

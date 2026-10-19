@@ -31,7 +31,7 @@ export const DOC_CSS = `
 .rs-paper-head{display:flex;align-items:center;justify-content:space-between;gap:16px;border-bottom:1px solid var(--line);padding-bottom:18px;margin-bottom:28px}
 .rs-paper-head img{height:34px;width:auto;object-fit:contain}
 .rs-paper-head span{font-family:var(--sans);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
-@media (max-width:640px){.rs-paper{padding:28px 22px;font-size:14.5px;text-align:left}}
+@media (max-width:640px){.rs-paper{padding:28px 22px;font-size:14.5px;text-align:left;overflow-wrap:anywhere}.rs-paper table{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch}.rs-paper h2{letter-spacing:.08em}}
 
 /* ---------- apresentação (slides 1280×720) ---------- */
 .rs-slide{position:relative;width:1280px;height:720px;overflow:hidden;background:var(--paper);color:var(--ink);font-family:var(--sans);display:flex;flex-direction:column;padding:72px 96px}

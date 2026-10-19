@@ -3,6 +3,7 @@ import { Montserrat, Lora } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { KeyboardAssist } from "@/components/keyboard-assist";
 import "./globals.css";
 
 const montserrat = Montserrat({
@@ -32,6 +33,7 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   viewportFit: "cover",
+  interactiveWidget: "resizes-content",
   width: "device-width",
   initialScale: 1,
   themeColor: "#ffffff",
@@ -44,6 +46,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <ThemeProvider>
           <TooltipProvider delayDuration={300}>{children}</TooltipProvider>
           <Toaster position="top-center" />
+          <KeyboardAssist />
         </ThemeProvider>
       </body>
     </html>

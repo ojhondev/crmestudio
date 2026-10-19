@@ -108,7 +108,37 @@ export default async function ContactsPage({ searchParams }: PageProps<"/contato
             {q || origem ? "Tente outro termo de busca." : "Cadastre o primeiro lead."}
           </EmptyState>
         ) : (
-          <div data-tour="contacts-list" className="overflow-x-auto rounded-xl border bg-card">
+          <>
+          <ul data-tour="contacts-list-m" className="grid gap-2.5 md:hidden">
+            {rows.map((r) => (
+              <li key={r.id}>
+                <Link href={`/contatos/${r.id}`} className="grid gap-1 rounded-xl border bg-card px-4 py-3 active:bg-muted/50">
+                  <span className="flex items-baseline justify-between gap-2">
+                    <span className="min-w-0 truncate text-[15px] font-medium">{r.name}</span>
+                    <span className="shrink-0 text-xs text-muted-foreground tabular-nums">{fmtDate(r.createdAt, "dd/MM/yy")}</span>
+                  </span>
+                  <span className="text-[13px] break-words text-muted-foreground">
+                    {[r.company, [r.city, r.state].filter(Boolean).join("/")].filter(Boolean).join(" · ") || "Sem instituição"}
+                  </span>
+                  {(r.phone || r.email) && (
+                    <span className="text-[13px] break-words text-muted-foreground">{[r.phone ? fmtPhone(r.phone) : null, r.email].filter(Boolean).join(" · ")}</span>
+                  )}
+                  <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12.5px]">
+                    {r.stage && (
+                      <span className="inline-flex items-center gap-1.5">
+                        <span className="size-1.5 rounded-full" style={{ background: r.color ?? undefined }} />
+                        {r.stage}
+                        {!!r.value && <span className="text-muted-foreground">· {money(r.value)}</span>}
+                      </span>
+                    )}
+                    {r.source && <Badge variant="secondary">{r.source}</Badge>}
+                    {r.owner && <span className="text-muted-foreground">{r.owner}</span>}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+          <div data-tour="contacts-list" className="overflow-x-auto rounded-xl border bg-card max-md:hidden">
             <table className="w-full min-w-[760px] text-[13px]">
               <thead>
                 <tr className="border-b text-left text-xs text-muted-foreground">
@@ -156,6 +186,7 @@ export default async function ContactsPage({ searchParams }: PageProps<"/contato
               </tbody>
             </table>
           </div>
+          </>
         )}
       </div>
       </ToolArea>
