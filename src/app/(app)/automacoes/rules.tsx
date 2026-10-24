@@ -75,6 +75,7 @@ export function RuleBoard({ rules, users, stages, canManage }: { rules: RuleVM[]
   const groups: { label: string; subject: Subject }[] = [
     { label: "Tarefas", subject: "task" },
     { label: "Leads e negócios", subject: "deal" },
+    { label: "Editais de restauro", subject: "edital" },
   ];
 
   return (
@@ -115,6 +116,7 @@ function conditionText(c: RuleCondition, names: Record<string, string>, stages: 
   const val = (v: unknown) => {
     const one = (x: string) => (f?.kind === "user" ? (names[x] ?? "?") : f?.kind === "stage" ? (stages.find((s) => String(s.id) === x)?.name ?? "?") : (f?.options?.find((o) => o.v === x)?.l ?? x));
     if (Array.isArray(v)) return v.map(String).map(one).join(" ou ");
+    if (f?.kind === "points") return String(v);
     if (f?.kind === "number") return (Number(v) / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
     return one(String(v ?? ""));
   };
@@ -226,7 +228,7 @@ function RuleEditor({ rule, users, stages, canManage, onClose }: { rule: RuleVM 
       trigger: t,
       params: { ...next.defaults },
       conditions: next.subject === subjectOf(x.trigger) ? x.conditions : [],
-      actions: next.subject === subjectOf(x.trigger) ? x.actions : [{ type: "notify", to: [next.subject === "task" ? "assignee" : "owner"] }],
+      actions: next.subject === subjectOf(x.trigger) ? x.actions : [{ type: "notify", to: [next.subject === "task" ? "assignee" : next.subject === "edital" ? "team" : "owner"] }],
     }));
   }
 
@@ -266,7 +268,7 @@ function RuleEditor({ rule, users, stages, canManage, onClose }: { rule: RuleVM 
     });
   }
 
-  const triggerOptions = TRIGGERS.map((t) => ({ value: t.id, label: `${t.subject === "task" ? "Tarefa" : "Negócio"} · ${t.label}${t.kind === "time" ? " (por tempo)" : ""}` }));
+  const triggerOptions = TRIGGERS.map((t) => ({ value: t.id, label: `${t.subject === "task" ? "Tarefa" : t.subject === "edital" ? "Edital" : "Negócio"} · ${t.label}${t.kind === "time" ? " (por tempo)" : ""}` }));
 
   return (
     <Dialog open onOpenChange={(v) => !v && onClose()}>
@@ -456,7 +458,7 @@ function ConditionEditor({ subject, list, onChange, users, stages }: { subject: 
   const upd = (i: number, patch: Partial<RuleCondition>) => onChange(list.map((c, j) => (j === i ? { ...c, ...patch } : c)));
   return (
     <div className="grid gap-2.5">
-      {list.length === 0 && <p className="text-[12.5px] text-muted-foreground">Sem condições: vale para qualquer {subject === "task" ? "tarefa" : "negócio"}. Adicione para restringir (ex.: só prioridade alta).</p>}
+      {list.length === 0 && <p className="text-[12.5px] text-muted-foreground">Sem condições: vale para qualquer {subject === "task" ? "tarefa" : subject === "edital" ? "edital" : "negócio"}. Adicione para restringir (ex.: só prioridade alta).</p>}
       {list.map((c, i) => {
         const f = fields.find((x) => x.id === c.field) ?? fields[0];
         const needsValue = c.op !== "empty" && c.op !== "notempty";
@@ -509,6 +511,7 @@ function ValueInput({ field, cond, onChange, users, stages }: { field: (typeof C
     );
   }
   if (opts.length) return <SimpleSelect value={String(cond.value ?? "")} onValueChange={onChange} options={opts} placeholder="Escolha" />;
+  if (field.kind === "points") return <Input type="number" inputMode="numeric" min={0} max={100} placeholder="0 a 100" value={cond.value !== undefined && cond.value !== "" ? Number(cond.value) : ""} onChange={(e) => onChange(e.target.value === "" ? undefined : Number(e.target.value))} />;
   if (field.kind === "number")
     return <Input type="number" inputMode="numeric" min={0} placeholder="R$" value={cond.value !== undefined && cond.value !== "" ? Math.round(Number(cond.value) / 100) : ""} onChange={(e) => onChange(e.target.value === "" ? undefined : Number(e.target.value) * 100)} />;
   return <Input value={String(cond.value ?? "")} onChange={(e) => onChange(e.target.value)} placeholder="Texto" maxLength={80} />;
@@ -535,14 +538,14 @@ function ActionEditor({ subject, list, onChange, users, names }: { subject: Subj
   ];
 
   function blank(type: RuleAction["type"]): RuleAction {
-    const mine = subject === "task" ? "assignee" : "owner";
+    const mine = subject === "task" ? "assignee" : subject === "edital" ? "editalOwner" : "owner";
     switch (type) {
       case "notify": return { type, to: [mine] };
       case "set_status": return { type, status: "em_andamento" };
       case "set_priority": return { type, priority: "alta" };
       case "assign": return { type, to: "managers" };
       case "add_label": return { type, label: "atenção" };
-      case "create_followup": return { type, title: subject === "task" ? "Acompanhar — {tarefa}" : "Retomar contato — {negocio}", inDays: 1, to: mine };
+      case "create_followup": return { type, title: subject === "task" ? "Acompanhar — {tarefa}" : subject === "edital" ? "Analisar edital — {edital}" : "Retomar contato — {negocio}", inDays: 1, to: mine };
     }
   }
 

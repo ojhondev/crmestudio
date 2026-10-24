@@ -1,0 +1,61 @@
+name: Editais de restauro (varredura do PNCP)
+
+# Como funciona (sem nenhum segredo guardado no GitHub):
+#  - O job pede ao GitHub um token OIDC (permissions: id-token: write) para a audiência do CRM e usa esse token
+#    para falar com /api/editais/pending e /api/editais/ingest. O CRM confere a assinatura do token, o repositório,
+#    o branch e este arquivo de workflow (ver src/lib/editais/oidc.ts).
+#  - A cada 30 minutos o job só pergunta ao CRM se alguém clicou em “Buscar oportunidades” (ou se há varredura
+#    interrompida para retomar). Se não há nada, termina em segundos. Se há, faz a varredura completa.
+#  - Uma vez por dia (06:17 em Brasília) faz a varredura completa de qualquer jeito.
+#  - Manual: aba Actions → “Editais de restauro” → Run workflow (dias e fonte são opcionais).
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+    - cron: "17 9 * * *"
+  workflow_dispatch:
+    inputs:
+      dias:
+        description: "Janela por data de publicação, em dias"
+        required: false
+        default: "14"
+      fonte:
+        description: "busca | consulta | tudo"
+        required: false
+        default: "tudo"
+
+permissions:
+  contents: read
+  id-token: write
+
+# uma varredura por vez; as verificações que chegarem durante uma varredura esperam na fila
+concurrency:
+  group: editais
+  cancel-in-progress: false
+
+jobs:
+  varredura:
+    name: Varredura PNCP
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            scripts
+            src/lib/editais
+          sparse-checkout-cone-mode: true
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Varredura (só roda se houver pedido, retomada ou execução diária/manual)
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          EVENT_SCHEDULE: ${{ github.event.schedule }}
+          EDITAIS_DAILY_CRON: "17 9 * * *"
+          EDITAIS_OIDC_AUDIENCE: "https://crm.estudiorestaura.com.br"
+          DIAS: ${{ inputs.dias || '14' }}
+          FONTE: ${{ inputs.fonte || 'tudo' }}
+        run: npx --yes tsx@4.23.15 scripts/editais-scan.ts --days "$DIAS" --source "$FONTE" --target "https://crm.estudiorestaura.com.br"

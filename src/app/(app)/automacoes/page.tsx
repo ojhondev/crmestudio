@@ -84,7 +84,7 @@ export default async function AutomacoesPage({ searchParams }: PageProps<"/autom
                   <span className="grid gap-0.5 text-[13px] leading-snug">
                     <span>
                       <span className="font-medium">{r.ruleName}</span>
-                      {r.entityLabel && <span className="text-muted-foreground"> · {r.entity === "tarefa" ? "tarefa" : "negócio"} “{r.entityLabel}”</span>}
+                      {r.entityLabel && <span className="text-muted-foreground"> · {r.entity === "tarefa" ? "tarefa" : r.entity === "edital" ? "edital" : "negócio"} “{r.entityLabel}”</span>}
                       {r.status === "erro" && <span className="ml-2 rounded bg-red-100 px-1.5 py-0.5 text-xs text-red-700 dark:bg-red-500/15 dark:text-red-300">com erro</span>}
                     </span>
                     <span className="text-[12.5px] break-words text-muted-foreground">{r.summary}</span>

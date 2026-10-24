@@ -8,7 +8,7 @@ export type NotifPayload = {
   title: string;
   body?: string | null;
   href?: string | null;
-  entity?: "tarefa" | "negocio" | null;
+  entity?: "tarefa" | "negocio" | "edital" | null;
   entityId?: string | null;
   /** mesma chave + mesma pessoa = avisa uma única vez */
   dedupeKey?: string | null;

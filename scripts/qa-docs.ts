@@ -65,6 +65,10 @@ async function main() {
     await db.delete(schema.taskBoards).where(like(schema.taskBoards.name, "QA%"));
     // Avisos e Automações: tarefas, regras, execuções e contas de QA (avisos saem em cascata com a conta)
     await db.delete(schema.tasks).where(like(schema.tasks.title, "QA%"));
+    // Editais: editais de teste (QA-…), contatos criados a partir deles e avisos de teste
+    await db.delete(schema.editais).where(like(schema.editais.externalId, "QA-%"));
+    await db.delete(schema.contacts).where(like(schema.contacts.company, "QA%"));
+    await db.delete(schema.notifications).where(like(schema.notifications.title, "%QA —%"));
     await db.delete(schema.automationRuns).where(like(schema.automationRuns.entityLabel, "QA%"));
     await db.delete(schema.automationRules).where(like(schema.automationRules.name, "QA%"));
     await db.delete(schema.auditLog).where(like(schema.auditLog.actorName, "QA %"));

@@ -3,11 +3,12 @@
  * Cada gatilho de automação gera avisos de uma categoria; a pessoa pode desligar categorias em /notificacoes.
  */
 
-export type NotifGroup = "tarefas" | "negocios" | "sistema";
+export type NotifGroup = "tarefas" | "negocios" | "editais" | "sistema";
 
 export const NOTIF_GROUPS: Record<NotifGroup, string> = {
   tarefas: "Tarefas",
   negocios: "Leads e negócios",
+  editais: "Editais de restauro",
   sistema: "Sistema",
 };
 
@@ -26,6 +27,8 @@ export const NOTIF_TYPES = {
   negocio_resultado: { label: "Negócio ganho ou perdido", group: "negocios", help: "Um negócio foi fechado como ganho ou perdido." },
   negocio_etapa: { label: "Mudança de etapa", group: "negocios", help: "Um negócio mudou de etapa no funil." },
   negocio_valor_alto: { label: "Valor alto parado", group: "negocios", help: "Um negócio de valor alto está sem andamento." },
+  edital_novo: { label: "Edital novo", group: "editais", help: "Surgiu um edital de restauro relevante." },
+  edital_prazo: { label: "Prazo de edital", group: "editais", help: "O prazo de propostas de um edital que você acompanha está chegando." },
   automacao: { label: "Outras automações", group: "sistema", help: "Avisos de regras criadas por você." },
   sistema: { label: "Avisos do sistema", group: "sistema", help: "Comunicados gerais." },
 } as const satisfies Record<string, { label: string; group: NotifGroup; help: string }>;

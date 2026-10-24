@@ -13,6 +13,7 @@ import {
   conditionsHold,
   dueDayIn,
   evalDealTime,
+  evalEditalTime,
   evalTaskTime,
   extractMentions,
   involvedIds,
@@ -24,6 +25,7 @@ import {
   type Ctx,
   type DealFacts,
   type DirUser,
+  type EditalFacts,
   type Entity,
   type Hit,
   type Now,
@@ -126,6 +128,28 @@ function dealToEntity(r: DealRow): Entity {
   };
 }
 
+type EditalRow = typeof schema.editais.$inferSelect;
+
+const editalPlace = (r: EditalRow) => [r.city, r.uf].filter(Boolean).join("/") || "local não informado";
+
+function editalToEntity(r: EditalRow): Entity {
+  return {
+    kind: "edital",
+    id: r.id,
+    label: r.title,
+    href: `/editais?id=${r.id}`,
+    ownerId: r.ownerId,
+    valueCents: r.valueCents ?? 0,
+    dueDay: dueDayOf(r.closeAt),
+    dealId: r.dealId,
+    score: r.score,
+    uf: r.uf,
+    editalKind: r.kind,
+    organ: r.organ,
+    place: editalPlace(r),
+  };
+}
+
 async function loadDeal(id: string): Promise<DealRow | null> {
   const [r] = await db
     .select({ deal: schema.deals, stageName: schema.stages.name, source: schema.contacts.source })
@@ -145,11 +169,14 @@ function varsFor(c: Ctx, users: UserRow[], hit: Record<string, string> = {}, ext
   return {
     tarefa: e.kind === "task" ? e.label : "",
     negocio: e.kind === "deal" ? e.label : "",
+    edital: e.kind === "edital" ? e.label : "",
+    orgao: e.organ ?? "",
+    local: e.place ?? "",
     pessoa: name(c.actorId) || "O sistema",
     responsavel: name(person) || "sem responsável",
     prazo: e.dueDay ? e.dueDay.split("-").reverse().join("/") : "sem prazo",
     etapa: e.stageName ?? "",
-    valor: e.kind === "deal" ? moneyText(e.valueCents ?? 0) : "",
+    valor: e.kind === "deal" || e.kind === "edital" ? (e.valueCents ? moneyText(e.valueCents) : e.kind === "edital" ? "valor não informado" : moneyText(0)) : "",
     origem: e.origin ?? "",
     motivo: e.lostReason || "não informado",
     ...extra,
@@ -167,7 +194,7 @@ const plain = (n: number, s: string, p: string) => `${n} ${n === 1 ? s : p}`;
 function canSee(u: UserRow, c: Ctx) {
   if (!u.active) return false;
   const perms = resolvePermissions(u);
-  if (!atLeast(perms[c.entity.kind === "task" ? "tarefas" : "negocios"], "view")) return false;
+  if (!atLeast(perms[c.entity.kind === "task" ? "tarefas" : c.entity.kind === "edital" ? "editais" : "negocios"], "view")) return false;
   const own = u.role === "admin" ? false : u.ownOnly;
   return !own || involvedIds(c).has(u.id);
 }
@@ -189,7 +216,7 @@ async function doNotify(a: Extract<RuleAction, { type: "notify" }>, env: Env): P
     title: renderTemplate(titleTpl(uid), env.vars) || def.label,
     body: renderTemplate(bodyTpl, env.vars) || null,
     href: ctx.entity.href,
-    entity: ctx.entity.kind === "task" ? "tarefa" : "negocio",
+    entity: ctx.entity.kind === "task" ? "tarefa" : ctx.entity.kind === "edital" ? "edital" : "negocio",
     entityId: ctx.entity.id,
     dedupeKey: `${rule.id}:${env.key}`,
   }));
@@ -204,13 +231,13 @@ async function logTask(taskId: string, body: string) {
 async function tellAssignee(env: Env, userId: string, title: string) {
   const e = env.ctx.entity;
   const u = env.users.find((x) => x.id === userId);
-  if (!u || userId === env.ctx.actorId || !canSee(u, { ...env.ctx, entity: { ...e, assigneeId: userId, ownerId: e.kind === "deal" ? userId : e.ownerId } })) return;
+  if (!u || userId === env.ctx.actorId || !canSee(u, { ...env.ctx, entity: { ...e, assigneeId: userId, ownerId: e.kind === "deal" || e.kind === "edital" ? userId : e.ownerId } })) return;
   await notifyUsers([userId], {
-    type: e.kind === "task" ? "tarefa_atribuida" : "lead_novo",
+    type: e.kind === "task" ? "tarefa_atribuida" : e.kind === "edital" ? "edital_novo" : "lead_novo",
     title,
     body: `Automação “${env.rule.name}”.`,
     href: e.href,
-    entity: e.kind === "task" ? "tarefa" : "negocio",
+    entity: e.kind === "task" ? "tarefa" : e.kind === "edital" ? "edital" : "negocio",
     entityId: e.id,
     dedupeKey: `${env.rule.id}:${env.key}:assign:${userId}`,
   });
@@ -255,6 +282,11 @@ async function applyAction(a: RuleAction, env: Env): Promise<string> {
         await db.update(schema.tasks).set({ assigneeId: uid }).where(eq(schema.tasks.id, e.id));
         await logTask(e.id, `${tag}: atribuiu a ${name}`);
         await tellAssignee(env, uid, `Tarefa atribuída a você: ${e.label}`);
+      } else if (e.kind === "edital") {
+        if (e.ownerId === uid) return "já era o responsável";
+        await db.update(schema.editais).set({ ownerId: uid, updatedAt: new Date() }).where(eq(schema.editais.id, e.id));
+        await db.insert(schema.editalEvents).values({ editalId: e.id, type: "responsavel", body: `${tag}: atribuiu o edital a ${name}` });
+        await tellAssignee(env, uid, `Edital atribuído a você: ${e.label}`);
       } else {
         if (e.ownerId === uid) return "já era o responsável";
         await db.update(schema.deals).set({ ownerId: uid, updatedAt: new Date() }).where(eq(schema.deals.id, e.id));
@@ -278,7 +310,7 @@ async function applyAction(a: RuleAction, env: Env): Promise<string> {
           title: title.slice(0, 200),
           assigneeId: uid,
           dueAt,
-          dealId: e.kind === "deal" ? e.id : (e.dealId ?? null),
+          dealId: e.kind === "deal" ? e.id : (e.dealId ?? null), // tarefa de edital liga ao negócio (se houver)
           boardId: e.kind === "task" ? (e.boardId ?? null) : null,
           groupId: e.kind === "task" ? (e.groupId ?? null) : null,
           position,
@@ -313,7 +345,7 @@ async function execute(rule: AutomationRule, ctx: Ctx, key: string, hit: Record<
       ruleId: rule.id,
       ruleName: rule.name,
       trigger: rule.trigger,
-      entity: ctx.entity.kind === "task" ? "tarefa" : "negocio",
+      entity: ctx.entity.kind === "task" ? "tarefa" : ctx.entity.kind === "edital" ? "edital" : "negocio",
       entityId: ctx.entity.id,
       entityLabel: ctx.entity.label.slice(0, 160),
       summary: "executando…",
@@ -386,6 +418,25 @@ export async function fireDealEvent(triggers: TriggerId[], dealId: string, actor
     for (const rule of rules) await execute(rule, ctx, `${rule.trigger}:${dealId}:${extra.eventKey ?? Date.now()}`, {}, users, dir, today);
   } catch (e) {
     console.error("[automacoes] evento de negócio", triggers, e);
+  }
+}
+
+/** Edital novo e relevante. Idempotente (uma vez por regra e edital). Só avisa se o edital ainda está aberto. */
+export async function fireEditalEvent(triggers: TriggerId[], editalId: string, actor: Actor = null, extra: EventExtra = {}) {
+  try {
+    const rules = await rulesFor(triggers);
+    if (!rules.length) return;
+    const [r] = await db.select().from(schema.editais).where(eq(schema.editais.id, editalId));
+    if (!r || r.situation !== "aberto" || (r.closeAt && r.closeAt.getTime() < Date.now())) return;
+    // “novo” = publicado há pouco: a carga inicial de editais antigos não gera enxurrada de avisos
+    if (triggers.includes("edital_new") && r.publishedAt && Date.now() - r.publishedAt.getTime() > 3 * 864e5) return;
+    const users = await loadUsers();
+    const dir = dirOf(users);
+    const ctx: Ctx = { entity: editalToEntity(r), actorId: actor?.id ?? null };
+    const today = isoDateBR();
+    for (const rule of rules) await execute(rule, ctx, `${rule.trigger}:${editalId}:${extra.eventKey ?? "novo"}`, {}, users, dir, today);
+  } catch (e) {
+    console.error("[automacoes] evento de edital", triggers, e);
   }
 }
 
@@ -466,6 +517,7 @@ export async function runTimeRules(at: Date = new Date()): Promise<TickResult> {
   const dir = dirOf(users);
   const taskRules = rules.filter((r) => TRIGGER_BY_ID[r.trigger as TriggerId]?.subject === "task");
   const dealRules = rules.filter((r) => TRIGGER_BY_ID[r.trigger as TriggerId]?.subject === "deal");
+  const editalRules = rules.filter((r) => TRIGGER_BY_ID[r.trigger as TriggerId]?.subject === "edital");
 
   type Cand = { rule: AutomationRule; ctx: Ctx; hit: Hit };
   const cands: Cand[] = [];
@@ -493,6 +545,23 @@ export async function runTimeRules(at: Date = new Date()): Promise<TickResult> {
       const entity = dealToEntity({ deal: d, stageName, source });
       for (const rule of dealRules) {
         const hit = evalDealTime(rule.trigger as TriggerId, rule.params ?? {}, facts, now);
+        if (hit) cands.push({ rule, ctx: { entity, actorId: null }, hit });
+      }
+    }
+  }
+
+  if (editalRules.length) {
+    // editais que a equipe marcou como interessantes/em análise e ainda recebem propostas
+    const rows = await db
+      .select()
+      .from(schema.editais)
+      .where(and(inArray(schema.editais.triage, ["interessante", "em_analise"]), eq(schema.editais.situation, "aberto"), sql`${schema.editais.closeAt} >= now() - interval '1 day'`))
+      .limit(1000);
+    for (const r of rows) {
+      const facts: EditalFacts = { id: r.id, title: r.title, open: true, closeDay: dueDayOf(r.closeAt) };
+      const entity = editalToEntity(r);
+      for (const rule of editalRules) {
+        const hit = evalEditalTime(rule.trigger as TriggerId, rule.params ?? {}, facts, now);
         if (hit) cands.push({ rule, ctx: { entity, actorId: null }, hit });
       }
     }

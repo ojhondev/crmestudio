@@ -12,7 +12,7 @@ export const LEVELS: Level[] = ["none", "view", "edit", "manage"];
 export const LEVEL_LABEL: Record<Level, string> = { none: "Sem acesso", view: "Ver", edit: "Editar", manage: "Gerenciar" };
 const RANK: Record<Level, number> = { none: 0, view: 1, edit: 2, manage: 3 };
 
-export type ModuleKey = "negocios" | "tarefas" | "contatos" | "agenda" | "financeiro" | "documentos" | "planilhas" | "drive" | "site" | "equipe" | "configuracoes";
+export type ModuleKey = "negocios" | "editais" | "tarefas" | "contatos" | "agenda" | "financeiro" | "documentos" | "planilhas" | "drive" | "site" | "equipe" | "configuracoes";
 
 export const MODULES: {
   key: ModuleKey;
@@ -23,6 +23,7 @@ export const MODULES: {
   soon?: boolean;
 }[] = [
   { key: "negocios", label: "Negócios", help: "Ver: consulta o funil · Editar: cria, move e registra · Gerenciar: exclui negócios" },
+  { key: "editais", label: "Editais de restauro", help: "Ver: consulta a lista de editais · Editar: triagem, notas, responsável, criar negócio e tarefa, buscar oportunidades · Gerenciar: igual a Editar (reservado para a gestão)" },
   { key: "tarefas", label: "Tarefas", help: "Ver: consulta quadros · Editar: cria e altera tarefas · Gerenciar: exclui quadros e grupos" },
   { key: "contatos", label: "Leads e contatos", help: "Ver: consulta · Editar: cadastra e altera · Gerenciar: exclui contatos" },
   { key: "agenda", label: "Agenda", help: "Ver: consulta · Editar: cria e altera eventos" },
@@ -60,7 +61,7 @@ export const PROFILES: Record<
     description: "Toca a operação inteira: negócios, agenda, financeiro e documentos. Vê a equipe, mas não altera acessos.",
     type: "equipe",
     ownOnly: false,
-    perms: make({ negocios: "manage", tarefas: "manage", contatos: "manage", agenda: "manage", financeiro: "manage", documentos: "manage", planilhas: "manage", drive: "manage", site: "manage", equipe: "view", configuracoes: "view" }),
+    perms: make({ negocios: "manage", editais: "manage", tarefas: "manage", contatos: "manage", agenda: "manage", financeiro: "manage", documentos: "manage", planilhas: "manage", drive: "manage", site: "manage", equipe: "view", configuracoes: "view" }),
     color: "#193f32",
   },
   comercial: {
@@ -68,7 +69,7 @@ export const PROFILES: Record<
     description: "Vende: funil, contatos, agenda e documentos. Sem financeiro.",
     type: "equipe",
     ownOnly: false,
-    perms: make({ negocios: "edit", tarefas: "edit", contatos: "edit", agenda: "edit", documentos: "edit", planilhas: "edit", drive: "edit" }),
+    perms: make({ negocios: "edit", editais: "edit", tarefas: "edit", contatos: "edit", agenda: "edit", documentos: "edit", planilhas: "edit", drive: "edit" }),
     color: "#537179",
   },
   // legado: o módulo Atendimento foi retirado; o perfil continua válido para contas já criadas

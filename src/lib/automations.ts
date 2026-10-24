@@ -33,9 +33,11 @@ export type TriggerId =
   | "deal_close_overdue"
   | "deal_close_soon"
   | "deal_new_no_contact"
-  | "deal_high_value_stalled";
+  | "deal_high_value_stalled"
+  | "edital_new"
+  | "edital_closing";
 
-export type Subject = "task" | "deal";
+export type Subject = "task" | "deal" | "edital";
 export type ParamKey = "days" | "hours" | "daysBefore" | "minValueCents" | "stageDays" | "stageIds";
 
 export type TriggerDef = {
@@ -71,6 +73,8 @@ export const TRIGGERS: TriggerDef[] = [
   { id: "deal_close_soon", kind: "time", subject: "deal", label: "Previsão de fechamento próxima", when: "a previsão de fechamento de um negócio estiver chegando", type: "negocio_previsao", params: ["daysBefore", "stageIds"], defaults: { daysBefore: [3, 0] }, title: "Fechamento {quando}: {negocio}", body: "Previsão em {prazo}. {valor}." },
   { id: "deal_new_no_contact", kind: "time", subject: "deal", label: "Lead novo sem primeiro contato", when: "um lead novo ficar sem primeiro contato", type: "lead_followup", params: ["hours"], defaults: { hours: 4 }, title: "Lead sem primeiro contato: {negocio}", body: "Chegou há {horas} e ainda não tem contato registrado." },
   { id: "deal_high_value_stalled", kind: "time", subject: "deal", label: "Valor alto parado", when: "um negócio de valor alto ficar parado", type: "negocio_valor_alto", params: ["minValueCents", "days", "stageIds"], defaults: { minValueCents: 5_000_000, days: 3 }, title: "Negócio de valor alto parado: {negocio}", body: "{valor} há {dias} na etapa “{etapa}”." },
+  { id: "edital_new", kind: "event", subject: "edital", label: "Novo edital relevante", when: "surgir um edital de restauro novo (use a condição de relevância)", type: "edital_novo", params: [], defaults: {}, title: "Novo edital de restauro: {edital}", body: "{orgao} · {local}. {valor}. Propostas até {prazo}." },
+  { id: "edital_closing", kind: "time", subject: "edital", label: "Edital de interesse encerrando", when: "o prazo de propostas de um edital marcado como interessante estiver chegando", type: "edital_prazo", params: ["daysBefore"], defaults: { daysBefore: [7, 3, 1] }, title: "Edital encerra {quando}: {edital}", body: "Propostas até {prazo}. {orgao} · {local}." },
 ];
 
 export const TRIGGER_BY_ID = Object.fromEntries(TRIGGERS.map((t) => [t.id, t])) as Record<TriggerId, TriggerDef>;
@@ -85,8 +89,10 @@ export const RECIPIENTS: { token: string; label: string; subjects: Subject[] }[]
   { token: "mentioned", label: "Pessoas mencionadas (@nome)", subjects: ["task"] },
   { token: "owner", label: "Responsável pelo negócio", subjects: ["deal"] },
   { token: "partner", label: "Parceiro indicado", subjects: ["deal"] },
-  { token: "managers", label: "Gestor da pessoa (ou administradores)", subjects: ["task", "deal"] },
-  { token: "admins", label: "Todos os administradores", subjects: ["task", "deal"] },
+  { token: "editalOwner", label: "Responsável pelo edital", subjects: ["edital"] },
+  { token: "team", label: "Quem tem acesso a Editais", subjects: ["edital"] },
+  { token: "managers", label: "Gestor da pessoa (ou administradores)", subjects: ["task", "deal", "edital"] },
+  { token: "admins", label: "Todos os administradores", subjects: ["task", "deal", "edital"] },
 ];
 const RECIPIENT_TOKENS = new Set(RECIPIENTS.map((r) => r.token));
 const UUID = /^[0-9a-f-]{36}$/i;
@@ -129,6 +135,12 @@ export type Entity = {
   /** de onde veio o lead (site, indicação…) */
   origin?: string | null;
   lostReason?: string | null;
+  // edital
+  score?: number;
+  uf?: string | null;
+  editalKind?: string;
+  organ?: string;
+  place?: string;
 };
 
 export type Ctx = {
@@ -144,6 +156,9 @@ export type Ctx = {
 export const subjectUserId = (c: Ctx) =>
   c.entity.kind === "task" ? (c.entity.assigneeId ?? c.actorId ?? c.entity.creatorId ?? null) : (c.entity.ownerId ?? c.entity.partnerId ?? null);
 
+/** Todos os usuários ativos (o filtro por permissão do módulo é feito na hora de avisar). */
+const everyone = (users: DirUser[]) => users.filter((u) => u.active).map((u) => u.id);
+
 /** Quem tem relação direta com o fato (usado para o filtro "só os próprios"). */
 export const involvedIds = (c: Ctx) =>
   new Set([c.entity.assigneeId, c.entity.creatorId, c.entity.ownerId, c.entity.partnerId, ...(c.mentioned ?? [])].filter((x): x is string => !!x));
@@ -154,7 +169,8 @@ export function resolveRecipients(tokens: string[], c: Ctx, users: DirUser[]): s
   for (const t of tokens) {
     if (t === "assignee" && e.assigneeId) out.add(e.assigneeId);
     else if (t === "creator" && e.creatorId) out.add(e.creatorId);
-    else if (t === "owner" && e.ownerId) out.add(e.ownerId);
+    else if ((t === "owner" || t === "editalOwner") && e.ownerId) out.add(e.ownerId);
+    else if (t === "team" && e.kind === "edital") everyone(users).forEach((x) => out.add(x));
     else if (t === "partner" && e.partnerId) out.add(e.partnerId);
     else if (t === "participants") (c.participants ?? []).forEach((x) => out.add(x));
     else if (t === "mentioned") (c.mentioned ?? []).forEach((x) => out.add(x));
@@ -189,7 +205,7 @@ export function extractMentions(text: string, users: { id: string; name: string;
 
 /* ---------------------------------- condições ---------------------------------- */
 
-export type FieldDef = { id: string; label: string; subject: Subject; kind: "enum" | "text" | "number" | "user" | "stage"; options?: { v: string; l: string }[]; ops: RuleCondition["op"][] };
+export type FieldDef = { id: string; label: string; subject: Subject; kind: "enum" | "text" | "number" | "points" | "user" | "stage"; options?: { v: string; l: string }[]; ops: RuleCondition["op"][] };
 
 export const CONDITION_FIELDS: FieldDef[] = [
   { id: "priority", label: "Prioridade", subject: "task", kind: "enum", options: [{ v: "baixa", l: "Baixa" }, { v: "media", l: "Média" }, { v: "alta", l: "Alta" }, { v: "urgente", l: "Urgente" }], ops: ["in", "eq", "neq"] },
@@ -202,6 +218,11 @@ export const CONDITION_FIELDS: FieldDef[] = [
   { id: "service", label: "Serviço", subject: "deal", kind: "text", ops: ["contains", "eq"] },
   { id: "ownerId", label: "Responsável", subject: "deal", kind: "user", ops: ["eq", "neq", "empty", "notempty"] },
   { id: "title", label: "Título", subject: "deal", kind: "text", ops: ["contains"] },
+  { id: "score", label: "Relevância (0 a 100)", subject: "edital", kind: "points", ops: ["gte", "lte"] },
+  { id: "editalKind", label: "Tipo", subject: "edital", kind: "enum", options: [{ v: "projeto", l: "Projeto de restauro" }, { v: "execucao", l: "Execução (obra)" }, { v: "projeto_execucao", l: "Projeto + execução" }, { v: "laudo", l: "Laudo / consultoria" }, { v: "outro", l: "Outro" }], ops: ["in", "eq", "neq"] },
+  { id: "uf", label: "UF", subject: "edital", kind: "text", ops: ["eq", "neq", "contains"] },
+  { id: "valueCents", label: "Valor estimado (R$)", subject: "edital", kind: "number", ops: ["gte", "lte"] },
+  { id: "ownerId", label: "Responsável", subject: "edital", kind: "user", ops: ["eq", "neq", "empty", "notempty"] },
 ];
 export const OP_LABEL: Record<RuleCondition["op"], string> = {
   eq: "é", neq: "não é", in: "é um de", gte: "é pelo menos", lte: "é no máximo", contains: "contém", empty: "está vazio", notempty: "está preenchido",
@@ -218,6 +239,9 @@ function fieldValue(e: Entity, field: string): unknown {
     case "valueCents": return e.valueCents ?? 0;
     case "service": return e.service ?? null;
     case "ownerId": return e.ownerId ?? null;
+    case "score": return e.score ?? 0;
+    case "editalKind": return e.editalKind ?? null;
+    case "uf": return e.uf ?? null;
     default: return undefined;
   }
 }
@@ -246,7 +270,7 @@ export const conditionsHold = (e: Entity, list: RuleCondition[]) => list.every((
 
 /* ------------------------------- modelos de mensagem ------------------------------- */
 
-export const TEMPLATE_VARS = ["tarefa", "negocio", "pessoa", "responsavel", "prazo", "dias", "etapa", "valor", "quando"];
+export const TEMPLATE_VARS = ["tarefa", "negocio", "edital", "orgao", "local", "pessoa", "responsavel", "prazo", "dias", "etapa", "valor", "quando"];
 
 /** Troca {variavel} pelo valor; variável desconhecida some. */
 export const renderTemplate = (tpl: string, vars: Record<string, string>) =>
@@ -291,6 +315,15 @@ export type DealFacts = {
   lastContactMs: number | null;
 };
 
+export type EditalFacts = {
+  id: string;
+  title: string;
+  /** a equipe marcou como interessante/em análise e o portal ainda recebe propostas */
+  open: boolean;
+  /** "YYYY-MM-DD" (fuso do estúdio) do fim do prazo de propostas */
+  closeDay: string | null;
+};
+
 export type Now = { ms: number; today: string };
 export const nowOf = (d = new Date()): Now => ({ ms: d.getTime(), today: isoDateBR(d) });
 
@@ -333,6 +366,14 @@ export function evalTaskTime(trigger: TriggerId, params: RuleParams, t: TaskFact
     return { key: `unassigned:${t.id}`, vars: { tarefa: t.title, dias: hoursText(Math.floor(age / HOUR_MS)) } };
   }
   return null;
+}
+
+export function evalEditalTime(trigger: TriggerId, params: RuleParams, f: EditalFacts, now: Now): Hit | null {
+  if (trigger !== "edital_closing" || !f.open || !f.closeDay || f.closeDay < now.today) return null;
+  const left = diffDays(now.today, f.closeDay);
+  const list = params.daysBefore?.length ? params.daysBefore : [7, 3, 1];
+  if (!list.includes(left)) return null;
+  return { key: `editalclose:${f.id}:${f.closeDay}:${left}`, vars: { edital: f.title, prazo: brDate(f.closeDay), quando: whenText(left), dias: daysText(left) } };
 }
 
 export function evalDealTime(trigger: TriggerId, params: RuleParams, d: DealFacts, now: Now): Hit | null {
@@ -414,6 +455,8 @@ export const BUILTIN_RULES: BuiltinRule[] = [
   { key: "negocio_perdido", name: "Negócio perdido", description: "Avisa o gestor e o parceiro quando um negócio é perdido.", trigger: "deal_lost", enabled: true, params: {}, conditions: [], actions: [notify("managers", "owner", "partner")] },
   { key: "valor_alto_parado", name: "Negócio de valor alto parado", description: "Destaca negócios a partir de R$ 50 mil que ficam 3 dias sem sair da etapa.", trigger: "deal_high_value_stalled", enabled: true, params: { minValueCents: 5_000_000, days: 3 }, conditions: [], actions: [notify("owner", "managers")] },
   { key: "negocio_mudou_etapa", name: "Negócio mudou de etapa", description: "Avisa o gestor e o parceiro a cada mudança de etapa. Desligada por padrão (gera muitos avisos).", trigger: "deal_stage_changed", enabled: false, params: {}, conditions: [], actions: [notify("managers", "partner")] },
+  { key: "edital_novo", name: "Novo edital de restauro relevante", description: "Avisa quem tem acesso a Editais quando surge um edital de restauro com relevância alta (a partir de 70 de 100). Ajuste a relevância mínima na condição.", trigger: "edital_new", enabled: true, params: {}, conditions: [{ field: "score", op: "gte", value: 70 }], actions: [notify("team")] },
+  { key: "edital_prazo", name: "Edital de interesse encerrando", description: "Lembra o responsável (e o gestor) 7, 3 e 1 dia antes do fim do prazo de propostas dos editais marcados como interessantes ou em análise.", trigger: "edital_closing", enabled: true, params: { daysBefore: [7, 3, 1] }, conditions: [], actions: [notify("editalOwner", "managers")] },
   { key: "lead_novo_tarefa", name: "Criar tarefa de primeiro contato", description: "Cria uma tarefa para o responsável fazer o primeiro contato com cada lead novo. Desligada até você ligar.", trigger: "deal_created", enabled: false, params: {}, conditions: [], actions: [{ type: "create_followup", title: "Fazer o primeiro contato — {negocio}", inDays: 0, to: "owner" }] },
 ];
 
@@ -477,7 +520,7 @@ export function sanitizeConditions(subject: Subject, raw: unknown): RuleConditio
       out.push({ field: field.id, op });
       continue;
     }
-    if (field.kind === "number") {
+    if (field.kind === "number" || field.kind === "points") {
       const n = Number(c.value);
       if (Number.isFinite(n)) out.push({ field: field.id, op, value: Math.round(n) });
     } else if (op === "in") {
@@ -549,7 +592,7 @@ export function recipientLabel(token: string, names: Record<string, string> = {}
 export function describeParams(trigger: TriggerId, p: RuleParams): string {
   const parts: string[] = [];
   if (trigger === "task_overdue") parts.push(`atraso de pelo menos ${daysText(p.days ?? 1)}`);
-  if (trigger === "task_due_soon" || trigger === "deal_close_soon") parts.push(`avisa ${(p.daysBefore ?? TRIGGER_BY_ID[trigger].defaults.daysBefore ?? []).map((n) => (n === 0 ? "no dia" : `${daysText(n)} antes`)).join(" e ")}`);
+  if (trigger === "task_due_soon" || trigger === "deal_close_soon" || trigger === "edital_closing") parts.push(`avisa ${(p.daysBefore ?? TRIGGER_BY_ID[trigger].defaults.daysBefore ?? []).map((n) => (n === 0 ? "no dia" : `${daysText(n)} antes`)).join(" e ")}`);
   if (trigger === "task_unassigned" || trigger === "deal_new_no_contact") parts.push(`após ${hoursText(p.hours ?? TRIGGER_BY_ID[trigger].defaults.hours ?? 24)}`);
   if (trigger === "deal_stalled" || trigger === "deal_no_activity" || trigger === "deal_high_value_stalled") {
     parts.push(`${daysText(p.days ?? TRIGGER_BY_ID[trigger].defaults.days ?? 7)}${p.stageDays && Object.keys(p.stageDays).length ? " · prazos próprios por etapa" : ""}`);

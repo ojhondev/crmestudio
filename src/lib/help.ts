@@ -582,6 +582,71 @@ export const articles: Article[] = [
     ],
   },
   {
+    slug: "editais",
+    module: "Operação",
+    title: "Editais de restauro",
+    summary: "Licitações de restauro (projeto e obra) em órgãos federais, estaduais e prefeituras, encontradas no PNCP e filtradas para valer a pena olhar.",
+    href: "/editais",
+    tour: "/editais",
+    keywords: ["edital", "licitação", "pncp", "pregão", "concorrência", "dispensa", "restauro", "tombado", "patrimônio", "oportunidade", "buscar", "github", "proposta"],
+    body: [
+      { t: "p", text: "A página Editais lista oportunidades de RESTAURO publicadas no PNCP (Portal Nacional de Contratações Públicas), que cobre União, estados e municípios. Um filtro por regras mantém só o que parece restauro de patrimônio — projeto de restauro, execução de obra, laudo e consultoria — e descarta o ruído (restauração dentária, florestal ou de pavimento, manutenção predial comum, energia solar, compra de material, tombamento patrimonial de móveis etc.)." },
+      {
+        t: "list",
+        title: "O que você vê em cada edital",
+        items: [
+          "Relevância de 0 a 100: Alta (70+), Boa (50+) e Possível (35+). O padrão mostra só 50 ou mais.",
+          "Tipo: projeto de restauro, execução (obra), projeto + execução, laudo/consultoria.",
+          "Órgão, esfera (federal, estadual, municipal), UF e município, modalidade, valor estimado e as datas.",
+          "Prazo de propostas: em terracota quando faltam 7 dias ou menos.",
+          "“Por que apareceu aqui”: os termos que casaram, para você auditar a triagem.",
+        ],
+      },
+      {
+        t: "steps",
+        title: "Buscar oportunidades",
+        items: [
+          "Toque em Buscar oportunidades. O pedido é registrado e uma varredura rápida já roda no próprio sistema (cerca de 30 segundos).",
+          "O pedido também aciona o GitHub: a cada 30 minutos ele verifica se há pedido pendente e faz a varredura completa (todas as propostas abertas do PNCP). Isso pode levar até cerca de 30 minutos para começar.",
+          "A faixa acima da lista mostra o andamento (solicitada, executando, concluída), os números e o link da execução no GitHub.",
+          "Todo dia, às 06:17, a varredura completa roda sozinha, mesmo sem pedido.",
+        ],
+      },
+      {
+        t: "steps",
+        title: "Triar um edital",
+        items: [
+          "Toque no edital para abrir os detalhes: objeto completo, datas, links para o PNCP e para o portal onde se envia a proposta.",
+          "Marque Interessante, Em análise, Proposta enviada, Ganho ou Perdido. Quem marca assume o edital e recebe os lembretes de prazo.",
+          "Descarte com um motivo (fora do escopo, valor baixo, longe, exige acervo técnico que não temos…). Ele some da lista, mas dá para ver em Filtros → Triagem.",
+          "Use Criar negócio para abrir o contato do órgão e o negócio já com valor, local e link; marque a opção para criar também a tarefa “Enviar proposta” com o prazo.",
+          "Ou use Criar tarefa com o prazo, se só quer o lembrete.",
+        ],
+      },
+      {
+        t: "list",
+        title: "Filtros, estados e exportação",
+        items: [
+          "Chips de tipo (Projeto, Execução, Laudo) e contadores por estado: toque para filtrar.",
+          "Em Filtros: busca por palavra, esfera, UFs, município, faixa de valor, prazo (“encerra em até X dias”), situação, triagem, responsável e relevância mínima.",
+          "A ordem pode ser por prazo, relevância, valor ou mais recentes.",
+          "Exportar CSV baixa a lista com os mesmos filtros da tela (abre direto no Excel).",
+        ],
+      },
+      {
+        t: "list",
+        title: "Avisos e automações",
+        items: [
+          "Edital novo com relevância 70 ou mais avisa quem tem acesso a Editais (regra pronta; ajuste a relevância em Automações).",
+          "Edital marcado como interessante ou em análise avisa o responsável 7, 3 e 1 dia antes do fim do prazo.",
+          "O Painel mostra o bloco “Oportunidades de restauro” com os novos e os que encerram em 7 dias.",
+        ],
+      },
+      { t: "tip", text: "Nenhum edital é enviado, proposto ou assinado por este sistema: ele só encontra e organiza. A proposta é feita no portal do órgão." },
+      { t: "warn", text: "O PNCP às vezes demora ou recusa conexões. Se a varredura rápida parar no meio, a completa do GitHub cobre o resto e se retoma sozinha." },
+    ],
+  },
+  {
     slug: "automacoes",
     module: "Sistema",
     title: "Automações",
@@ -615,6 +680,7 @@ export const articles: Article[] = [
           "Previsão de fechamento vencida ou chegando (3 dias antes e no dia).",
           "Negócio ganho e negócio perdido.",
           "Valor alto parado (padrão: a partir de R$ 50 mil, 3 dias parado).",
+          "Editais: edital novo relevante (a partir de 70) e prazo de edital de interesse chegando (7, 3 e 1 dia antes).",
           "Desligadas por padrão: criar tarefa de follow-up em negócio parado, criar tarefa de primeiro contato em lead novo e aviso a cada mudança de etapa.",
         ],
       },
@@ -698,6 +764,18 @@ export const tours: Record<string, { label: string; steps: TourStep[] }> = {
       { target: ["dash-kpis"], title: "Números do dia", body: "Valor no funil, fechado no mês, e a receber. Toque em um número para abrir a tela dele." },
       { target: ["dash-avisos"], title: "Avisos", body: "O resumo do que o sistema mapeou: atrasadas, o que vence hoje e amanhã, leads sem follow-up, negócios parados e o que os colegas fizeram. Administradores e gestores veem a equipe; os demais, só o que lhes diz respeito. Dá para recolher." },
       { target: ["dash-funnel"], title: "Funil", body: "Quantos negócios e quanto dinheiro há em cada etapa." },
+      { target: ["dash-editais"], title: "Oportunidades de restauro", body: "Editais novos e relevantes e os que encerram em 7 dias (aparece para quem tem acesso a Editais)." },
+    ],
+  },
+  "/editais": {
+    label: "Tour dos Editais",
+    steps: [
+      { target: ["edital-scan"], title: "Buscar oportunidades", body: "Pede a varredura do PNCP: uma busca rápida roda na hora e o GitHub faz a completa (até cerca de 30 minutos para começar). Todo dia ela roda sozinha." },
+      { target: ["edital-run"], title: "Andamento", body: "Mostra se a varredura foi solicitada, está rodando ou terminou, com quantos editais novos e o link da execução no GitHub." },
+      { target: ["edital-kpis"], title: "Resumo", body: "Abertos relevantes, novos da semana, os que encerram em 7 dias e os que você acompanha. Toque para filtrar." },
+      { target: ["edital-tipos", "edital-ufs"], title: "Tipo e estado", body: "Separe projeto de restauro de execução de obra, e toque num estado para ver só ele." },
+      { target: ["edital-filters"], title: "Filtros precisos", body: "Esfera, município, faixa de valor, prazo, situação, triagem, responsável e relevância mínima." },
+      { target: ["edital-list", "edital-list-m"], title: "Os editais", body: "Relevância, órgão, local, tipo, valor e prazo (em terracota quando faltam 7 dias ou menos). Toque para abrir os detalhes, marcar a triagem e criar negócio ou tarefa." },
     ],
   },
   "/notificacoes": {

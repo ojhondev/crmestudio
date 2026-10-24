@@ -16,7 +16,10 @@
     "test:docs": "node node_modules/tsx/dist/cli.mjs scripts/test-docs.ts",
     "test:tasks": "node node_modules/tsx/dist/cli.mjs scripts/test-tasks.ts",
     "test:sheets": "node node_modules/tsx/dist/cli.mjs scripts/test-sheets.ts",
-    "test:automations": "node node_modules/tsx/dist/cli.mjs scripts/test-automations.ts"
+    "test:automations": "node node_modules/tsx/dist/cli.mjs scripts/test-automations.ts",
+    "test:editais": "node node_modules/tsx/dist/cli.mjs scripts/test-editais.ts",
+    "test:editais:db": "node --env-file=.env.local node_modules/tsx/dist/cli.mjs scripts/test-editais.ts --db",
+    "editais:scan": "node --env-file=.env.local node_modules/tsx/dist/cli.mjs scripts/editais-scan.ts --local"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.133.0",

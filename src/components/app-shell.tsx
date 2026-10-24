@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   CalendarDays,
+  FileSearch,
   FileSignature,
   ListChecks,
   Table2,
@@ -64,6 +65,7 @@ function groups(user: SessionUser): Group[] {
   const g: Group[] = [];
   const operacao: Item[] = [{ key: "painel", href: "/", label: "Painel", icon: LayoutDashboard }];
   if (has(user, "negocios")) operacao.push({ key: "negocios", href: "/negocios", label: "Negócios", icon: KanbanSquare });
+  if (has(user, "editais")) operacao.push({ key: "editais", href: "/editais", label: "Editais", icon: FileSearch });
   if (has(user, "tarefas")) operacao.push({ key: "tarefas", href: "/tarefas", label: "Tarefas", icon: ListChecks });
   if (has(user, "contatos")) operacao.push({ key: "contatos", href: "/contatos", label: "Leads e contatos", icon: Users });
   if (has(user, "agenda")) operacao.push({ key: "agenda", href: "/agenda", label: "Agenda", icon: CalendarDays });

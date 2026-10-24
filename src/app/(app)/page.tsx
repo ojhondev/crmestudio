@@ -8,6 +8,8 @@ import { EVENT_TYPES } from "@/lib/constants";
 import { fmtDate, fmtTime, money, moneyShort, todayISO } from "@/lib/format";
 import { StartGuide } from "@/components/start-guide";
 import { AvisosCard } from "@/components/avisos-card";
+import { EditaisCard } from "@/components/editais-card";
+import { dashboardEditais } from "@/lib/editais/queries";
 import { getAvisos } from "@/lib/avisos";
 import { scheduleLazyTick } from "@/lib/automations-engine";
 import { PageBody } from "@/components/page-header";
@@ -22,6 +24,7 @@ export default async function Dashboard({ searchParams }: PageProps<"/">) {
   const canDeals = has(user, "negocios");
   const canAgenda = has(user, "agenda");
   const canFinance = has(user, "financeiro");
+  const canEditais = has(user, "editais");
   const today = todayISO();
   const monthStart = new Date(`${today.slice(0, 7)}-01T00:00:00-03:00`);
   const dayStart = new Date(`${today}T00:00:00-03:00`);
@@ -89,13 +92,14 @@ export default async function Dashboard({ searchParams }: PageProps<"/">) {
       .where(and(eq(schema.transactions.kind, "receita"), isNull(schema.transactions.paidAt), lte(schema.transactions.dueDate, in30)));
 
   scheduleLazyTick(); // abrir o painel também "acorda" as regras de tempo (no máximo 1 rodada a cada 15 min)
-  const [funnel, [won], agenda, myTasks, [receivable], avisos] = await Promise.all([
+  const [funnel, [won], agenda, myTasks, [receivable], avisos, editaisData] = await Promise.all([
     canDeals ? funnelQ() : [],
     canDeals ? wonQ() : [],
     canAgenda ? agendaQ() : [],
     tasksQ(),
     canFinance ? receivableQ() : [],
     getAvisos(user),
+    canEditais ? dashboardEditais().catch(() => null) : null,
   ]);
 
   const open = funnel.filter((s) => s.kind === "aberto");
@@ -150,6 +154,8 @@ export default async function Dashboard({ searchParams }: PageProps<"/">) {
             <Kpi label="Próximos 7 dias" value={String(agenda.length)} sub="compromissos na agenda" href="/agenda" />
           )}
         </div>
+
+        {editaisData && <EditaisCard data={editaisData} />}
 
         {ANA_UI_ENABLED && <AskAna />}
 

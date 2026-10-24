@@ -597,3 +597,122 @@ export const automationRuns = pgTable(
 export type NotificationRow = typeof notifications.$inferSelect;
 export type AutomationRule = typeof automationRules.$inferSelect;
 export type AutomationRun = typeof automationRuns.$inferSelect;
+
+/* ----------------------------------- Editais ----------------------------------- */
+
+/** Fontes de coleta de editais (PNCP busca, PNCP consulta…): estado da última passada. */
+export const editalSources = pgTable("edital_sources", {
+  key: text("key").primaryKey(),
+  name: text("name").notNull(),
+  enabled: boolean("enabled").notNull().default(true),
+  lastRunAt: timestamp("last_run_at", { withTimezone: true }),
+  lastStatus: text("last_status"),
+  lastCount: integer("last_count").notNull().default(0),
+});
+
+/** Edital de licitação (restauro): coletado do PNCP, triado por regras e acompanhado pela equipe. */
+export const editais = pgTable(
+  "editais",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    /** numeroControlePNCP (único) */
+    externalId: text("external_id").notNull(),
+    source: text("source").notNull().default("pncp-busca"),
+    title: text("title").notNull(),
+    object: text("object").notNull(),
+    organ: text("organ").notNull(),
+    organCnpj: text("organ_cnpj"),
+    unit: text("unit"),
+    esfera: text("esfera"), // federal | estadual | municipal | distrital
+    uf: text("uf"),
+    city: text("city"),
+    ibge: text("ibge"),
+    modalidade: text("modalidade"),
+    /** projeto | execucao | projeto_execucao | laudo | outro */
+    kind: text("kind").notNull().default("outro"),
+    kindWhy: text("kind_why"),
+    /** relevância 0–100 e termos que casaram (auditoria) */
+    score: integer("score").notNull().default(0),
+    matched: text("matched").array().notNull().default([]),
+    valueCents: bigint("value_cents", { mode: "number" }),
+    publishedAt: timestamp("published_at", { withTimezone: true }),
+    openAt: timestamp("open_at", { withTimezone: true }),
+    closeAt: timestamp("close_at", { withTimezone: true }),
+    /** aberto | encerrado | suspenso | cancelado */
+    situation: text("situation").notNull().default("aberto"),
+    url: text("url"),
+    sourceUrl: text("source_url"),
+    /** triagem da equipe: novo | interessante | em_analise | proposta_enviada | descartado | ganho | perdido */
+    triage: text("triage").notNull().default("novo"),
+    discardReason: text("discard_reason"),
+    notes: text("notes"),
+    ownerId: uuid("owner_id").references(() => users.id, { onDelete: "set null" }),
+    dealId: uuid("deal_id").references(() => deals.id, { onDelete: "set null" }),
+    taskId: uuid("task_id").references(() => tasks.id, { onDelete: "set null" }),
+    firstSeenAt: timestamp("first_seen_at", { withTimezone: true }).notNull().defaultNow(),
+    lastSeenAt: timestamp("last_seen_at", { withTimezone: true }).notNull().defaultNow(),
+    /** rodada que trouxe o edital pela primeira vez */
+    runId: integer("run_id"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("editais_external_idx").on(t.externalId),
+    index("editais_close_idx").on(t.closeAt),
+    index("editais_uf_idx").on(t.uf),
+    index("editais_triage_idx").on(t.triage, t.score),
+    index("editais_first_seen_idx").on(t.firstSeenAt),
+  ],
+);
+
+/** Histórico de um edital: triagem, notas, responsável, vínculo com negócio/tarefa, atualizações do portal. */
+export const editalEvents = pgTable(
+  "edital_events",
+  {
+    id: serial("id").primaryKey(),
+    editalId: uuid("edital_id")
+      .notNull()
+      .references(() => editais.id, { onDelete: "cascade" }),
+    at: timestamp("at", { withTimezone: true }).notNull().defaultNow(),
+    userId: uuid("user_id").references(() => users.id, { onDelete: "set null" }),
+    userName: text("user_name"),
+    type: text("type").notNull(), // triagem | nota | responsavel | negocio | tarefa | portal
+    body: text("body").notNull(),
+  },
+  (t) => [index("edital_events_edital_idx").on(t.editalId, t.at)],
+);
+
+/** Rodadas de varredura: solicitada pelo botão → pega pelo GitHub Actions → concluída. Também guarda o ponto de retomada. */
+export const editalRuns = pgTable(
+  "edital_runs",
+  {
+    id: serial("id").primaryKey(),
+    /** solicitada | executando | concluida | parcial | falhou */
+    status: text("status").notNull().default("solicitada"),
+    /** rapida (direto no CRM) | completa (GitHub Actions) */
+    mode: text("mode").notNull().default("completa"),
+    /** painel | agendada | github */
+    trigger: text("trigger").notNull().default("painel"),
+    requestedById: uuid("requested_by_id").references(() => users.id, { onDelete: "set null" }),
+    requestedByName: text("requested_by_name"),
+    requestedAt: timestamp("requested_at", { withTimezone: true }).notNull().defaultNow(),
+    startedAt: timestamp("started_at", { withTimezone: true }),
+    heartbeatAt: timestamp("heartbeat_at", { withTimezone: true }),
+    finishedAt: timestamp("finished_at", { withTimezone: true }),
+    /** janela em dias (por data de publicação) */
+    days: integer("days").notNull().default(14),
+    /** pedido ao qual esta rodada atende (a rápida atende o mesmo pedido da completa) */
+    parentId: integer("parent_id"),
+    runUrl: text("run_url"),
+    /** { scanned, candidates, relevant, created, updated, errors } */
+    stats: jsonb("stats").$type<Record<string, unknown>>().notNull().default({}),
+    /** ponto de retomada: { phase, step, page } */
+    cursor: jsonb("cursor").$type<Record<string, unknown> | null>(),
+    error: text("error"),
+  },
+  (t) => [index("edital_runs_status_idx").on(t.status, t.requestedAt)],
+);
+
+export type EditalRow = typeof editais.$inferSelect;
+export type EditalRunRow = typeof editalRuns.$inferSelect;
+export type EditalEventRow = typeof editalEvents.$inferSelect;
