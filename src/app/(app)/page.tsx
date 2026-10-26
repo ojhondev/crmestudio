@@ -137,6 +137,7 @@ export default async function Dashboard({ searchParams }: PageProps<"/">) {
       has(user, "tarefas", "edit") && { href: "/tarefas", t: "Criar uma tarefa", d: "Organize o que precisa ser feito, com responsável e prazo." },
       has(user, "negocios") && { href: "/negocios", t: "Acompanhar o funil", d: "Arraste os negócios entre as etapas conforme avançam." },
       has(user, "documentos", "edit") && { href: "/documentos", t: "Gerar um contrato", d: "Escolha um modelo; os dados do cliente entram sozinhos." },
+      has(user, "editais") && { href: "/editais/como-usar", t: "Aprender a usar os Editais", d: "Aula passo a passo: configuração, triagem, proposta e prazos." },
       { href: "/notificacoes", t: "Conferir seus avisos", d: "Atrasos, prazos e leads parados chegam no sino e no quadro Avisos." },
           ].filter(Boolean) as { href: string; t: string; d: string }[]}
         />

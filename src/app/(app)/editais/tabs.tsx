@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
+import { BookOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /** Abas do módulo Editais: oportunidades, propostas em andamento, cofre, atestados e configuração. */
@@ -16,20 +17,36 @@ export function EditaisTabs({ canManage, andamento, cofreAlerta }: { canManage: 
     { href: "/editais/portfolio", label: "Atestados e portfólio", active: path.startsWith("/editais/portfolio"), tour: "edital-tab-portfolio" },
     ...(canManage ? [{ href: "/editais/configuracao", label: "Configuração", active: path.startsWith("/editais/configuracao"), tour: "edital-tab-config" }] : []),
   ];
+  const help = path.startsWith("/editais/como-usar");
   return (
-    <nav aria-label="Seções de Editais" className="thin-scroll flex gap-1 overflow-x-auto border-t px-3 sm:px-5">
-      {tabs.map((t) => (
+    <div className="flex items-stretch border-t">
+      <nav aria-label="Seções de Editais" className="thin-scroll flex min-w-0 flex-1 gap-1 overflow-x-auto px-3 sm:px-5">
+        {tabs.map((t) => (
+          <Link
+            key={t.href}
+            href={t.href}
+            data-tour={t.tour}
+            aria-current={t.active ? "page" : undefined}
+            className={cn("inline-flex shrink-0 items-center gap-1.5 border-b-2 px-3 py-2.5 text-[13px] max-md:min-h-11", t.active ? "border-brand font-medium text-foreground" : "border-transparent text-muted-foreground hover:text-foreground")}
+          >
+            {t.label}
+            {t.badge ? <span className={cn("num grid min-w-5 place-items-center rounded-full px-1.5 text-[11px] leading-5 font-semibold", t.warn ? "bg-brand text-on-brand" : "bg-muted text-foreground")}>{t.badge}</span> : null}
+          </Link>
+        ))}
+      </nav>
+      <div className="flex shrink-0 items-center border-l px-2 sm:px-3">
         <Link
-          key={t.href}
-          href={t.href}
-          data-tour={t.tour}
-          aria-current={t.active ? "page" : undefined}
-          className={cn("inline-flex shrink-0 items-center gap-1.5 border-b-2 px-3 py-2.5 text-[13px] max-md:min-h-11", t.active ? "border-brand font-medium text-foreground" : "border-transparent text-muted-foreground hover:text-foreground")}
+          href="/editais/como-usar"
+          data-tour="edital-como-usar"
+          aria-current={help ? "page" : undefined}
+          className={cn(
+            "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[13px] font-medium max-md:min-h-11",
+            help ? "border-brand bg-brand text-on-brand" : "border-brand/50 bg-brand-soft text-brand hover:border-brand",
+          )}
         >
-          {t.label}
-          {t.badge ? <span className={cn("num grid min-w-5 place-items-center rounded-full px-1.5 text-[11px] leading-5 font-semibold", t.warn ? "bg-brand text-on-brand" : "bg-muted text-foreground")}>{t.badge}</span> : null}
+          <BookOpen className="size-4" aria-hidden /> Como usar
         </Link>
-      ))}
-    </nav>
+      </div>
+    </div>
   );
 }

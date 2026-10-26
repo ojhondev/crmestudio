@@ -685,6 +685,7 @@ export const articles: Article[] = [
         ],
       },
       { t: "tip", text: "O sistema não envia propostas por você: ele encontra o edital e organiza a esteira. O envio é feito no portal do órgão." },
+      { t: "tip", text: "Primeira vez? Toque em Como usar (canto direito da barra de abas de Editais) para a aula completa: configuração do primeiro dia, passo a passo, rotina, perguntas frequentes e glossário. Ela fica em /editais/como-usar." },
       { t: "warn", text: "O PNCP às vezes demora ou recusa conexões. Se a varredura rápida parar no meio, a completa do GitHub cobre o resto e se retoma sozinha." },
     ],
   },
@@ -836,6 +837,7 @@ export const faq: { q: string; a: string }[] = [
   { q: "A agenda do Google não mostra um evento que criei.", a: "Se você conectou o Google Agenda, toque em Google Agenda → Sincronizar agora e procure a agenda “Estúdio Restaura”; só aparecem eventos em que você é o responsável. Se usa o link de assinatura, o Google atualiza a cada algumas horas." },
   { q: "Apaguei um negócio sem querer.", a: "A exclusão é definitiva. Por isso o sistema sempre pede confirmação. Se aconteceu, avise um administrador para tentar recuperar pelo banco." },
   { q: "Por que não vejo um módulo no menu (ex.: Financeiro)?", a: "Cada pessoa vê só os módulos liberados no seu perfil de acesso. Se precisar de outro, peça a um administrador em Equipe e acessos." },
+  { q: "Onde aprendo a usar o módulo Editais do zero?", a: "Em Editais, toque em Como usar (canto direito da barra de abas). É uma aula com o primeiro dia de configuração, o passo a passo de cada tela, a rotina recomendada, perguntas frequentes e glossário." },
   { q: "Como começo a preparar uma proposta de edital?", a: "Em Editais, abra o edital e toque em Vou participar. O CRM cria o dossiê com checklist e prazos, as tarefas, a matriz de habilitação e os documentos. Antes da primeira vez, preencha Editais → Configuração." },
   { q: "Os documentos da proposta (declarações, impugnação…) estão prontos para usar?", a: "São modelos de partida. Revise com o jurídico e com o edital antes de assinar ou enviar: o sistema não garante que estejam corretos para o seu caso." },
   { q: "O cofre guarda os PDFs das certidões?", a: "Não. O CRM guarda só o link (do Drive ou do site que emitiu), a validade e os dados. Cole o link do arquivo e o sistema avisa antes de vencer." },
@@ -878,6 +880,7 @@ export const tours: Record<string, { label: string; steps: TourStep[] }> = {
   "/editais": {
     label: "Tour dos Editais",
     steps: [
+      { target: ["edital-como-usar"], title: "Como usar", body: "Primeira vez por aqui? Este botão abre uma aula completa dos Editais: configuração do primeiro dia, passo a passo, rotina e glossário. Fica em todas as telas do módulo." },
       { target: ["edital-scan"], title: "Buscar oportunidades", body: "Pede a varredura do PNCP: uma busca rápida roda na hora e o GitHub faz a completa (até cerca de 30 minutos para começar). Todo dia ela roda sozinha." },
       { target: ["edital-run"], title: "Andamento", body: "Mostra se a varredura foi solicitada, está rodando ou terminou, com quantos editais novos e o link da execução no GitHub." },
       { target: ["edital-kpis"], title: "Resumo", body: "Abertos relevantes, novos da semana, os que encerram em 7 dias e os que você acompanha. Toque para filtrar." },
@@ -898,6 +901,14 @@ export const tours: Record<string, { label: string; steps: TourStep[] }> = {
       { target: ["dossie-docs"], title: "Documentos e planilha", body: "Gera carta, proposta comercial, proposta técnica e declarações já preenchidas, e a planilha de preços com o BDI padrão. Revise tudo com o jurídico e com o edital." },
       { target: ["dossie-atestados"], title: "Atestados sugeridos", body: "Obras do seu portfólio que combinam com o objeto. Marque e insira na proposta técnica." },
       { target: ["dossie-resultado"], title: "Resultado", body: "Ganhou, perdeu, desclassificada ou desistência, com o motivo. Alimenta a taxa de êxito do Painel de propostas." },
+    ],
+  },
+  "/editais/como-usar": {
+    label: "Tour da aula de Editais",
+    steps: [
+      { target: ["como-usar-indice"], title: "Índice sempre à mão", body: "Toque numa seção para ir direto a ela. No celular o índice fica fixo no topo e recolhe com um toque." },
+      { target: ["como-usar-busca"], title: "Busca", body: "Digite uma palavra (certidão, BDI, prazo…) e a página mostra só as seções e perguntas que a contêm." },
+      { target: ["edital-como-usar"], title: "Voltar quando quiser", body: "O botão Como usar está em todas as telas de Editais. Para sair, use Voltar para Editais ou as abas." },
     ],
   },
   "/editais/cofre": {
