@@ -5,6 +5,10 @@ import { eq } from "drizzle-orm";
 import { db, schema } from "@/lib/db";
 import { requireAccess } from "@/lib/auth";
 import { parseLocalInput } from "@/lib/format";
+import { pushEvent, removeEventEverywhere } from "@/lib/calendar/service";
+
+/** Espera o envio ao Google por no máximo 8 s (o resto continua em segundo plano e a rodada periódica completa). */
+const withTimeout = (p: Promise<unknown>) => Promise.race([p, new Promise((r) => setTimeout(r, 8000))]);
 
 const str = (v: FormDataEntryValue | null) => {
   const s = String(v ?? "").trim();
@@ -37,14 +41,23 @@ export async function saveEvent(_: unknown, form: FormData) {
     dealId: str(form.get("dealId")),
     contactId: partner ? null : str(form.get("contactId")),
     userId: partner ? user.id : (str(form.get("userId")) ?? user.id),
+    updatedAt: new Date(),
   };
+  // opções do Google Agenda: só chegam quando a pessoa tem o Google conectado (campo oculto "gcal")
+  const google =
+    form.get("gcal") === "1"
+      ? { meet: form.get("meet") === "on", inviteGuests: form.get("inviteGuests") === "on", guestEmails: str(form.get("guestEmails")) }
+      : {};
 
   if (id) {
     const [ev] = await db.select().from(schema.events).where(eq(schema.events.id, id));
     if (!ev || (partner && ev.userId !== user.id)) return { error: "Sem acesso a este evento." };
-    await db.update(schema.events).set(values).where(eq(schema.events.id, id));
+    // salvar de novo reativa um evento que tinha sido cancelado pelo Google Agenda
+    await db.update(schema.events).set({ ...values, ...google, cancelledAt: null }).where(eq(schema.events.id, id));
+    await withTimeout(pushEvent(id));
   } else {
-    await db.insert(schema.events).values(values);
+    const [created] = await db.insert(schema.events).values({ ...values, ...google }).returning({ id: schema.events.id });
+    await withTimeout(pushEvent(created.id));
     if (values.dealId)
       await db.insert(schema.activities).values({
         dealId: values.dealId,
@@ -62,6 +75,7 @@ export async function deleteEvent(id: string) {
   const [ev] = await db.select().from(schema.events).where(eq(schema.events.id, id));
   if (!ev) return;
   if (user.ownOnly && ev.userId !== user.id) return;
+  await removeEventEverywhere(id); // apaga o espelho no Google Agenda antes
   await db.delete(schema.events).where(eq(schema.events.id, id));
   revalidatePath("/", "layout");
 }

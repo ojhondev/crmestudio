@@ -7,8 +7,13 @@ import { dealScope } from "@/lib/deals";
 import { todayISO } from "@/lib/format";
 import { AgendaView } from "./agenda-view";
 import { CalendarSync } from "./calendar-sync";
+import { GoogleSync } from "./google-sync";
+import { getConnection, publicInfo } from "@/lib/calendar/service";
+import { googleConfigured } from "@/lib/calendar/oauth";
 
 export const metadata: Metadata = { title: "Agenda" };
+// a sincronização manual com o Google roda como ação do servidor desta página
+export const maxDuration = 60;
 
 /** Grade mensal: domingo a sábado, sempre 6 semanas. Datas como "YYYY-MM-DD". */
 function monthGrid(month: string) {
@@ -31,7 +36,7 @@ export default async function AgendaPage({ searchParams }: PageProps<"/agenda">)
   const to = new Date(new Date(`${days[41]}T00:00:00-03:00`).getTime() + 864e5);
   const partner = user.ownOnly;
 
-  const [rows, deals, contacts, team, [me]] = await Promise.all([
+  const [rows, deals, contacts, team, [me], conn] = await Promise.all([
     db
       .select({
         id: schema.events.id,
@@ -42,6 +47,12 @@ export default async function AgendaPage({ searchParams }: PageProps<"/agenda">)
         allDay: schema.events.allDay,
         location: schema.events.location,
         description: schema.events.description,
+        meet: schema.events.meet,
+        inviteGuests: schema.events.inviteGuests,
+        guestEmails: schema.events.guestEmails,
+        meetUrl: schema.events.meetUrl,
+        origin: schema.events.origin,
+        cancelledAt: schema.events.cancelledAt,
         dealId: schema.events.dealId,
         contactId: schema.events.contactId,
         userId: schema.events.userId,
@@ -62,7 +73,9 @@ export default async function AgendaPage({ searchParams }: PageProps<"/agenda">)
           .from(schema.users)
           .where(and(eq(schema.users.active, true), or(eq(schema.users.role, "admin"), eq(schema.users.role, "equipe")))),
     db.select({ token: schema.users.calendarToken }).from(schema.users).where(eq(schema.users.id, user.id)),
+    getConnection(user.id),
   ]);
+  const google = { ...publicInfo(conn), configured: googleConfigured() };
 
   return (
     <>
@@ -70,14 +83,20 @@ export default async function AgendaPage({ searchParams }: PageProps<"/agenda">)
         month={month}
         days={days}
         today={today}
-        events={rows.map((e) => ({ ...e, startsAt: e.startsAt.toISOString(), endsAt: e.endsAt.toISOString() }))}
+        events={rows.map((e) => ({ ...e, startsAt: e.startsAt.toISOString(), endsAt: e.endsAt.toISOString(), cancelledAt: e.cancelledAt?.toISOString() ?? null }))}
         deals={deals}
         contacts={contacts}
         team={team}
         userId={user.id}
         isPartner={partner}
         canEdit={canEdit}
-        sync={<CalendarSync token={me.token} origin={`${h.get("x-forwarded-proto") ?? "https"}://${h.get("host")}`} />}
+        googleConnected={google.connected}
+        sync={
+          <>
+            <GoogleSync info={google} result={typeof sp.google === "string" ? sp.google : undefined} />
+            <CalendarSync token={me.token} origin={`${h.get("x-forwarded-proto") ?? "https"}://${h.get("host")}`} />
+          </>
+        }
         openNew={sp.novo === "1"}
         presetDeal={typeof sp.deal === "string" ? sp.deal : undefined}
       />

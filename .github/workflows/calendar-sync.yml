@@ -1,0 +1,41 @@
+name: Google Agenda (sincronização a cada 15 minutos)
+
+# Como funciona (sem nenhum segredo guardado no GitHub), no mesmo padrão do workflow de Editais:
+#  - O job pede ao GitHub um token OIDC (permissions: id-token: write) para a audiência do CRM e o envia em
+#    /api/calendar/sync-all. O CRM confere assinatura, repositório, branch e este arquivo de workflow
+#    (ver src/lib/editais/oidc.ts) e então sincroniza o Google Agenda de todas as pessoas conectadas.
+#  - Os eventos também sincronizam ao abrir a Agenda, ao salvar um evento, no botão “Sincronizar agora” e, quando o
+#    Google permite, por notificação instantânea (webhook). Este job é a rede de segurança.
+#  - Manual: aba Actions → “Google Agenda” → Run workflow.
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: calendar-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    name: Sincronizar Google Agenda
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      TARGET: "https://crm.estudiorestaura.com.br"
+      AUDIENCE: "https://crm.estudiorestaura.com.br"
+    steps:
+      - name: Pedir token OIDC e chamar o CRM
+        run: |
+          set -euo pipefail
+          TOKEN=$(curl -sS --fail -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=$AUDIENCE" | jq -r .value)
+          for i in 1 2 3; do
+            if curl -sS --fail --max-time 90 -X POST -H "Authorization: Bearer $TOKEN" "$TARGET/api/calendar/sync-all"; then echo; exit 0; fi
+            echo "tentativa $i falhou; aguardando"; sleep $((i * 10))
+          done
+          exit 1

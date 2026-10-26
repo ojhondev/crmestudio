@@ -17,6 +17,7 @@
     "test:tasks": "node node_modules/tsx/dist/cli.mjs scripts/test-tasks.ts",
     "test:sheets": "node node_modules/tsx/dist/cli.mjs scripts/test-sheets.ts",
     "test:automations": "node node_modules/tsx/dist/cli.mjs scripts/test-automations.ts",
+    "test:calendar": "node node_modules/tsx/dist/cli.mjs scripts/test-calendar.ts",
     "test:editais": "node node_modules/tsx/dist/cli.mjs scripts/test-editais.ts",
     "test:editais:db": "node --env-file=.env.local node_modules/tsx/dist/cli.mjs scripts/test-editais.ts --db",
     "editais:scan": "node --env-file=.env.local node_modules/tsx/dist/cli.mjs scripts/editais-scan.ts --local"

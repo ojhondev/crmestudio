@@ -50,7 +50,7 @@ export const articles: Article[] = [
           "Faça o tour de boas-vindas (botão “?” → Tour de boas-vindas).",
           "Abra Ajustes e troque a sua senha.",
           "Cadastre um lead em Leads e contatos e abra um negócio para ele.",
-          "Agende uma visita técnica na Agenda e toque em Sincronizar para vê-la no seu celular.",
+          "Agende uma visita técnica na Agenda e conecte o Google Agenda para vê-la no seu celular.",
         ],
       },
       { t: "tip", text: "Instale o app na tela inicial do celular: ele abre em tela cheia, como um aplicativo. Veja “Instalar no celular”." },
@@ -160,19 +160,51 @@ export const articles: Article[] = [
     slug: "agenda",
     module: "Operação",
     title: "Agenda",
-    summary: "Visitas, reuniões, obras e prazos, sincronizados com o celular.",
+    summary: "Visitas, reuniões, obras e prazos, sincronizados nos dois sentidos com o seu Google Agenda.",
     href: "/agenda",
     tour: "/agenda",
-    keywords: ["calendário", "google", "iphone", "visita", "ics", "sincronizar"],
+    keywords: ["calendário", "google", "google agenda", "meet", "convite", "iphone", "visita", "ics", "sincronizar", "conectar"],
     body: [
       { t: "p", text: "A agenda do estúdio mostra o mês inteiro e uma lista dos próximos compromissos." },
       { t: "steps", title: "Criar um evento", items: ["Toque em um dia (ou em “Evento”).", "Dê um título, escolha o tipo (reunião, visita técnica, obra, prazo) e o horário.", "Vincule a um negócio ou contato para o evento aparecer no histórico deles."] },
       {
         t: "steps",
-        title: "Ver a agenda no Google Agenda ou iPhone",
-        items: ["Toque em “Sincronizar”.", "No iPhone/Mac, toque em “Abrir no Calendário”. No Google Agenda, copie o link e use Outras agendas → Do URL.", "Pronto: os eventos aparecem lá e se atualizam sozinhos."],
+        title: "Ligar ao seu Google Agenda (vai e volta)",
+        items: [
+          "Na Agenda, toque em “Google Agenda” e depois em “Conectar Google Agenda”.",
+          "Entre com a sua conta Google e aceite a permissão. Cada pessoa conecta a própria conta.",
+          "Pronto: criamos no seu Google uma agenda separada chamada “Estúdio Restaura”. O que você cria, muda ou apaga aqui aparece lá, e o que você faz lá aparece aqui.",
+        ],
       },
-      { t: "warn", text: "A sincronização é de mão única: o que você cria aqui aparece no Google/iPhone, mas eventos criados lá não voltam para cá. O link é pessoal — não compartilhe." },
+      {
+        t: "list",
+        title: "Bom saber",
+        items: [
+          "Só a agenda “Estúdio Restaura” é sincronizada. Sua agenda pessoal do Google não é lida nem alterada.",
+          "Aparece só o que é seu: eventos em que você é o responsável.",
+          "Atualiza ao abrir a Agenda, ao salvar um evento, no botão “Sincronizar agora” e sozinha a cada 15 minutos.",
+          "Se você mudar o mesmo evento dos dois lados, vale a alteração mais recente.",
+          "Se apagar um evento no Google, aqui ele fica marcado como “cancelado” (nada é perdido). Apagar aqui apaga lá.",
+          "Em “Google Agenda” você escolhe quais tipos de evento enviar (reunião, visita, obra, prazo, outro).",
+          "Para parar: “Desconectar”. Você escolhe se os eventos ficam no Google ou são removidos de lá. O CRM nunca perde nada.",
+        ],
+      },
+      {
+        t: "steps",
+        title: "Link do Google Meet e convites por e-mail",
+        items: [
+          "Ao criar ou editar um evento (com o Google conectado), aparece o quadro “Google Agenda”.",
+          "Ligue “Criar link do Google Meet” para gerar a sala. O link aparece no evento.",
+          "Ligue “Convidar participantes por e-mail” e informe os e-mails; o contato do evento também é convidado. O Google envia o convite ao salvar.",
+          "As duas opções vêm desligadas: ninguém recebe e-mail sem você querer.",
+        ],
+      },
+      {
+        t: "steps",
+        title: "Só ver a agenda no celular (alternativa)",
+        items: ["Toque em “Assinar por link”.", "No iPhone/Mac, toque em “Abrir no Calendário”. No Google Agenda, copie o link e use Outras agendas → Do URL.", "Os eventos aparecem lá, mas é só visualização: o que for criado lá não volta para cá."],
+      },
+      { t: "warn", text: "Aparece “a API do Google Agenda ainda não foi ativada”? É um ajuste único do administrador no Google Cloud (ativar a Google Calendar API). Avise quem cuida do sistema." },
     ],
   },
   {
@@ -729,7 +761,7 @@ export const articleBySlug = (slug: string) => articles.find((a) => a.slug === s
 
 export const faq: { q: string; a: string }[] = [
   { q: "Esqueci minha senha. E agora?", a: "Peça a um administrador para gerar uma nova senha provisória em Equipe e acessos (toque na sua pessoa → Gerar nova senha). No próximo login você cria uma senha nova só sua." },
-  { q: "A agenda do Google não mostra um evento que criei.", a: "O Google atualiza assinaturas de calendário a cada algumas horas. No iPhone costuma ser mais rápido. Confira também se o link de sincronização é o seu." },
+  { q: "A agenda do Google não mostra um evento que criei.", a: "Se você conectou o Google Agenda, toque em Google Agenda → Sincronizar agora e procure a agenda “Estúdio Restaura”; só aparecem eventos em que você é o responsável. Se usa o link de assinatura, o Google atualiza a cada algumas horas." },
   { q: "Apaguei um negócio sem querer.", a: "A exclusão é definitiva. Por isso o sistema sempre pede confirmação. Se aconteceu, avise um administrador para tentar recuperar pelo banco." },
   { q: "Por que não vejo um módulo no menu (ex.: Financeiro)?", a: "Cada pessoa vê só os módulos liberados no seu perfil de acesso. Se precisar de outro, peça a um administrador em Equipe e acessos." },
   { q: "Posso usar no computador e no celular ao mesmo tempo?", a: "Sim. Os dados são os mesmos em qualquer aparelho." },
@@ -813,7 +845,7 @@ export const tours: Record<string, { label: string; steps: TourStep[] }> = {
   "/agenda": {
     label: "Tour da Agenda",
     steps: [
-      { target: ["page-actions"], title: "Sincronizar", body: "Veja esta agenda no Google Agenda ou no iPhone, atualizando sozinha." },
+      { target: ["page-actions"], title: "Google Agenda", body: "Conecte o seu Google Agenda: o que você marca aqui aparece lá e o que marca lá volta para cá. “Assinar por link” só mostra a agenda, sem editar." },
       { target: ["agenda-grid"], title: "Calendário", body: "Toque em um dia para criar um evento, ou em um evento para editar." },
     ],
   },

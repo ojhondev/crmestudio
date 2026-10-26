@@ -242,8 +242,76 @@ export const events = pgTable(
     contactId: uuid("contact_id").references(() => contacts.id, { onDelete: "cascade" }),
     userId: uuid("user_id").references(() => users.id, { onDelete: "set null" }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    /** última alteração (base da regra "o último a alterar vence" na sincronização com o Google Agenda) */
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    /** "crm" (criado aqui) ou "google" (veio do Google Agenda) */
+    origin: text("origin").notNull().default("crm"),
+    /** opções do Google Agenda, por evento (desligadas por padrão) */
+    meet: boolean("meet").notNull().default(false),
+    inviteGuests: boolean("invite_guests").notNull().default(false),
+    guestEmails: text("guest_emails"), // e-mails extras separados por vírgula
+    meetUrl: text("meet_url"),
+    /** apagado no Google Agenda: fica registrado como cancelado, nada some do CRM */
+    cancelledAt: timestamp("cancelled_at", { withTimezone: true }),
   },
   (t) => [index("events_starts_idx").on(t.startsAt)],
+);
+
+/** Conexão do Google Agenda de cada pessoa (tokens sempre criptografados). Sincroniza só a agenda "Estúdio Restaura". */
+export const calendarConnections = pgTable(
+  "calendar_connections",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    googleEmail: text("google_email"),
+    accessTokenEnc: text("access_token_enc"),
+    refreshTokenEnc: text("refresh_token_enc"),
+    expiresAt: timestamp("expires_at", { withTimezone: true }),
+    scope: text("scope"),
+    /** id da agenda secundária "Estúdio Restaura" no Google do usuário */
+    calendarId: text("calendar_id"),
+    syncToken: text("sync_token"),
+    channelId: text("channel_id"),
+    channelResourceId: text("channel_resource_id"),
+    channelTokenHash: text("channel_token_hash"),
+    channelExpiresAt: timestamp("channel_expires_at", { withTimezone: true }),
+    /** tipos de evento do CRM que vão para o Google (vazio/nulo = todos) */
+    syncTypes: text("sync_types").array(),
+    status: text("status").notNull().default("ativo"), // ativo | erro | reautorizar
+    lastError: text("last_error"),
+    lastSyncAt: timestamp("last_sync_at", { withTimezone: true }),
+    /** trava de sincronização (evita duas rodadas ao mesmo tempo) */
+    lockedUntil: timestamp("locked_until", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("calendar_connections_user_uq").on(t.userId)],
+);
+
+/** Elo entre um evento do CRM e o evento correspondente na agenda Google de uma conexão. */
+export const calendarEventLinks = pgTable(
+  "calendar_event_links",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    connectionId: uuid("connection_id")
+      .notNull()
+      .references(() => calendarConnections.id, { onDelete: "cascade" }),
+    eventId: uuid("event_id")
+      .notNull()
+      .references(() => events.id, { onDelete: "cascade" }),
+    googleEventId: text("google_event_id").notNull(),
+    etag: text("etag"),
+    googleUpdated: timestamp("google_updated", { withTimezone: true }),
+    /** hash do conteúdo (título, horário, local…) na última sincronização */
+    contentHash: text("content_hash").notNull(),
+    syncedAt: timestamp("synced_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("calendar_links_event_uq").on(t.connectionId, t.eventId),
+    uniqueIndex("calendar_links_google_uq").on(t.connectionId, t.googleEventId),
+  ],
 );
 
 export type TxKind = "receita" | "despesa";

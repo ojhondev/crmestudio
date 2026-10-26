@@ -33,6 +33,12 @@ type Ev = {
   userId: string | null;
   dealTitle: string | null;
   userName: string | null;
+  meet: boolean;
+  inviteGuests: boolean;
+  guestEmails: string | null;
+  meetUrl: string | null;
+  origin: string;
+  cancelledAt: string | null;
 };
 type Opt = { id: string; name: string };
 
@@ -58,6 +64,7 @@ export function AgendaView({
   presetDeal,
   canEdit = true,
   sync,
+  googleConnected = false,
 }: {
   month: string;
   days: string[];
@@ -72,6 +79,7 @@ export function AgendaView({
   presetDeal?: string;
   canEdit?: boolean;
   sync?: React.ReactNode;
+  googleConnected?: boolean;
 }) {
   const [dialog, setDialog] = useState<{ event?: Ev; date?: string; dealId?: string } | null>(
     openNew && canEdit ? { date: today, dealId: presetDeal } : null,
@@ -197,7 +205,7 @@ export function AgendaView({
                           ev.stopPropagation();
                           show({ event: e });
                         }}
-                        className="flex items-center gap-1 truncate rounded px-1 py-0.5 text-left text-xs leading-tight hover:bg-muted"
+                        className={cn("flex items-center gap-1 truncate rounded px-1 py-0.5 text-left text-xs leading-tight hover:bg-muted", e.cancelledAt && "line-through opacity-60")}
                         style={{ background: `${EVENT_TYPES[e.type]?.color ?? "#776157"}14` }}
                       >
                         <span className="size-1.5 shrink-0 rounded-full" style={{ background: EVENT_TYPES[e.type]?.color }} />
@@ -223,7 +231,7 @@ export function AgendaView({
                 <span className="size-2 rounded-full" style={{ background: EVENT_TYPES[e.type]?.color }} />
                 {e.allDay ? "Dia todo" : `${fmtTime(e.startsAt)} – ${fmtTime(e.endsAt)}`}
               </span>
-              <span className="text-sm font-medium break-words">{e.title}</span>
+              <span className={cn("text-sm font-medium break-words", e.cancelledAt && "line-through opacity-60")}>{e.title}{e.cancelledAt && " (cancelado)"}</span>
               {e.location && (
                 <span className="flex items-center gap-1 text-xs text-muted-foreground">
                   <MapPin className="size-3 shrink-0" /> <span className="min-w-0 break-words">{e.location}</span>
@@ -250,7 +258,7 @@ export function AgendaView({
                 <span className="size-1.5 rounded-full" style={{ background: EVENT_TYPES[e.type]?.color }} />
                 {fmtDate(e.startsAt, "EEE, dd/MM")} {e.allDay ? "· dia todo" : `· ${fmtTime(e.startsAt)}`}
               </span>
-              <span className="text-[13px] font-medium">{e.title}</span>
+              <span className={cn("text-[13px] font-medium", e.cancelledAt && "line-through opacity-60")}>{e.title}{e.cancelledAt && " (cancelado)"}</span>
               {e.location && (
                 <span className="flex items-center gap-1 text-xs text-muted-foreground">
                   <MapPin className="size-3" /> {e.location}
@@ -263,7 +271,7 @@ export function AgendaView({
         )}
       </aside>
 
-      <EventDialog state={dialog} onClose={() => setDialog(null)} deals={deals} contacts={contacts} team={team} isPartner={isPartner} />
+      <EventDialog state={dialog} onClose={() => setDialog(null)} deals={deals} contacts={contacts} team={team} isPartner={isPartner} googleConnected={googleConnected} />
     </div>
       </ToolArea>
     </>
@@ -277,6 +285,7 @@ function EventDialog({
   contacts,
   team,
   isPartner,
+  googleConnected,
 }: {
   state: { event?: Ev; date?: string; dealId?: string } | null;
   onClose: () => void;
@@ -284,6 +293,7 @@ function EventDialog({
   contacts: Opt[];
   team: Opt[];
   isPartner: boolean;
+  googleConnected: boolean;
 }) {
   const router = useRouter();
   const [result, action, pending] = useActionState(saveEvent, null);
@@ -373,6 +383,8 @@ function EventDialog({
           <Field label="Descrição" htmlFor="ev-desc">
             <Textarea id="ev-desc" name="description" rows={2} defaultValue={e?.description ?? ""} />
           </Field>
+          {googleConnected && <GoogleOptions e={e} />}
+          {e?.cancelledAt && <p className="rounded-lg border bg-muted/40 p-3 text-[13px] text-muted-foreground">Este evento foi apagado no Google Agenda e está marcado como cancelado. Salvar de novo o reativa.</p>}
           {result?.error && <p className="text-sm text-destructive">{result.error}</p>}
           <div className="flex items-center gap-2">
             {e && (
@@ -395,5 +407,39 @@ function EventDialog({
         </form>
       </DialogContent>
     </Dialog>
+  );
+}
+
+/** Opções por evento do Google Agenda (só aparecem para quem conectou; desligadas por padrão). */
+function GoogleOptions({ e }: { e?: Ev }) {
+  const [invite, setInvite] = useState(!!e?.inviteGuests);
+  return (
+    <fieldset className="grid gap-1 rounded-lg border bg-muted/20 p-3">
+      <legend className="px-1 text-xs tracking-wider text-muted-foreground uppercase">Google Agenda</legend>
+      <input type="hidden" name="gcal" value="1" />
+      <div className="flex min-h-11 items-center gap-3">
+        <Switch id="ev-meet" name="meet" defaultChecked={!!e?.meet} />
+        <Label htmlFor="ev-meet" className="flex-1 font-normal">
+          Criar link do Google Meet
+        </Label>
+      </div>
+      {e?.meetUrl && (
+        <a href={e.meetUrl} target="_blank" rel="noreferrer" className="text-[13px] text-brand underline break-all">
+          {e.meetUrl}
+        </a>
+      )}
+      <div className="flex min-h-11 items-center gap-3">
+        <Switch id="ev-invite" name="inviteGuests" checked={invite} onCheckedChange={setInvite} />
+        <Label htmlFor="ev-invite" className="flex-1 font-normal">
+          Convidar participantes por e-mail
+        </Label>
+      </div>
+      {invite && (
+        <Field label="E-mails dos convidados" htmlFor="ev-guests">
+          <Input id="ev-guests" name="guestEmails" defaultValue={e?.guestEmails ?? ""} placeholder="ana@exemplo.com, bruno@exemplo.com" />
+          <p className="mt-1 text-xs text-muted-foreground">O e-mail do contato do evento também recebe o convite. O Google envia o convite na hora de salvar.</p>
+        </Field>
+      )}
+    </fieldset>
   );
 }

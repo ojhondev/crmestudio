@@ -68,6 +68,16 @@ upload de imagens em Blob (hoje: imagem reduzida embutida ou URL https).
 - Tarefas dentro de negócios/contatos: concluir sincroniza `status` (`doneAt` segue como fonte de "concluída") e mostram
   situação/prioridade; botão de excluir visível no toque.
 
+## Google Agenda em duas vias ✅ (2026-10-26)
+Sincronização por pessoa entre a Agenda do CRM (`events`) e uma agenda secundária "Estúdio Restaura" no Google de cada usuário (a agenda pessoal nunca é tocada).
+- **OAuth**: escopo mínimo `calendar.app.created` (+ openid email), `access_type=offline`, `prompt=consent`. Reaproveita a URI já autorizada `/api/drive/callback`: o `state` com prefixo `cal:` + cookie `cal_oauth_state` desvia para o fluxo da Agenda; sem o prefixo, o fluxo do Drive segue idêntico. **Nenhuma URI nova** no Google Cloud. Tokens criptografados (AES-GCM, `drive/crypto`).
+- **Banco**: `calendar_connections` (por usuário), `calendar_event_links` (elo evento↔Google, hash de conteúdo, etag), colunas novas em `events` (updatedAt, origin, meet, inviteGuests, guestEmails, meetUrl, cancelledAt).
+- **Motor** (`src/lib/calendar`): cliente REST com backoff; mapeamento (fuso America/Sao_Paulo, dia inteiro, lembretes, Meet, convidados); id do Google derivado do id do CRM (envio idempotente); sync incremental com syncToken (410 refaz completo); conflito = último a alterar vence; anti-eco por hash/etag; apagado no Google = "cancelado" no CRM (nunca apaga); trava de 2 min contra rodadas simultâneas.
+- **Quase tempo real**: push do Google (`/api/calendar/webhook`, token do canal) com renovação; sob demanda (abrir a Agenda, salvar, "Sincronizar agora"); rede de segurança `.github/workflows/calendar-sync.yml` (*/15, OIDC do GitHub como nos Editais, `/api/calendar/sync-all`) e Vercel Cron diário (CRON_SECRET).
+- **UI**: botão "Google Agenda" (conectar, sincronizar agora, tipos de evento, desconectar mantendo/removendo no Google); opções "Criar link do Meet" e "Convidar por e-mail" por evento (desligadas por padrão); feed ICS mantido como "Assinar por link".
+- **Pré-requisito do administrador**: ativar a *Google Calendar API* no projeto do Google Cloud. Opcional: verificar o domínio crm.estudiorestaura.com.br no Google (Search Console/Cloud) para o push instantâneo; sem isso funciona por sondagem (15 min + ao abrir).
+- Testes: `npm run test:calendar` (Google mockado). Pendente: teste com conta Google real.
+
 ## Planilhas ✅ (entregue 2026-10-19)
 Módulo independente do Financeiro (permissão `planilhas`), muito parecido com o Google Sheets. Serve para materiais, custo por projeto, orçamento de obra, fluxo de caixa e cronograma.
 - **Lista** `/planilhas`: busca, ordenação (recentes/nome/criação), favoritas, nova em branco ou de **modelo** (Controle de materiais, Custo por projeto, Orçamento de obra, Fluxo de caixa simples, Cronograma), **importar** (arrastar e soltar, prévia antes de confirmar), duplicar, renomear, vincular a negócio/contato, excluir (Gerenciar).
