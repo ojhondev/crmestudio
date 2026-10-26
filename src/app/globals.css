@@ -292,3 +292,61 @@ body {
     display: none;
   }
 }
+
+/* ---------------------------------------------------------------------------
+   App Editais — identidade própria dentro do CRM: mais respiro, cantos maiores,
+   títulos em serifa e UM acento (o terracota do estúdio). Tudo em tokens do tema,
+   então claro/escuro funcionam sem exceções.
+--------------------------------------------------------------------------- */
+.ed-title {
+  font-family: var(--font-serif);
+  font-weight: 500;
+  letter-spacing: -0.012em;
+  line-height: 1.12;
+}
+.ed-card {
+  border-radius: 1rem;
+  border: 1px solid var(--border);
+  background: var(--card);
+}
+@layer components {
+  /* trilha única que nunca passa da largura do cartão (texto longo não estoura a tela); utilitários de colunas continuam valendo */
+  .ed-card.grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.ed-safe-bottom {
+  padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+}
+@keyframes ed-step-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes ed-step-in-back {
+  from {
+    opacity: 0;
+    transform: translateY(-14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.ed-step-in {
+  animation: ed-step-in 0.28s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+.ed-step-back {
+  animation: ed-step-in-back 0.28s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ed-step-in,
+  .ed-step-back {
+    animation: none;
+  }
+}

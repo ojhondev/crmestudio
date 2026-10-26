@@ -954,3 +954,85 @@ export const portfolioItems = pgTable(
 export type DossieRow = typeof propostaDossies.$inferSelect;
 export type CofreDocRow = typeof cofreDocs.$inferSelect;
 export type PortfolioRow = typeof portfolioItems.$inferSelect;
+
+
+/* ------------------------- App Editais: parceiros e compartilhamento ------------------------- */
+
+/** Perfil de parceiro do app Editais (1 por conta de usuário com perfil `parceiro_editais`). O estado do convite é derivado: revogado (revokedAt) · aceito (primeiro login) · pendente. */
+export const editalPartners = pgTable(
+  "edital_partners",
+  {
+    userId: uuid("user_id")
+      .primaryKey()
+      .references(() => users.id, { onDelete: "cascade" }),
+    company: text("company"),
+    areas: text("areas"),
+    /** libera o Radar completo (padrão: só o que for compartilhado) */
+    radarCompleto: boolean("radar_completo").notNull().default(false),
+    invitedById: uuid("invited_by_id").references(() => users.id, { onDelete: "set null" }),
+    /** como o último convite saiu: email (enviado de verdade) · manual (copiado / WhatsApp / mailto) */
+    inviteChannel: text("invite_channel"),
+    inviteSentAt: timestamp("invite_sent_at", { withTimezone: true }),
+    inviteCount: integer("invite_count").notNull().default(0),
+    inviteError: text("invite_error"),
+    acceptedNotifiedAt: timestamp("accepted_notified_at", { withTimezone: true }),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("edital_partners_revoked_idx").on(t.revokedAt)],
+);
+
+/** Compartilhamento: um edital (e, opcionalmente, a proposta) com um parceiro. É a ÚNICA fonte do que o parceiro enxerga (fora o "radar completo"). */
+export const editalShares = pgTable(
+  "edital_shares",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    editalId: uuid("edital_id")
+      .notNull()
+      .references(() => editais.id, { onDelete: "cascade" }),
+    partnerId: uuid("partner_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    /** ver (só lê) · contribuir (comenta, anexa links, faz o que lhe for atribuído) */
+    role: text("role").notNull().default("ver"),
+    /** edital (só o edital) · proposta (também a proposta/dossiê) */
+    scope: text("scope").notNull().default("edital"),
+    /** blocos internos: documentos gerados e planilha de preços ficam só da equipe, salvo se marcados */
+    showDocs: boolean("show_docs").notNull().default(false),
+    showSheet: boolean("show_sheet").notNull().default(false),
+    /** documentos do cofre explicitamente compartilhados com este parceiro neste edital */
+    docIds: uuid("doc_ids").array().notNull().default([]),
+    createdById: uuid("created_by_id").references(() => users.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("edital_shares_pair_idx").on(t.editalId, t.partnerId), index("edital_shares_partner_idx").on(t.partnerId)],
+);
+
+/** Conversa e atividade de um edital/proposta: comentários, interesse, links anexados e documentos enviados para revisão. */
+export const editalComments = pgTable(
+  "edital_comments",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    editalId: uuid("edital_id")
+      .notNull()
+      .references(() => editais.id, { onDelete: "cascade" }),
+    userId: uuid("user_id").references(() => users.id, { onDelete: "set null" }),
+    userName: text("user_name"),
+    /** comentario · interesse · link · revisao */
+    kind: text("kind").notNull().default("comentario"),
+    body: text("body").notNull(),
+    linkUrl: text("link_url"),
+    linkName: text("link_name"),
+    /** revisão de documento: pendente · aprovado · ajustar */
+    reviewStatus: text("review_status"),
+    mentions: uuid("mentions").array().notNull().default([]),
+    /** nota interna: só a equipe enxerga */
+    internal: boolean("internal").notNull().default(false),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("edital_comments_edital_idx").on(t.editalId, t.createdAt)],
+);
+
+export type EditalPartnerRow = typeof editalPartners.$inferSelect;
+export type EditalShareRow = typeof editalShares.$inferSelect;
+export type EditalCommentRow = typeof editalComments.$inferSelect;

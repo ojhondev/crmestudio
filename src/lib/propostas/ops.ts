@@ -14,9 +14,10 @@ import { assigneeFor, itemDueAt, planChecklist, planSteps } from "./checklist";
 import { dayToInstant } from "./dates";
 import { PROPOSTA_DOCS } from "./doc-templates";
 import { atestadoText, type PortfolioLite } from "./portfolio";
-import { priceSheetTabs } from "./price-sheet";
+import { priceSheetTabs, type PriceItemInput } from "./price-sheet";
 import { BUILTIN_CHECKLISTS, BUILTIN_MATRICES, suggestTemplateKey } from "./templates";
-import { STEP_BY_KEY, type MatrixItem, type RoleKey, type StepKey, type TemplateItem } from "./types";
+import { STEP_BY_KEY, type MatrixItem, type RoleKey, type StepKey, type StepStatus, type TemplateItem } from "./types";
+import { stepStatusFromItems } from "./progress";
 import { deadlineOf, dayOf, ensureTemplates, getConfig, matrixKeyFor } from "./server";
 
 export type Actor = Pick<SessionUser, "id" | "name" | "perms" | "ownOnly" | "role">;
@@ -241,7 +242,7 @@ export async function syncTasks(user: Actor, dossieId: string): Promise<{ create
         priority: dueDay && dueDay <= today ? "urgente" : dueDay && dueDay <= todayPlus(today, 3) ? "alta" : "media",
         position: it.position,
         labels: ["edital"],
-        description: `Esteira de proposta — ${e.title}\nÓrgão: ${e.organ}\nDossiê: /editais/proposta/${e.id}`,
+        description: `Esteira de proposta — ${e.title}\nÓrgão: ${e.organ}\nDossiê: /editais/propostas/${e.id}`,
         links: e.url ? [{ id: "pncp", url: e.url, name: "Edital no PNCP" }] : [],
       })
       .returning({ id: schema.tasks.id });
@@ -278,7 +279,7 @@ function pickTemplate(e: EditalRow, cfg: Awaited<ReturnType<typeof getConfig>>) 
 export type StartResult = { ok: true; created: boolean; dealId: string | null; items: number; tasks: number; notes: string[] } | { error: string };
 
 /** “Vou participar”: cria o dossiê e monta tudo que é repetível. Idempotente (clicar de novo só completa o que falta). */
-export async function startProposta(user: Actor, editalId: string, opts: { templateKey?: string; withDeal?: boolean; withTasks?: boolean } = {}): Promise<StartResult> {
+export async function startProposta(user: Actor, editalId: string, opts: { templateKey?: string; withDeal?: boolean; withTasks?: boolean; /** data limite da sessão, se diferente da do portal */ sessionAt?: Date | null; /** responsável geral da proposta */ ownerId?: string | null } = {}): Promise<StartResult> {
   const [e] = await db.select().from(schema.editais).where(eq(schema.editais.id, editalId)).limit(1);
   if (!e) return { error: "Edital não encontrado." };
   const cfg = await getConfig();
@@ -290,7 +291,7 @@ export async function startProposta(user: Actor, editalId: string, opts: { templ
     const templateKey = opts.templateKey || pickTemplate(e, cfg);
     await db
       .insert(schema.propostaDossies)
-      .values({ editalId, templateKey, matrixKey: matrixKeyFor(templateKey), ownerId: e.ownerId ?? user.id, createdById: user.id })
+      .values({ editalId, templateKey, matrixKey: matrixKeyFor(templateKey), ownerId: opts.ownerId ?? e.ownerId ?? user.id, sessionAt: opts.sessionAt ?? null, createdById: user.id })
       .onConflictDoNothing();
     [d] = await db.select().from(schema.propostaDossies).where(eq(schema.propostaDossies.editalId, editalId)).limit(1);
   }
@@ -311,7 +312,7 @@ export async function startProposta(user: Actor, editalId: string, opts: { templ
   const advance = ["novo", "interessante", "em_analise"].includes(e.triage);
   await db
     .update(schema.editais)
-    .set({ triage: advance ? "em_proposta" : e.triage, discardReason: advance ? null : e.discardReason, ownerId: e.ownerId ?? d.ownerId ?? user.id, updatedAt: new Date() })
+    .set({ triage: advance ? "em_proposta" : e.triage, discardReason: advance ? null : e.discardReason, ownerId: opts.ownerId ?? e.ownerId ?? d.ownerId ?? user.id, updatedAt: new Date() })
     .where(eq(schema.editais.id, editalId));
 
   let dealId = e.dealId;
@@ -400,7 +401,7 @@ export async function insertAtestados(user: Actor, editalId: string, items: Port
 
 /* ----------------------------------- planilha de preços ----------------------------------- */
 
-export async function createPriceSheet(user: Actor, editalId: string): Promise<{ id: string; created: boolean } | { error: string }> {
+export async function createPriceSheet(user: Actor, editalId: string, opts: { bdiPercent?: number; items?: PriceItemInput[] } = {}): Promise<{ id: string; created: boolean } | { error: string }> {
   const [row] = await db
     .select({ d: schema.propostaDossies, e: schema.editais })
     .from(schema.propostaDossies)
@@ -413,7 +414,7 @@ export async function createPriceSheet(user: Actor, editalId: string): Promise<{
     if (s) return { id: s.id, created: false };
   }
   const cfg = await getConfig();
-  const tpl = priceSheetTabs({ bdiPercent: cfg.bdiPercent, encargosPercent: cfg.encargosPercent, estimatedCents: row.e.valueCents });
+  const tpl = priceSheetTabs({ bdiPercent: opts.bdiPercent ?? cfg.bdiPercent, encargosPercent: cfg.encargosPercent, estimatedCents: row.e.valueCents, items: opts.items });
   const sheet = await insertSheet({ name: `Planilha de preços — ${row.e.organ}`.slice(0, 160), ownerId: user.id, tabs: tpl.tabs, dealId: row.e.dealId, meta: { origem: "esteira de proposta", editalId } });
   // reserva: se outra chamada já vinculou uma planilha, descarta a nossa
   const claimed = await db
@@ -427,4 +428,59 @@ export async function createPriceSheet(user: Actor, editalId: string): Promise<{
     return again?.p ? { id: again.p, created: false } : { error: "Não foi possível criar a planilha." };
   }
   return { id: sheet.id, created: true };
+}
+
+
+/* ----------------------------------- itens do checklist ----------------------------------- */
+
+/** Marca/desmarca um item; a tarefa ligada e a etapa acompanham. Núcleo compartilhado (equipe e parceiro; a autorização é de quem chama). */
+export async function toggleItem(user: Pick<SessionUser, "id" | "name">, itemId: string, done: boolean): Promise<{ editalId: string } | { error: string }> {
+  const [row] = await db
+    .select({ i: schema.propostaItems, d: schema.propostaDossies })
+    .from(schema.propostaItems)
+    .innerJoin(schema.propostaDossies, eq(schema.propostaItems.dossieId, schema.propostaDossies.id))
+    .where(eq(schema.propostaItems.id, itemId))
+    .limit(1);
+  if (!row) return { error: "Item não encontrado." };
+  await db.update(schema.propostaItems).set({ done, doneAt: done ? new Date() : null }).where(eq(schema.propostaItems.id, itemId));
+  await setTaskDone(row.i.taskId, done);
+  const [step] = await db.select().from(schema.propostaSteps).where(and(eq(schema.propostaSteps.dossieId, row.d.id), eq(schema.propostaSteps.key, row.i.stepKey))).limit(1);
+  if (step) {
+    const siblings = await db
+      .select({ done: schema.propostaItems.done, taskDone: schema.tasks.doneAt })
+      .from(schema.propostaItems)
+      .leftJoin(schema.tasks, eq(schema.propostaItems.taskId, schema.tasks.id))
+      .where(and(eq(schema.propostaItems.dossieId, row.d.id), eq(schema.propostaItems.stepKey, row.i.stepKey)));
+    const next: StepStatus = stepStatusFromItems(step.status as StepStatus, siblings.map((s) => ({ done: s.done || !!s.taskDone })));
+    if (next !== step.status) {
+      await db.update(schema.propostaSteps).set({ status: next, doneAt: next === "concluida" ? new Date() : null }).where(eq(schema.propostaSteps.id, step.id));
+      if (next === "concluida") await editalNote(row.d.editalId, user, "proposta", `Etapa “${STEP_BY_KEY[step.key as StepKey]?.label ?? step.key}” concluída (todos os itens feitos)`);
+    }
+  }
+  return { editalId: row.d.editalId };
+}
+
+/* ----------------------------------- campos dos documentos ----------------------------------- */
+
+type DocContent = { kind: "contrato"; html: string; fields: Record<string, string> };
+
+/**
+ * Preenche campos guiados (`{{campo.x}}`) de um documento da proposta e/ou troca variáveis por texto literal
+ * (ex.: validade e BDI próprios desta proposta, ou o responsável técnico escolhido). Só mexe em rascunho.
+ */
+export async function setDocFields(editalId: string, slug: string, patch: { fields?: Record<string, string>; literals?: Record<string, string> }): Promise<{ docId: string } | { error: string }> {
+  const [doc] = await db.select().from(schema.documents).where(and(eq(schema.documents.editalId, editalId), eq(schema.documents.templateSlug, slug))).limit(1);
+  if (!doc) return { error: "O documento ainda não foi gerado." };
+  if (doc.status !== "rascunho") return { error: "O documento já foi enviado: reabra para editar." };
+  const content = doc.content as DocContent;
+  let html = content.html;
+  for (const [key, text] of Object.entries(patch.literals ?? {})) {
+    if (!/^[a-z_.]+$/.test(key)) continue;
+    const marker = `<span data-var="${key}">{{${key}}}</span>`;
+    html = html.split(marker).join(escapeHtml(text));
+  }
+  const fields = { ...content.fields };
+  for (const [k, v] of Object.entries(patch.fields ?? {})) if (/^[a-z_]+$/.test(k)) fields[k] = v.slice(0, 6000);
+  await db.update(schema.documents).set({ content: { ...content, html: cleanHtml(html), fields }, updatedAt: new Date() }).where(eq(schema.documents.id, doc.id));
+  return { docId: doc.id };
 }

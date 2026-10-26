@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { Section } from "@/components/crm/section";
-import { Deadline, KindChip, ScoreBadge } from "@/app/(app)/editais/bits";
+import { Deadline, KindChip, ScoreBadge } from "@/app/(app)/editais-avancado/bits";
 import { moneyShort } from "@/lib/format";
 import type { EditalDTO } from "@/lib/editais/queries";
 
@@ -10,7 +10,7 @@ type Data = { novos: EditalDTO[]; encerrando: EditalDTO[]; countNovos: number; c
 function Row({ e }: { e: EditalDTO }) {
   return (
     <li>
-      <Link href={`/editais?id=${e.id}`} className="grid gap-1 rounded-lg border px-3 py-2.5 transition-colors hover:border-foreground/25 max-md:min-h-11">
+      <Link href={`/editais/radar/${e.id}`} className="grid gap-1 rounded-lg border px-3 py-2.5 transition-colors hover:border-foreground/25 max-md:min-h-11">
         <span className="line-clamp-2 text-[13.5px] leading-snug font-medium break-words">{e.title}</span>
         <span className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
           <ScoreBadge score={e.score} />
@@ -32,7 +32,7 @@ export function EditaisCard({ data }: { data: Data }) {
       tour="dash-editais"
       title="Oportunidades de restauro"
       action={
-        <Link href="/editais" className="flex items-center gap-1 text-[13px] text-muted-foreground underline-offset-2 hover:text-foreground hover:underline max-md:min-h-11 max-md:items-center">
+        <Link href="/editais/radar" className="flex items-center gap-1 text-[13px] text-muted-foreground underline-offset-2 hover:text-foreground hover:underline max-md:min-h-11 max-md:items-center">
           {data.countAbertos} abertos <ArrowRight className="size-3" />
         </Link>
       }

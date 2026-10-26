@@ -32,7 +32,8 @@ function build(id: string, name: string, spec: Spec, widths: number[], headRows 
   return tab;
 }
 
-export type PriceSheetOptions = { bdiPercent: number; encargosPercent: number; estimatedCents?: number | null; title?: string };
+export type PriceItemInput = { desc: string; unit: string; qty: number; material: number; labor: number };
+export type PriceSheetOptions = { bdiPercent: number; encargosPercent: number; estimatedCents?: number | null; title?: string; /** itens principais já preenchidos (substituem os exemplos) */ items?: PriceItemInput[] };
 
 export const PRICE_ROWS = 40;
 export const SCHEDULE_ROWS = 10;
@@ -46,10 +47,13 @@ export function priceSheetTabs(opts: PriceSheetOptions): { name: string; tabs: T
 
   // ---- Composição ----
   const comp: Spec = [["Item", "Descrição", "Un.", "Qtd.", "Material / serviço unit. (R$)", "Mão de obra unit. (R$)", "Custo unit. (R$)", "Custo total (R$)", "Preço unit. c/ BDI (R$)", "Preço total (R$)"]];
-  const samples: [string, string, string, number, number, number][] = [
-    ["1.1", "Exemplo: limpeza e prospecção estratigráfica", "m²", 42, 18, 55],
-    ["1.2", "Exemplo: consolidação do reboco", "m²", 42, 60, 95],
-  ];
+  const given = (opts.items ?? []).filter((it) => it.desc.trim() && it.qty > 0).slice(0, PRICE_ROWS);
+  const samples: [string, string, string, number, number, number][] = given.length
+    ? given.map((it, i) => [`1.${i + 1}`, it.desc.trim(), it.unit.trim() || "un", it.qty, it.material, it.labor])
+    : [
+        ["1.1", "Exemplo: limpeza e prospecção estratigráfica", "m²", 42, 18, 55],
+        ["1.2", "Exemplo: consolidação do reboco", "m²", 42, 60, 95],
+      ];
   for (let i = 0; i < PRICE_ROWS; i++) {
     const r = i + 2;
     const s = samples[i];

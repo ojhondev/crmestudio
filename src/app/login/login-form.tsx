@@ -9,7 +9,8 @@ import { Label } from "@/components/ui/label";
 import { login } from "./actions";
 
 const GOOGLE_ERRORS: Record<string, string> = {
-  google_sem_conta: "Essa conta Google não tem acesso. Peça a um administrador para cadastrar seu e-mail na Equipe.",
+  google_sem_conta: "Essa conta Google não tem acesso. Peça à equipe do Estúdio para cadastrar ou convidar o seu e-mail.",
+  sem_acesso: "Seu acesso ao app Editais não está ativo. Fale com a equipe do Estúdio.",
   google_cancelado: "Login com Google cancelado.",
   google_estado: "A sessão de login expirou. Tente de novo.",
   google_falha: "Não foi possível entrar com o Google. Tente de novo.",

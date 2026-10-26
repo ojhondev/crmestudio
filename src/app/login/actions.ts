@@ -6,6 +6,7 @@ import { db, schema } from "@/lib/db";
 import { createSession, destroySession, getUser } from "@/lib/auth";
 import { audit, tooManyLoginFailures } from "@/lib/audit";
 import { hashPassword, verifyPassword } from "@/lib/password";
+import { isEditaisPartner } from "@/lib/permissions";
 
 // hash falso: gasta o mesmo tempo quando o e-mail não existe (evita descobrir quais e-mails têm conta)
 const DUMMY = `${"0".repeat(32)}:${"0".repeat(128)}`;
@@ -28,7 +29,7 @@ export async function login(_: unknown, form: FormData) {
   await db.update(schema.users).set({ lastLoginAt: new Date() }).where(eq(schema.users.id, u.id));
   await audit({ id: u.id, name: u.name }, "login", "Entrou no sistema", { entity: "usuario", entityId: u.id });
   await createSession(u.id, u.sessionVersion);
-  redirect(u.mustChangePassword ? "/primeiro-acesso" : "/");
+  redirect(u.mustChangePassword ? "/primeiro-acesso" : isEditaisPartner(u) ? "/editais" : "/");
 }
 
 export async function logout() {
@@ -53,5 +54,5 @@ export async function setFirstPassword(_: unknown, form: FormData) {
     .where(eq(schema.users.id, user.id));
   await audit({ id: user.id, name: user.name }, "senha_trocada", "Trocou a senha provisória no primeiro acesso", { entity: "usuario", entityId: user.id });
   await createSession(user.id, version);
-  redirect("/");
+  redirect(isEditaisPartner(user) ? "/editais" : "/");
 }

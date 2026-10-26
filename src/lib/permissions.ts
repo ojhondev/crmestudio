@@ -41,7 +41,7 @@ const ALL = MODULES.map((m) => m.key);
 
 const make = (p: Partial<Permissions>): Permissions => Object.fromEntries(ALL.map((k) => [k, p[k] ?? "none"])) as Permissions;
 
-export type ProfileKey = "administrador" | "gestor" | "comercial" | "atendimento" | "financeiro" | "parceiro" | "personalizado";
+export type ProfileKey = "administrador" | "gestor" | "comercial" | "atendimento" | "financeiro" | "parceiro" | "parceiro_editais" | "personalizado";
 export type AccountType = "admin" | "equipe" | "parceiro";
 
 export const PROFILES: Record<
@@ -97,6 +97,16 @@ export const PROFILES: Record<
     perms: make({ negocios: "edit", tarefas: "edit", agenda: "edit" }),
     color: "#8a8279",
   },
+  // parceiro do app Editais: SEM acesso a nenhum módulo do CRM. O que ele enxerga no app Editais vem
+  // dos compartilhamentos (lib/editais-app/access.ts), nunca desta matriz.
+  parceiro_editais: {
+    label: "Parceiro de editais",
+    description: "Externo, convidado por e-mail. Entra só no app Editais e vê apenas o que a equipe compartilhar.",
+    type: "parceiro",
+    ownOnly: true,
+    perms: make({}),
+    color: "#a34c1f",
+  },
   personalizado: {
     label: "Personalizado",
     description: "Permissões ajustadas módulo a módulo.",
@@ -109,6 +119,9 @@ export const PROFILES: Record<
 
 /** Perfis que podem ser escolhidos ao criar uma conta (personalizado se ajusta depois). */
 export const SELECTABLE_PROFILES: ProfileKey[] = ["gestor", "comercial", "financeiro", "parceiro", "administrador"];
+
+/** Parceiro do app Editais: conta externa, restrita ao app Editais (nenhum módulo do CRM). */
+export const isEditaisPartner = (u: { role: string; profile?: string | null }) => u.role === "parceiro" && u.profile === "parceiro_editais";
 
 export const isLevel = (v: unknown): v is Level => typeof v === "string" && v in RANK;
 export const isProfile = (v: unknown): v is ProfileKey => typeof v === "string" && v in PROFILES;

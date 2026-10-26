@@ -1,5 +1,5 @@
 /**
- * Modelos que acompanham o sistema (a equipe edita depois em /editais/configuracao).
+ * Modelos que acompanham o sistema (a equipe edita depois em Editais → Ajustes).
  * `offsetDays` = dias ÚTEIS antes da data limite do edital (D-2 = 2 dias úteis antes). Metas internas, não prazos legais.
  */
 import type { MatrixItem, StepKey, TemplateItem } from "./types";

@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import { db, schema } from "@/lib/db";
 import { createSession } from "@/lib/auth";
+import { hashPassword, randomToken } from "@/lib/password";
+import { isEditaisPartner } from "@/lib/permissions";
 import { audit } from "@/lib/audit";
 import { googleConfig, googleConfigured } from "@/lib/drive/google";
 
@@ -55,10 +57,17 @@ export async function GET(request: Request) {
       return back("google_sem_conta");
     }
 
-    await db.update(schema.users).set({ lastLoginAt: new Date() }).where(eq(schema.users.id, u.id));
+    const partner = isEditaisPartner(u);
+    // parceiro que entra pelo Google com o e-mail do convite: a senha provisória deixa de valer (o Google é a chave dele)
+    const dropTemp = partner && u.mustChangePassword;
+    await db
+      .update(schema.users)
+      .set({ lastLoginAt: new Date(), ...(dropTemp ? { mustChangePassword: false, passwordHash: hashPassword(randomToken(24)) } : {}) })
+      .where(eq(schema.users.id, u.id));
     await audit({ id: u.id, name: u.name }, "login", "Entrou no sistema com Google", { entity: "usuario", entityId: u.id });
     await createSession(u.id, u.sessionVersion);
-    const r = NextResponse.redirect(new URL(u.mustChangePassword ? "/primeiro-acesso" : "/", url.origin));
+    const mustChange = u.mustChangePassword && !dropTemp;
+    const r = NextResponse.redirect(new URL(mustChange ? "/primeiro-acesso" : partner ? "/editais" : "/", url.origin));
     r.cookies.delete({ name: "google_login_state", path: "/api/auth/google" });
     return r;
   } catch (e) {

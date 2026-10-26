@@ -144,7 +144,7 @@ const editalPlace = (r: EditalRow) => [r.city, r.uf].filter(Boolean).join("/") |
 
 /** Fato da esteira de proposta: o aviso aponta para o dossiê do edital e vai para quem responde pela etapa. */
 function propostaEntity(r: EditalRow, ownerId: string | null): Entity {
-  return { ...editalToEntity(r), href: `/editais/proposta/${r.id}`, ownerId };
+  return { ...editalToEntity(r), href: `/editais/propostas/${r.id}`, ownerId };
 }
 
 function editalToEntity(r: EditalRow): Entity {
@@ -152,7 +152,7 @@ function editalToEntity(r: EditalRow): Entity {
     kind: "edital",
     id: r.id,
     label: r.title,
-    href: `/editais?id=${r.id}`,
+    href: `/editais/radar/${r.id}`,
     ownerId: r.ownerId,
     valueCents: r.valueCents ?? 0,
     dueDay: dueDayOf(r.closeAt),
@@ -626,7 +626,7 @@ export async function runTimeRules(at: Date = new Date()): Promise<TickResult> {
     const docs = await db.select().from(schema.cofreDocs).where(sql`${schema.cofreDocs.validUntil} is not null and ${schema.cofreDocs.validUntil} >= current_date and ${schema.cofreDocs.validUntil} <= current_date + 31`).limit(500);
     for (const c of docs) {
       const cf: CofreFacts = { id: c.id, title: c.title, validUntil: c.validUntil };
-      const entity: Entity = { kind: "edital", id: c.id, label: c.title, href: "/editais/cofre", ownerId: c.ownerId, organ: c.issuer ?? "", place: "", dueDay: c.validUntil };
+      const entity: Entity = { kind: "edital", id: c.id, label: c.title, href: "/editais/acervo", ownerId: c.ownerId, organ: c.issuer ?? "", place: "", dueDay: c.validUntil };
       for (const rule of cofreRules) {
         const hit = evalCofre(rule.params ?? {}, cf, now);
         if (hit) cands.push({ rule, ctx: { entity, actorId: null }, hit });

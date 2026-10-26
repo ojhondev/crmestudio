@@ -29,6 +29,7 @@ export default async function TeamPage({ searchParams }: PageProps<"/equipe">) {
 
   const rows = await db.select().from(schema.users).orderBy(asc(schema.users.name));
   const members: Member[] = rows
+    .filter((u) => u.profile !== "parceiro_editais") // parceiros de editais são geridos em Editais → Parceiros
     .map((u) => ({
       id: u.id,
       name: u.name,

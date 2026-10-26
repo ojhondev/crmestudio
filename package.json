@@ -22,6 +22,8 @@
     "test:propostas:db": "node --env-file=.env.local node_modules/tsx/dist/cli.mjs scripts/test-propostas-db.ts",
     "test:editais": "node node_modules/tsx/dist/cli.mjs scripts/test-editais.ts",
     "test:editais:db": "node --env-file=.env.local node_modules/tsx/dist/cli.mjs scripts/test-editais.ts --db",
+    "test:editais-app": "node node_modules/tsx/dist/cli.mjs scripts/test-editais-app.ts",
+    "test:editais-app:db": "node --env-file=.env.local node_modules/tsx/dist/cli.mjs scripts/test-editais-app.ts --db",
     "editais:scan": "node --env-file=.env.local node_modules/tsx/dist/cli.mjs scripts/editais-scan.ts --local"
   },
   "dependencies": {

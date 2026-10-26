@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { AlertTriangle, ArrowRight } from "lucide-react";
 import { Section } from "@/components/crm/section";
-import { Countdown, ProgressBar, stepLabelOf } from "@/app/(app)/editais/proposta-bits";
+import { Countdown, ProgressBar, stepLabelOf } from "@/app/(app)/editais-avancado/proposta-bits";
 import type { dashboardPropostas } from "@/lib/propostas/server";
 
 type Data = Awaited<ReturnType<typeof dashboardPropostas>>;
@@ -15,7 +15,7 @@ export function PropostasCard({ data }: { data: Data }) {
       tour="dash-propostas"
       title="Propostas em andamento"
       action={
-        <Link href="/editais?aba=propostas" className="flex items-center gap-1 text-[13px] text-muted-foreground underline-offset-2 hover:text-foreground hover:underline max-md:min-h-11 max-md:items-center">
+        <Link href="/editais/propostas" className="flex items-center gap-1 text-[13px] text-muted-foreground underline-offset-2 hover:text-foreground hover:underline max-md:min-h-11 max-md:items-center">
           {kpis.andamento} em andamento <ArrowRight className="size-3" />
         </Link>
       }
@@ -24,7 +24,7 @@ export function PropostasCard({ data }: { data: Data }) {
         <ul className="grid gap-2 lg:grid-cols-2">
           {data.rows.map((r) => (
             <li key={r.editalId}>
-              <Link href={`/editais/proposta/${r.editalId}`} className="grid gap-1.5 rounded-lg border px-3 py-2.5 transition-colors hover:border-foreground/25 max-md:min-h-11">
+              <Link href={`/editais/propostas/${r.editalId}`} className="grid gap-1.5 rounded-lg border px-3 py-2.5 transition-colors hover:border-foreground/25 max-md:min-h-11">
                 <span className="line-clamp-2 text-[13.5px] leading-snug font-medium break-words">{r.title}</span>
                 <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
                   <Countdown daysLeft={r.daysLeft} urgency={r.urgency} />

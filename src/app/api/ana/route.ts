@@ -3,6 +3,7 @@ import { z } from "zod";
 import { and, eq, or } from "drizzle-orm";
 import { db, schema } from "@/lib/db";
 import { getUser, has, type SessionUser } from "@/lib/auth";
+import { isEditaisPartner } from "@/lib/permissions";
 import {
   ANA_MODEL,
   ANA_SYSTEM,
@@ -94,6 +95,7 @@ const inboxOn = (): boolean => false;
 export async function POST(req: Request) {
   const user = await getUser();
   if (!user || user.mustChangePassword) return new Response("Não autenticado", { status: 401 });
+  if (isEditaisPartner(user)) return new Response("Sem acesso", { status: 403 }); // parceiro de editais: só o app Editais
 
   const parsed = Body.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return new Response("Pedido inválido", { status: 400 });

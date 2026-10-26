@@ -87,6 +87,7 @@ export async function saveMemberAccess(id: string, input: AccessInput) {
   const actor = await requireAccess("equipe", "manage");
   const [target] = await db.select().from(schema.users).where(eq(schema.users.id, id));
   if (!target) return { error: "Pessoa não encontrada." };
+  if (target.profile === "parceiro_editais") return { error: "Parceiros de editais são geridos em Editais → Parceiros." };
   if (target.role === "admin" && actor.role !== "admin") return { error: "Só um administrador altera outro administrador." };
   const name = input.name.trim();
   if (!name) return { error: "Informe o nome." };

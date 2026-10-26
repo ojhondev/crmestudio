@@ -97,7 +97,7 @@ async function main() {
     eq(sims.reduce((a, s) => a + s.created, 0), 1, "tarefas simultâneas: só uma é criada");
     const itemsAfter = await db.select().from(schema.propostaItems).where(deq(schema.propostaItems.dossieId, d.id));
     eq(itemsAfter.filter((i) => !i.taskId).length, 0, "todos os itens têm tarefa");
-    const orphan = await db.select({ id: schema.tasks.id }).from(schema.tasks).where(and(deq(schema.tasks.createdById, u.id), like(schema.tasks.description, "%/editais/proposta/%")));
+    const orphan = await db.select({ id: schema.tasks.id }).from(schema.tasks).where(and(deq(schema.tasks.createdById, u.id), like(schema.tasks.description, "%/editais/propostas/%")));
     eq(orphan.length, itemsAfter.length, "nenhuma tarefa órfã depois das corridas");
 
     // documentos e planilha
