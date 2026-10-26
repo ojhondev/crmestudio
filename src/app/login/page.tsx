@@ -6,7 +6,8 @@ import { LoginForm } from "./login-form";
 
 export const metadata: Metadata = { title: "Entrar" };
 
-export default async function LoginPage() {
+export default async function LoginPage({ searchParams }: { searchParams: Promise<{ erro?: string }> }) {
+  const { erro } = await searchParams;
   if (await getUser()) redirect("/");
   return (
     <div className="grid min-h-svh lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]">
@@ -18,7 +19,7 @@ export default async function LoginPage() {
           <p className="mb-8 text-sm text-muted-foreground">
             CRM, agenda e financeiro do estúdio num lugar só.
           </p>
-          <LoginForm />
+          <LoginForm googleError={erro} />
         </div>
         <p className="text-xs text-muted-foreground">
           Acesso restrito à equipe e parceiros do Estúdio Restaura.
