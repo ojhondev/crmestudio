@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import {
   DndContext,
   DragOverlay,
-  PointerSensor,
+  MouseSensor,
   TouchSensor,
   useDraggable,
   useDroppable,
@@ -36,8 +36,9 @@ export function Kanban({ stages, deals: initial, canEdit = true, canLaunch = tru
   }
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 220, tolerance: 6 } }),
+    // Mouse + Touch separados: o PointerSensor disputava o gesto com a rolagem do navegador e cancelava o arraste no celular.
+    useSensor(MouseSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 160, tolerance: 10 } }),
   );
 
   const byStage = useMemo(() => {
@@ -97,7 +98,14 @@ export function Kanban({ stages, deals: initial, canEdit = true, canLaunch = tru
 
   return (
     <DndContext id="deals-board" sensors={canEdit ? sensors : []} onDragStart={onDragStart} onDragEnd={onDragEnd} onDragCancel={() => setActiveId(null)}>
-      <div data-tour="kanban" className="thin-scroll flex min-h-0 flex-1 snap-x snap-proximity max-md:snap-mandatory gap-3 overflow-x-auto scroll-px-3 p-3 sm:scroll-px-5 sm:px-5">
+      <div
+        data-tour="kanban"
+        className={cn(
+          "thin-scroll flex min-h-0 flex-1 gap-3 overflow-x-auto scroll-px-3 p-3 sm:scroll-px-5 sm:px-5",
+          // durante o arraste a rolagem não pode "encaixar" nas colunas, senão o auto-scroll trava
+          activeId ? "snap-none" : "snap-x snap-proximity max-md:snap-mandatory",
+        )}
+      >
         {stages.map((s) => {
           const list = byStage.get(s.id) ?? [];
           const total = list.reduce((sum, d) => sum + d.valueCents, 0);
@@ -177,7 +185,9 @@ function DraggableCard({ deal, dimmed }: { deal: BoardDeal; dimmed: boolean }) {
       }}
       {...drag.listeners}
       {...drag.attributes}
-      className={cn("touch-manipulation outline-none", dimmed && "opacity-30")}
+      // sem menu/pré-visualização de link ao segurar o dedo (o card é um link) e sem seleção de texto
+      onContextMenu={(e) => e.preventDefault()}
+      className={cn("touch-manipulation outline-none select-none [-webkit-touch-callout:none]", dimmed && "opacity-30")}
     >
       {drop.isOver && !dimmed && <div className="mb-2 h-0.5 rounded bg-brand" />}
       <Card deal={deal} />
