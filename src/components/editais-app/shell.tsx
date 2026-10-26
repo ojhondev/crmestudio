@@ -47,7 +47,7 @@ export function EditaisShell({ user, children }: { user: ShellUser; children: Re
   const onRadar = pathname === "/editais/radar";
 
   return (
-    <div className="min-h-svh bg-background text-foreground md:pl-[84px]">
+    <div className="min-h-svh overflow-x-clip bg-background text-foreground md:pl-[84px]">
       {/* navegação lateral (computador) */}
       <nav aria-label="Editais" className="fixed inset-y-0 left-0 z-40 hidden w-[84px] flex-col items-center gap-1 border-r bg-card py-4 md:flex">
         <Link href={user.kind === "staff" ? "/editais/radar" : "/editais"} className="mb-3 grid place-items-center gap-1 rounded-xl p-1 outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label="Editais — início">

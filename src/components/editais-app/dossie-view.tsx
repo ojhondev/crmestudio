@@ -209,7 +209,7 @@ export function DossieBlocks({
       </section>
 
       {/* blocos recolhíveis */}
-      <div className="grid gap-3">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-3">
         <Fold title="Checklist" hint="Tudo o que precisa ser feito, por etapa" count={`${v.progress.doneItems}/${v.progress.totalItems}`} defaultOpen={!staff}>
           <Checklist v={v} staff={staff} canEdit={canEdit} canContribute={canContribute} meId={meId} people={people} />
         </Fold>
@@ -314,7 +314,7 @@ function Docs({ v, staff, canEdit, open }: { v: View; staff: boolean; canEdit: b
   const router = useRouter();
   const [pending, start] = useTransition();
   return (
-    <div className="grid gap-4">
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-4">
       {v.docs.length === 0 ? (
         <p className="text-sm text-muted-foreground">{staff ? "Nenhum documento gerado ainda." : "Nenhum documento compartilhado."}</p>
       ) : (
@@ -393,7 +393,7 @@ function Checklist({ v, staff, canEdit, canContribute, meId, people }: { v: View
   }
 
   return (
-    <div className="grid gap-5">
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-5">
       {groups.length === 0 && <p className="text-sm text-muted-foreground">O checklist está vazio.</p>}
       {groups.map(({ s, items }) => (
         <div key={s.key}>

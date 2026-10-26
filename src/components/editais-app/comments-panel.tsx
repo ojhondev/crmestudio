@@ -59,9 +59,9 @@ export function CommentsPanel({
   }
 
   return (
-    <div className="grid gap-4">
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-4">
       {canPost ? (
-        <form onSubmit={send} className="grid gap-3 rounded-2xl border bg-card p-3 sm:p-4">
+        <form onSubmit={send} className="grid grid-cols-[minmax(0,1fr)] gap-3 rounded-2xl border bg-card p-3 sm:p-4">
           <div role="radiogroup" aria-label="Tipo de mensagem" className="no-scrollbar flex gap-1.5 overflow-x-auto">
             {KIND_OPTS.map((k) => (
               <button

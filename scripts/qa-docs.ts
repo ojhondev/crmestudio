@@ -69,8 +69,18 @@ async function main() {
       { title: "QA — Douramento do retábulo-mor", client: "Paróquia QA", year: 2022, kind: "execucao", tags: ["douramento", "retábulo"], tombamento: "estadual", description: "Douramento a folha de ouro.", links: [] },
       { title: "QA — Projeto de pintura de fachada comercial", client: "Cliente QA", year: 2011, kind: "outro", tags: ["fachada"], description: "Pintura simples." },
     ]);
+    // Parceiro de editais (app Editais): vê só o edital QA-PROP-1 compartilhado; QA-PROP-2 fica oculto para testar o isolamento
+    const partnerPassword = crypto.randomBytes(9).toString("base64url");
+    const [pu] = await db
+      .insert(schema.users)
+      .values({ name: "QA Parceiro", email: "qa-parceiro@example.test", passwordHash: hashPassword(partnerPassword), role: "parceiro", profile: "parceiro_editais", ownOnly: true, calendarToken: crypto.randomBytes(12).toString("hex") })
+      .returning({ id: schema.users.id });
+    await db.insert(schema.editalPartners).values({ userId: pu.id, company: "QA Engenharia", invitedById: u.id });
+    const [qaEd] = await db.select({ id: schema.editais.id }).from(schema.editais).where(eq(schema.editais.externalId, "QA-PROP-1"));
+    await db.insert(schema.editais).values({ externalId: "QA-PROP-2", title: "QA — Edital NÃO compartilhado", object: "Obra de restauração de fachada, bem tombado, para teste de isolamento do parceiro", organ: "QA Prefeitura Oculta", uf: "MG", city: "Ouro Preto", kind: "execucao", score: 88, matched: ["restauração"], valueCents: 30_000_000, closeAt: new Date(Date.now() + 20 * 864e5), situation: "aberto" });
+    await db.insert(schema.editalShares).values({ editalId: qaEd.id, partnerId: pu.id, role: "contribuir", scope: "proposta", createdById: u.id });
     fs.mkdirSync(".tmp", { recursive: true });
-    fs.writeFileSync(FILE, JSON.stringify({ email: EMAIL, password, userId: u.id, contactId: c.id, dealId: d.id }, null, 2));
+    fs.writeFileSync(FILE, JSON.stringify({ email: EMAIL, password, userId: u.id, contactId: c.id, dealId: d.id, partner: { email: "qa-parceiro@example.test", password: partnerPassword, userId: pu.id } }, null, 2));
     console.log("QA criado — credenciais em", FILE);
   } else if (cmd === "cleanup") {
     const docs = await db.select({ id: schema.documents.id }).from(schema.documents).where(like(schema.documents.title, "%QA%"));

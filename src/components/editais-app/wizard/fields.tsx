@@ -103,7 +103,7 @@ export function ChoiceList({ options, value, onChange, multi, onPick, label }: {
             type="button"
             role={multi ? "checkbox" : "radio"}
             aria-checked={on}
-            data-autofocus={i === 0 && !sel.length ? "" : undefined}
+            data-autofocus={i === 0 && !sel.length && !multi ? "" : undefined}
             onClick={() => toggle(o.value)}
             onKeyDown={(e) => {
               if (e.key === "ArrowDown" || e.key === "ArrowUp") {

@@ -57,7 +57,7 @@ export function ScanControl({ lastFinishedAt, initialBusy }: { lastFinishedAt: s
 
   return (
     <div className="flex flex-wrap items-center gap-3">
-      <Button onClick={go} disabled={pending || busy} className="min-h-11 md:min-h-9">
+      <Button onClick={go} disabled={pending} className="min-h-11 md:min-h-9">
         {pending || busy ? <Loader2 className="animate-spin" /> : <Search />} {busy ? "Buscando…" : "Buscar oportunidades"}
       </Button>
       <p role="status" aria-live="polite" className="flex items-center gap-1.5 text-[13px] text-muted-foreground">
