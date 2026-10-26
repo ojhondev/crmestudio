@@ -1,4 +1,5 @@
 import type { DeckContent, Slide } from "./types";
+import { PROPOSTA_DOCS, PROPOSTA_FIELD_LABELS } from "@/lib/propostas/doc-templates";
 
 /** Variável como o editor a grava. */
 const v = (key: string) => `<span data-var="${key}">{{${key}}}</span>`;
@@ -210,10 +211,12 @@ export const BUILTIN_CONTRACTS: ContractTemplate[] = [
     description: "Comece do zero e monte com a biblioteca de cláusulas",
     html: heading("CONTRATO") + clause("partes") + signatures,
   },
+  ...PROPOSTA_DOCS.map(({ slug, name, description, html }) => ({ slug, name: `Licitação: ${name}`, description, html })),
 ];
 
 /** Valor inicial dos campos personalizados que os modelos pedem. */
 export const FIELD_LABELS: Record<string, string> = {
+  ...PROPOSTA_FIELD_LABELS,
   forma_pagamento: "Forma de pagamento (ex.: 40% de entrada e 3 parcelas mensais)",
   data_inicio: "Data de início",
   prazo: "Prazo estimado (ex.: 90 dias)",

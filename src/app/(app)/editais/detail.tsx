@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Briefcase, CalendarClock, ExternalLink, Loader2, Star, Search as SearchIcon, Send, Trophy, XCircle, Ban, Undo2 } from "lucide-react";
+import { Briefcase, CalendarClock, ClipboardList, ExternalLink, Loader2, Rocket, Star, Search as SearchIcon, Send, Trophy, XCircle, Ban, Undo2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,12 +16,15 @@ import { centsToInput, fmtDate, fmtDateTime, money } from "@/lib/format";
 import { DISCARD_REASONS, ESFERA_LABEL, KIND_LABEL, SITUATION_LABEL, TRIAGE_LABEL, type EditalKind, type EditalSituation, type EditalTriage, type Esfera } from "@/lib/editais/types";
 import type { EditalDTO } from "@/lib/editais/queries";
 import { Deadline, EsferaChip, KindChip, ScoreBadge, TriagePill } from "./bits";
+import type { PropostaBrief } from "@/lib/propostas/server";
+import { Countdown, ProgressBar } from "./proposta-bits";
+import { participarAction } from "./proposta-actions";
 import { addEventNote, createDealFromEdital, createTaskFromEdital, saveNotes, setOwner, setTriage } from "./actions";
 
 type Person = { id: string; name: string };
 export type DetailData = { edital: EditalDTO; events: { id: number; at: string; userName: string | null; type: string; body: string }[] };
 
-export function EditalSheet({ data, canEdit, canDeal, canTask, team }: { data: DetailData | null; canEdit: boolean; canDeal: boolean; canTask: boolean; team: Person[] }) {
+export function EditalSheet({ data, brief, canEdit, canDeal, canTask, team }: { data: DetailData | null; brief: PropostaBrief | null; canEdit: boolean; canDeal: boolean; canTask: boolean; team: Person[] }) {
   const router = useRouter();
   const pathname = usePathname();
   const sp = useSearchParams();
@@ -35,7 +38,7 @@ export function EditalSheet({ data, canEdit, canDeal, canTask, team }: { data: D
     <Sheet open={!!data} onOpenChange={(o) => !o && close()}>
       <SheetContent className="overflow-y-auto overscroll-contain data-[side=right]:w-full data-[side=right]:sm:max-w-xl" showCloseButton={false}>
         <SheetCloseBtn />
-        {data && <Body key={data.edital.id + data.edital.triage} data={data} canEdit={canEdit} canDeal={canDeal} canTask={canTask} team={team} />}
+        {data && <Body key={data.edital.id + data.edital.triage + (brief?.exists ? "p" : "")} data={data} brief={brief} canEdit={canEdit} canDeal={canDeal} canTask={canTask} team={team} />}
       </SheetContent>
     </Sheet>
   );
@@ -50,7 +53,7 @@ function Fact({ label, children }: { label: string; children: React.ReactNode })
   );
 }
 
-function Body({ data, canEdit, canDeal, canTask, team }: { data: DetailData; canEdit: boolean; canDeal: boolean; canTask: boolean; team: Person[] }) {
+function Body({ data, brief, canEdit, canDeal, canTask, team }: { data: DetailData; brief: PropostaBrief | null; canEdit: boolean; canDeal: boolean; canTask: boolean; team: Person[] }) {
   const { edital: e, events } = data;
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -151,6 +154,8 @@ function Body({ data, canEdit, canDeal, canTask, team }: { data: DetailData; can
           {e.kindWhy ? ` (${e.kindWhy})` : ""} · relevância {e.score}/100. Termos de patrimônio e de obra/projeto pesam; ruído como restauração dental, florestal ou de pavimento é descartado.
         </p>
       </section>
+
+      <PropostaSection edital={e} brief={brief} canEdit={canEdit} canDeal={canDeal} canTask={canTask} />
 
       {canEdit && (
         <section className="grid gap-2.5" data-tour="edital-triage">
@@ -334,5 +339,94 @@ function Body({ data, canEdit, canDeal, canTask, team }: { data: DetailData; can
         </ul>
       </section>
     </div>
+  );
+}
+
+const CLOSED_TRIAGE = ["descartado", "ganho", "perdido"];
+
+/** “Vou participar”: abre o dossiê da proposta (checklist, tarefas, matriz de habilitação) ou leva até ele. */
+function PropostaSection({ edital: e, brief, canEdit, canDeal, canTask }: { edital: DetailData["edital"]; brief: PropostaBrief | null; canEdit: boolean; canDeal: boolean; canTask: boolean }) {
+  const router = useRouter();
+  const [pending, start] = useTransition();
+  const [open, setOpen] = useState(false);
+  const [templateKey, setTemplateKey] = useState(brief?.suggestedTemplate ?? "obra");
+  const [withDeal, setWithDeal] = useState(canDeal && !e.dealId);
+  const [withTasks, setWithTasks] = useState(canTask);
+  if (!brief) return null;
+
+  if (brief.exists) {
+    return (
+      <section className="grid gap-2.5 rounded-xl border border-brand/30 bg-brand-soft/50 p-3" data-tour="edital-proposta">
+        <h3 className="label flex items-center gap-1.5">
+          <ClipboardList className="size-3.5" /> Esteira de proposta
+        </h3>
+        <div className="flex flex-wrap items-center gap-2">
+          {brief.status === "andamento" ? <Countdown daysLeft={brief.daysLeft} urgency={brief.urgency} /> : null}
+          <span className="num text-[13px] tabular-nums">{brief.pct}% pronto</span>
+        </div>
+        <ProgressBar pct={brief.pct} />
+        <Button asChild size="sm" className="w-fit max-md:h-11">
+          <Link href={`/editais/proposta/${e.id}`}>
+            <ClipboardList /> Abrir o dossiê da proposta
+          </Link>
+        </Button>
+      </section>
+    );
+  }
+  if (!canEdit || CLOSED_TRIAGE.includes(e.triage)) return null;
+
+  const go = () =>
+    start(async () => {
+      const r = await participarAction(e.id, { templateKey, withDeal: withDeal && canDeal, withTasks: withTasks && canTask });
+      if ("error" in r) {
+        toast.error(r.error);
+        return;
+      }
+      toast.success("Dossiê criado: checklist, prazos e habilitação montados");
+      for (const n of (r.notes as string[] | undefined) ?? []) toast.message(n);
+      router.push(`/editais/proposta/${e.id}`);
+    });
+
+  return (
+    <section className="grid gap-2.5 rounded-xl border border-brand/30 bg-brand-soft/50 p-3" data-tour="edital-proposta">
+      <h3 className="label flex items-center gap-1.5">
+        <Rocket className="size-3.5" /> Esteira de proposta
+      </h3>
+      {!open ? (
+        <>
+          <p className="text-[13px] text-muted-foreground">Decidiu participar? Um toque monta o checklist com prazos de trás para frente, as tarefas da equipe e a lista de documentos de habilitação.</p>
+          <Button type="button" size="sm" className="w-fit max-md:h-11" onClick={() => setOpen(true)}>
+            <Rocket /> Vou participar
+          </Button>
+        </>
+      ) : (
+        <div className="grid gap-3">
+          <Field label="Modelo de checklist" hint="Sugerido pelo tipo do edital. Você pode trocar depois.">
+            <SimpleSelect value={templateKey} onValueChange={setTemplateKey} options={brief.templates.map((t) => ({ value: t.key, label: t.name }))} />
+          </Field>
+          {canDeal && !e.dealId && (
+            <label className="flex items-center gap-2.5 text-[13px] max-md:min-h-11">
+              <Checkbox checked={withDeal} onCheckedChange={(v) => setWithDeal(v === true)} />
+              Criar o negócio e o contato do órgão
+            </label>
+          )}
+          {canTask ? (
+            <label className="flex items-center gap-2.5 text-[13px] max-md:min-h-11">
+              <Checkbox checked={withTasks} onCheckedChange={(v) => setWithTasks(v === true)} />
+              Criar as tarefas no quadro “Editais”
+            </label>
+          ) : null}
+          {!e.closeAt && <p className="text-xs text-brand">Este edital não tem data limite informada: os itens ficam sem prazo até você informar uma no dossiê.</p>}
+          <div className="flex gap-2">
+            <Button type="button" size="sm" disabled={pending} className="max-md:h-11" onClick={go}>
+              {pending ? <Loader2 className="animate-spin" /> : <Rocket />} Montar a proposta
+            </Button>
+            <Button type="button" size="sm" variant="ghost" className="max-md:h-11" onClick={() => setOpen(false)}>
+              Cancelar
+            </Button>
+          </div>
+        </div>
+      )}
+    </section>
   );
 }

@@ -23,7 +23,7 @@ export const MODULES: {
   soon?: boolean;
 }[] = [
   { key: "negocios", label: "Negócios", help: "Ver: consulta o funil · Editar: cria, move e registra · Gerenciar: exclui negócios" },
-  { key: "editais", label: "Editais de restauro", help: "Ver: consulta a lista de editais · Editar: triagem, notas, responsável, criar negócio e tarefa, buscar oportunidades · Gerenciar: igual a Editar (reservado para a gestão)" },
+  { key: "editais", label: "Editais de restauro", help: "Ver: consulta editais, propostas, cofre e portfólio · Editar: triagem, esteira de proposta, cofre de habilitação, atestados, criar negócio e tarefa, buscar oportunidades · Gerenciar: também configuração (dados do estúdio, BDI, modelos) e exclusão no cofre e no portfólio" },
   { key: "tarefas", label: "Tarefas", help: "Ver: consulta quadros · Editar: cria e altera tarefas · Gerenciar: exclui quadros e grupos" },
   { key: "contatos", label: "Leads e contatos", help: "Ver: consulta · Editar: cadastra e altera · Gerenciar: exclui contatos" },
   { key: "agenda", label: "Agenda", help: "Ver: consulta · Editar: cria e altera eventos" },

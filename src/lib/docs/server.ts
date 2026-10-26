@@ -8,6 +8,8 @@ import { todayISO } from "@/lib/format";
 import { cleanHtml } from "./sanitize";
 import { EMPTY_STUDIO, type ContractContent, type DeckContent, type DocContent, type StudioProfile } from "./types";
 import { resolveText, valueMap, type VarContext } from "./variables";
+import { getConfig } from "@/lib/propostas/server";
+import { propostaValueMap } from "@/lib/propostas/vars";
 
 export async function getStudio(): Promise<StudioProfile> {
   const [row] = await db.select().from(schema.appSettings).where(eq(schema.appSettings.key, "studio")).limit(1);
@@ -31,13 +33,23 @@ export async function getDoc(id: string, user: SessionUser) {
   return doc ?? null;
 }
 
-export async function buildContext(doc: { number: string | null; title: string; contactId: string | null; dealId: string | null; content: unknown }): Promise<VarContext> {
+export async function buildContext(doc: { number: string | null; title: string; contactId: string | null; dealId: string | null; content: unknown; editalId?: string | null }): Promise<VarContext> {
   const studio = await getStudio();
   const [deal] = doc.dealId ? await db.select().from(schema.deals).where(eq(schema.deals.id, doc.dealId)).limit(1) : [];
   const contactId = doc.contactId ?? deal?.contactId ?? null;
   const [contact] = contactId ? await db.select().from(schema.contacts).where(eq(schema.contacts.id, contactId)).limit(1) : [];
   const content = doc.content as DocContent;
+  // documento de proposta: edital.*, proposta.* e dados do estúdio (representante, responsáveis técnicos)
+  let extra: Record<string, string> | undefined;
+  if (doc.editalId) {
+    const [e] = await db.select().from(schema.editais).where(eq(schema.editais.id, doc.editalId)).limit(1);
+    const [dossie] = e ? await db.select().from(schema.propostaDossies).where(eq(schema.propostaDossies.editalId, e.id)).limit(1) : [];
+    extra = propostaValueMap(e ?? null, dossie ?? null, await getConfig());
+  } else {
+    extra = propostaValueMap(null, null, await getConfig());
+  }
   return {
+    extra,
     studio,
     contact: contact ?? null,
     deal: deal ?? null,

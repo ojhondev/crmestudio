@@ -13,7 +13,10 @@ import {
   conditionsHold,
   dueDayIn,
   evalDealTime,
+  evalCofre,
   evalEditalTime,
+  evalPropostaOwner,
+  evalPropostaStep,
   evalTaskTime,
   extractMentions,
   involvedIds,
@@ -25,13 +28,20 @@ import {
   type Ctx,
   type DealFacts,
   type DirUser,
+  type CofreFacts,
   type EditalFacts,
+  type PropostaFacts,
+  type PropostaStepFacts,
   type Entity,
   type Hit,
   type Now,
   type TaskFacts,
   type TriggerId,
 } from "@/lib/automations";
+
+import { STEPS } from "@/lib/propostas/types";
+
+const STEP_LABELS: Record<string, string> = Object.fromEntries(STEPS.map((x) => [x.key, x.label]));
 
 type UserRow = typeof schema.users.$inferSelect;
 type Actor = { id: string; name?: string } | null;
@@ -131,6 +141,11 @@ function dealToEntity(r: DealRow): Entity {
 type EditalRow = typeof schema.editais.$inferSelect;
 
 const editalPlace = (r: EditalRow) => [r.city, r.uf].filter(Boolean).join("/") || "local não informado";
+
+/** Fato da esteira de proposta: o aviso aponta para o dossiê do edital e vai para quem responde pela etapa. */
+function propostaEntity(r: EditalRow, ownerId: string | null): Entity {
+  return { ...editalToEntity(r), href: `/editais/proposta/${r.id}`, ownerId };
+}
 
 function editalToEntity(r: EditalRow): Entity {
   return {
@@ -555,7 +570,7 @@ export async function runTimeRules(at: Date = new Date()): Promise<TickResult> {
     const rows = await db
       .select()
       .from(schema.editais)
-      .where(and(inArray(schema.editais.triage, ["interessante", "em_analise"]), eq(schema.editais.situation, "aberto"), sql`${schema.editais.closeAt} >= now() - interval '1 day'`))
+      .where(and(inArray(schema.editais.triage, ["interessante", "em_analise", "em_proposta"]), eq(schema.editais.situation, "aberto"), sql`${schema.editais.closeAt} >= now() - interval '1 day'`))
       .limit(1000);
     for (const r of rows) {
       const facts: EditalFacts = { id: r.id, title: r.title, open: true, closeDay: dueDayOf(r.closeAt) };
@@ -564,6 +579,61 @@ export async function runTimeRules(at: Date = new Date()): Promise<TickResult> {
         const hit = evalEditalTime(rule.trigger as TriggerId, rule.params ?? {}, facts, now);
         if (hit) cands.push({ rule, ctx: { entity, actorId: null }, hit });
       }
+    }
+  }
+
+  const propostaRules = editalRules.filter((r) => ["proposta_step_soon", "proposta_step_late", "proposta_no_owner"].includes(r.trigger));
+  if (propostaRules.length) {
+    try {
+    const rows = await db
+      .select({ d: schema.propostaDossies, e: schema.editais })
+      .from(schema.propostaDossies)
+      .innerJoin(schema.editais, eq(schema.propostaDossies.editalId, schema.editais.id))
+      .where(eq(schema.propostaDossies.status, "andamento"))
+      .limit(300);
+    const ids = rows.map((r) => r.d.id);
+    const steps = ids.length
+      ? await db
+          .select()
+          .from(schema.propostaSteps)
+          .where(and(inArray(schema.propostaSteps.dossieId, ids), inArray(schema.propostaSteps.status, ["a_fazer", "em_andamento"])))
+      : [];
+    for (const { d, e } of rows) {
+      const deadline = dueDayOf(d.sessionAt ?? e.closeAt ?? e.openAt);
+      const pf: PropostaFacts = { editalId: e.id, title: e.title, deadlineDay: deadline, hasOwner: !!d.ownerId };
+      for (const rule of propostaRules.filter((r) => r.trigger === "proposta_no_owner")) {
+        const hit = evalPropostaOwner(rule.params ?? {}, pf, now);
+        if (hit) cands.push({ rule, ctx: { entity: propostaEntity(e, d.ownerId), actorId: null }, hit });
+      }
+      for (const st of steps.filter((x) => x.dossieId === d.id)) {
+        const sf: PropostaStepFacts = { editalId: e.id, title: e.title, stepKey: st.key, stepLabel: STEP_LABELS[st.key] ?? st.key, dueDay: dueDayOf(st.dueAt) };
+        const entity = propostaEntity(e, st.assigneeId ?? d.ownerId);
+        for (const rule of propostaRules) {
+          if (rule.trigger === "proposta_no_owner") continue;
+          const hit = evalPropostaStep(rule.trigger as TriggerId, rule.params ?? {}, sf, now);
+          if (hit) cands.push({ rule, ctx: { entity, actorId: null }, hit });
+        }
+      }
+    }
+    } catch (e) {
+      console.error("[automacoes] propostas", e); // um problema aqui nunca derruba as demais regras de tempo
+    }
+  }
+
+  const cofreRules = editalRules.filter((r) => r.trigger === "cofre_expiring");
+  if (cofreRules.length) {
+    try {
+    const docs = await db.select().from(schema.cofreDocs).where(sql`${schema.cofreDocs.validUntil} is not null and ${schema.cofreDocs.validUntil} >= current_date and ${schema.cofreDocs.validUntil} <= current_date + 31`).limit(500);
+    for (const c of docs) {
+      const cf: CofreFacts = { id: c.id, title: c.title, validUntil: c.validUntil };
+      const entity: Entity = { kind: "edital", id: c.id, label: c.title, href: "/editais/cofre", ownerId: c.ownerId, organ: c.issuer ?? "", place: "", dueDay: c.validUntil };
+      for (const rule of cofreRules) {
+        const hit = evalCofre(rule.params ?? {}, cf, now);
+        if (hit) cands.push({ rule, ctx: { entity, actorId: null }, hit });
+      }
+    }
+    } catch (e) {
+      console.error("[automacoes] cofre", e);
     }
   }
 

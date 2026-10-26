@@ -9,6 +9,8 @@ import { fmtDate, fmtTime, money, moneyShort, todayISO } from "@/lib/format";
 import { StartGuide } from "@/components/start-guide";
 import { AvisosCard } from "@/components/avisos-card";
 import { EditaisCard } from "@/components/editais-card";
+import { PropostasCard } from "@/components/propostas-card";
+import { dashboardPropostas } from "@/lib/propostas/server";
 import { dashboardEditais } from "@/lib/editais/queries";
 import { getAvisos } from "@/lib/avisos";
 import { scheduleLazyTick } from "@/lib/automations-engine";
@@ -92,7 +94,7 @@ export default async function Dashboard({ searchParams }: PageProps<"/">) {
       .where(and(eq(schema.transactions.kind, "receita"), isNull(schema.transactions.paidAt), lte(schema.transactions.dueDate, in30)));
 
   scheduleLazyTick(); // abrir o painel também "acorda" as regras de tempo (no máximo 1 rodada a cada 15 min)
-  const [funnel, [won], agenda, myTasks, [receivable], avisos, editaisData] = await Promise.all([
+  const [funnel, [won], agenda, myTasks, [receivable], avisos, editaisData, propostasData] = await Promise.all([
     canDeals ? funnelQ() : [],
     canDeals ? wonQ() : [],
     canAgenda ? agendaQ() : [],
@@ -100,6 +102,7 @@ export default async function Dashboard({ searchParams }: PageProps<"/">) {
     canFinance ? receivableQ() : [],
     getAvisos(user),
     canEditais ? dashboardEditais().catch(() => null) : null,
+    canEditais ? dashboardPropostas().catch(() => null) : null,
   ]);
 
   const open = funnel.filter((s) => s.kind === "aberto");
@@ -154,6 +157,8 @@ export default async function Dashboard({ searchParams }: PageProps<"/">) {
             <Kpi label="Próximos 7 dias" value={String(agenda.length)} sub="compromissos na agenda" href="/agenda" />
           )}
         </div>
+
+        {propostasData && <PropostasCard data={propostasData} />}
 
         {editaisData && <EditaisCard data={editaisData} />}
 

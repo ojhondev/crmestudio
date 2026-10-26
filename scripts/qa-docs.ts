@@ -8,7 +8,7 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import { neon } from "@neondatabase/serverless";
 import { drizzle } from "drizzle-orm/neon-http";
-import { asc, eq, like } from "drizzle-orm";
+import { and, asc, eq, ilike, like, or, sql } from "drizzle-orm";
 import * as schema from "../src/lib/db/schema";
 import * as siteSchema from "../src/lib/site-schema";
 import { del } from "@vercel/blob";
@@ -35,6 +35,40 @@ async function main() {
       .insert(schema.deals)
       .values({ title: "QA — Restauro do forro", contactId: c.id, stageId: stage.id, valueCents: 1850000, service: "Restauro", property: "Igreja Matriz", location: "Itu/SP", ownerId: u.id })
       .returning({ id: schema.deals.id });
+    // Esteira de proposta: edital de teste (fecha em 12 dias), certidões no cofre e itens do portfólio
+    const close = new Date(Date.now() + 12 * 864e5);
+    await db.insert(schema.editais).values({
+      externalId: "QA-PROP-1",
+      title: "QA — Restauração do forro e dos retábulos da Igreja Matriz de Itu",
+      object: "Contratação de empresa especializada para execução de obra de restauração do forro e dos retábulos da Igreja Matriz, bem tombado pelo IPHAN, com douramento e consolidação estrutural.",
+      organ: "QA Prefeitura de Itu",
+      unit: "Secretaria de Cultura",
+      esfera: "municipal",
+      uf: "SP",
+      city: "Itu",
+      modalidade: "Concorrência",
+      kind: "execucao",
+      score: 92,
+      matched: ["restauração", "forro", "retábulo"],
+      valueCents: 85_000_000,
+      publishedAt: new Date(),
+      openAt: new Date(close.getTime() - 2 * 36e5),
+      closeAt: close,
+      situation: "aberto",
+      url: "https://pncp.gov.br/app/editais/qa",
+      sourceUrl: "https://portal.example.test/qa",
+    });
+    const iso = (d: number) => new Date(Date.now() + d * 864e5).toISOString().slice(0, 10);
+    await db.insert(schema.cofreDocs).values([
+      { type: "certidao_federal", title: "QA — Certidão federal", validUntil: iso(5), issuer: "Receita Federal", ownerId: u.id },
+      { type: "certidao_fgts", title: "QA — CRF FGTS", validUntil: iso(90), issuer: "Caixa", ownerId: u.id },
+      { type: "contrato_social", title: "QA — Contrato social", ownerId: u.id },
+    ]);
+    await db.insert(schema.portfolioItems).values([
+      { title: "QA — Restauração do forro da Matriz de Sorocaba", client: "Mitra Diocesana", year: 2024, valueCents: 42_000_000, kind: "execucao", tags: ["restauração de forro", "igreja"], tombamento: "iphan", description: "Restauração de forro em madeira pintada, 320 m².", links: [] },
+      { title: "QA — Douramento do retábulo-mor", client: "Paróquia QA", year: 2022, kind: "execucao", tags: ["douramento", "retábulo"], tombamento: "estadual", description: "Douramento a folha de ouro.", links: [] },
+      { title: "QA — Projeto de pintura de fachada comercial", client: "Cliente QA", year: 2011, kind: "outro", tags: ["fachada"], description: "Pintura simples." },
+    ]);
     fs.mkdirSync(".tmp", { recursive: true });
     fs.writeFileSync(FILE, JSON.stringify({ email: EMAIL, password, userId: u.id, contactId: c.id, dealId: d.id }, null, 2));
     console.log("QA criado — credenciais em", FILE);
@@ -72,6 +106,22 @@ async function main() {
     await db.delete(schema.automationRuns).where(like(schema.automationRuns.entityLabel, "QA%"));
     await db.delete(schema.automationRules).where(like(schema.automationRules.name, "QA%"));
     await db.delete(schema.auditLog).where(like(schema.auditLog.actorName, "QA %"));
+    // Esteira de proposta (dossiês, etapas, itens e matriz saem em cascata com o edital)
+    const qaUsers = await db.select({ id: schema.users.id }).from(schema.users).where(like(schema.users.email, "qa-%@example.test"));
+    for (const qu of qaUsers) {
+      await db.delete(schema.tasks).where(eq(schema.tasks.createdById, qu.id));
+      await db.delete(schema.taskBoards).where(and(eq(schema.taskBoards.createdById, qu.id), ilike(schema.taskBoards.name, "Editais")));
+    }
+    await db.delete(schema.taskGroups).where(like(schema.taskGroups.name, "QA%"));
+    await db.delete(schema.sheets).where(like(schema.sheets.name, "%QA%"));
+    await db.delete(schema.cofreDocs).where(like(schema.cofreDocs.title, "QA%"));
+    await db.delete(schema.portfolioItems).where(like(schema.portfolioItems.title, "QA%"));
+    await db.delete(schema.propostaTemplates).where(and(eq(schema.propostaTemplates.builtin, false), like(schema.propostaTemplates.name, "QA%")));
+    await db.delete(schema.notifications).where(or(like(schema.notifications.title, "%QA%"), like(schema.notifications.body, "%QA%")));
+    await db.delete(schema.editalEvents).where(like(schema.editalEvents.body, "%QA%"));
+    // configuração gravada durante o teste (só se tiver marca de QA)
+    await db.delete(schema.appSettings).where(and(eq(schema.appSettings.key, "propostas_config"), sql`${schema.appSettings.value}::text like '%QA%'`));
+    await db.delete(schema.appSettings).where(and(eq(schema.appSettings.key, "studio"), sql`${schema.appSettings.value}::text like '%QA%'`));
     await db.delete(schema.users).where(like(schema.users.email, "qa-%@example.test"));
     await db.delete(schema.users).where(eq(schema.users.email, EMAIL));
     if (fs.existsSync(FILE)) fs.unlinkSync(FILE);

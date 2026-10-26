@@ -98,7 +98,7 @@ export function editalWhere(f: EditalFilters, userId: string, opts: { skipUf?: b
   else if (f.situacao !== "todos") c.push(eq(E.situation, f.situacao));
   if (f.prazo) c.push(and(gte(E.closeAt, now), lte(E.closeAt, new Date(now.getTime() + f.prazo * 864e5))));
   if (f.triagem === "" ) c.push(ne(E.triage, "descartado"));
-  else if (f.triagem === "ativos") c.push(inArray(E.triage, ["novo", "interessante", "em_analise", "proposta_enviada"]));
+  else if (f.triagem === "ativos") c.push(inArray(E.triage, ["novo", "interessante", "em_analise", "em_proposta", "proposta_enviada"]));
   else if (f.triagem !== "todos") c.push(eq(E.triage, f.triagem));
   if (f.rel > 0) c.push(gte(E.score, f.rel));
   if (f.owner) c.push(f.owner === "me" ? eq(E.ownerId, userId) : f.owner === "sem" ? isNull(E.ownerId) : eq(E.ownerId, f.owner));
@@ -142,7 +142,7 @@ export async function listEditais(f: EditalFilters, userId: string): Promise<Lis
       .select({
         novos: sql<number>`count(*) filter (where ${E.triage} = 'novo' and ${E.firstSeenAt} > now() - interval '7 days')::int`,
         encerrando7: sql<number>`count(*) filter (where ${E.closeAt} <= now() + interval '7 days' and ${E.triage} <> 'novo')::int`,
-        interessantes: sql<number>`count(*) filter (where ${E.triage} in ('interessante','em_analise'))::int`,
+        interessantes: sql<number>`count(*) filter (where ${E.triage} in ('interessante','em_analise','em_proposta'))::int`,
         abertos: sql<number>`count(*)::int`,
       })
       .from(E)
@@ -202,7 +202,7 @@ export async function dashboardEditais() {
       .select({ e: E, ownerName: schema.users.name })
       .from(E)
       .leftJoin(schema.users, eq(E.ownerId, schema.users.id))
-      .where(and(base, lte(E.closeAt, new Date(now.getTime() + 7 * 864e5)), inArray(E.triage, ["interessante", "em_analise", "proposta_enviada", "novo"])))
+      .where(and(base, lte(E.closeAt, new Date(now.getTime() + 7 * 864e5)), inArray(E.triage, ["interessante", "em_analise", "em_proposta", "proposta_enviada", "novo"])))
       .orderBy(asc(E.closeAt), desc(E.score))
       .limit(4),
     db

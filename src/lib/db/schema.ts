@@ -349,6 +349,8 @@ export const documents = pgTable(
     dealId: uuid("deal_id").references(() => deals.id, { onDelete: "set null" }),
     contactId: uuid("contact_id").references(() => contacts.id, { onDelete: "set null" }),
     templateSlug: text("template_slug"),
+    /** documento da proposta de um edital (variáveis edital.*) */
+    editalId: uuid("edital_id").references(() => editais.id, { onDelete: "set null" }),
     content: jsonb("content").notNull(),
     snapshot: jsonb("snapshot"),
     publicToken: text("public_token").unique(),
@@ -710,7 +712,7 @@ export const editais = pgTable(
     situation: text("situation").notNull().default("aberto"),
     url: text("url"),
     sourceUrl: text("source_url"),
-    /** triagem da equipe: novo | interessante | em_analise | proposta_enviada | descartado | ganho | perdido */
+    /** triagem da equipe: novo | interessante | em_analise | em_proposta | proposta_enviada | descartado | ganho | perdido */
     triage: text("triage").notNull().default("novo"),
     discardReason: text("discard_reason"),
     notes: text("notes"),
@@ -784,3 +786,171 @@ export const editalRuns = pgTable(
 export type EditalRow = typeof editais.$inferSelect;
 export type EditalRunRow = typeof editalRuns.$inferSelect;
 export type EditalEventRow = typeof editalEvents.$inferSelect;
+
+
+/* ------------------------- Esteira de proposta (editais) ------------------------- */
+
+export type DossieStatus = "andamento" | "ganhou" | "perdeu" | "desclassificada" | "desistiu";
+export type StepStatus = "a_fazer" | "em_andamento" | "concluida" | "nao_se_aplica";
+export type TemplateItem = { key: string; step: string; title: string; offsetDays: number | null; role: string | null };
+export type MatrixItem = { key: string; title: string; cofreType: string | null };
+
+/** Cofre de habilitação: documentos recorrentes com validade. Guarda só o LINK do arquivo (o CRM não armazena arquivos). */
+export const cofreDocs = pgTable(
+  "cofre_docs",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    type: text("type").notNull(),
+    title: text("title").notNull(),
+    number: text("number"),
+    issuer: text("issuer"),
+    issuedAt: date("issued_at"),
+    validUntil: date("valid_until"),
+    url: text("url"),
+    notes: text("notes"),
+    ownerId: uuid("owner_id").references(() => users.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("cofre_docs_type_idx").on(t.type, t.validUntil)],
+);
+
+/** Dossiê da proposta: um por edital em que a equipe decidiu participar. */
+export const propostaDossies = pgTable(
+  "proposta_dossies",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    editalId: uuid("edital_id")
+      .notNull()
+      .references(() => editais.id, { onDelete: "cascade" }),
+    status: text("status").$type<DossieStatus>().notNull().default("andamento"),
+    /** modelo de checklist e de matriz usados */
+    templateKey: text("template_key"),
+    matrixKey: text("matrix_key"),
+    /** nº do edital e do processo, como o órgão publica */
+    numero: text("numero"),
+    processo: text("processo"),
+    /** data da sessão/limite quando difere da do portal (null = usa a do edital) */
+    sessionAt: timestamp("session_at", { withTimezone: true }),
+    ownerId: uuid("owner_id").references(() => users.id, { onDelete: "set null" }),
+    priceSheetId: uuid("price_sheet_id").references(() => sheets.id, { onDelete: "set null" }),
+    checklistAppliedAt: timestamp("checklist_applied_at", { withTimezone: true }),
+    resultReason: text("result_reason"),
+    resultValueCents: bigint("result_value_cents", { mode: "number" }),
+    resultAt: timestamp("result_at", { withTimezone: true }),
+    resultNotes: text("result_notes"),
+    createdById: uuid("created_by_id").references(() => users.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("proposta_dossies_edital_idx").on(t.editalId), index("proposta_dossies_status_idx").on(t.status)],
+);
+
+/** Etapas do dossiê (analisar, esclarecimentos, habilitação…), cada uma com responsável, prazo e estado. */
+export const propostaSteps = pgTable(
+  "proposta_steps",
+  {
+    id: serial("id").primaryKey(),
+    dossieId: uuid("dossie_id")
+      .notNull()
+      .references(() => propostaDossies.id, { onDelete: "cascade" }),
+    key: text("key").notNull(),
+    position: integer("position").notNull().default(0),
+    status: text("status").$type<StepStatus>().notNull().default("a_fazer"),
+    assigneeId: uuid("assignee_id").references(() => users.id, { onDelete: "set null" }),
+    dueAt: timestamp("due_at", { withTimezone: true }),
+    doneAt: timestamp("done_at", { withTimezone: true }),
+  },
+  (t) => [uniqueIndex("proposta_steps_key_idx").on(t.dossieId, t.key)],
+);
+
+/** Itens do checklist do dossiê. `tplKey` identifica o item vindo do modelo (evita duplicar ao reaplicar). */
+export const propostaItems = pgTable(
+  "proposta_items",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    dossieId: uuid("dossie_id")
+      .notNull()
+      .references(() => propostaDossies.id, { onDelete: "cascade" }),
+    stepKey: text("step_key").notNull(),
+    tplKey: text("tpl_key"),
+    title: text("title").notNull(),
+    position: integer("position").notNull().default(0),
+    /** dias úteis antes da data limite (null = item manual, sem prazo calculado) */
+    offsetDays: integer("offset_days"),
+    role: text("role"),
+    dueAt: timestamp("due_at", { withTimezone: true }),
+    assigneeId: uuid("assignee_id").references(() => users.id, { onDelete: "set null" }),
+    done: boolean("done").notNull().default(false),
+    doneAt: timestamp("done_at", { withTimezone: true }),
+    taskId: uuid("task_id").references(() => tasks.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("proposta_items_dossie_idx").on(t.dossieId, t.position), uniqueIndex("proposta_items_tpl_idx").on(t.dossieId, t.tplKey)],
+);
+
+/** Matriz de habilitação: exigências do edital × documento do cofre que atende. */
+export const propostaRequirements = pgTable(
+  "proposta_requirements",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    dossieId: uuid("dossie_id")
+      .notNull()
+      .references(() => propostaDossies.id, { onDelete: "cascade" }),
+    tplKey: text("tpl_key"),
+    title: text("title").notNull(),
+    /** tipo de documento do cofre que costuma atender (ver lib/propostas/types.ts) */
+    cofreType: text("cofre_type"),
+    /** documento escolhido manualmente (null = o sistema escolhe o mais adequado do tipo) */
+    cofreDocId: uuid("cofre_doc_id").references(() => cofreDocs.id, { onDelete: "set null" }),
+    /** auto | na (não se aplica) | ok_manual (atendida por outro meio) */
+    mode: text("mode").notNull().default("auto"),
+    notes: text("notes"),
+    position: integer("position").notNull().default(0),
+  },
+  (t) => [index("proposta_req_dossie_idx").on(t.dossieId, t.position), uniqueIndex("proposta_req_tpl_idx").on(t.dossieId, t.tplKey)],
+);
+
+/** Modelos editáveis: checklist da esteira e lista de exigências da matriz. `builtin` = acompanha o sistema. */
+export const propostaTemplates = pgTable("proposta_templates", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  key: text("key").notNull().unique(),
+  /** checklist | matriz */
+  type: text("type").notNull(),
+  name: text("name").notNull(),
+  description: text("description"),
+  items: jsonb("items").$type<TemplateItem[] | MatrixItem[]>().notNull().default([]),
+  builtin: boolean("builtin").notNull().default(false),
+  active: boolean("active").notNull().default(true),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** Banco de atestados / portfólio: obras e projetos executados, para a proposta técnica. */
+export const portfolioItems = pgTable(
+  "portfolio_items",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    title: text("title").notNull(),
+    client: text("client"),
+    year: integer("year"),
+    valueCents: bigint("value_cents", { mode: "number" }),
+    /** execucao | projeto | laudo | outro */
+    kind: text("kind").notNull().default("execucao"),
+    /** técnicas / tipo de bem: forro, pintura mural, douramento… */
+    tags: text("tags").array().notNull().default([]),
+    /** iphan | estadual | municipal | nenhum */
+    tombamento: text("tombamento"),
+    responsible: text("responsible"),
+    /** texto pronto para colar na proposta técnica */
+    description: text("description"),
+    /** links (fotos, atestado/CAT): [{ name, url }] */
+    links: jsonb("links").$type<{ name: string; url: string }[]>().notNull().default([]),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("portfolio_year_idx").on(t.year)],
+);
+
+export type DossieRow = typeof propostaDossies.$inferSelect;
+export type CofreDocRow = typeof cofreDocs.$inferSelect;
+export type PortfolioRow = typeof portfolioItems.$inferSelect;

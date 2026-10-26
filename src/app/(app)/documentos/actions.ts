@@ -24,7 +24,7 @@ function cleanContent(kind: "contrato" | "apresentacao", raw: unknown): DocConte
   if (kind === "contrato") {
     const fields: Record<string, string> = {};
     for (const [k, v] of Object.entries((c.fields as Record<string, unknown>) ?? {})) {
-      if (/^[a-z0-9_]{1,40}$/.test(k)) fields[k] = str(v, 2000);
+      if (/^[a-z0-9_]{1,40}$/.test(k)) fields[k] = str(v, 8000);
     }
     return { kind: "contrato", html: cleanHtml(str(c.html, 600_000)), fields } satisfies ContractContent;
   }

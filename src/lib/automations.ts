@@ -35,7 +35,11 @@ export type TriggerId =
   | "deal_new_no_contact"
   | "deal_high_value_stalled"
   | "edital_new"
-  | "edital_closing";
+  | "edital_closing"
+  | "proposta_step_soon"
+  | "proposta_step_late"
+  | "proposta_no_owner"
+  | "cofre_expiring";
 
 export type Subject = "task" | "deal" | "edital";
 export type ParamKey = "days" | "hours" | "daysBefore" | "minValueCents" | "stageDays" | "stageIds";
@@ -75,6 +79,10 @@ export const TRIGGERS: TriggerDef[] = [
   { id: "deal_high_value_stalled", kind: "time", subject: "deal", label: "Valor alto parado", when: "um negócio de valor alto ficar parado", type: "negocio_valor_alto", params: ["minValueCents", "days", "stageIds"], defaults: { minValueCents: 5_000_000, days: 3 }, title: "Negócio de valor alto parado: {negocio}", body: "{valor} há {dias} na etapa “{etapa}”." },
   { id: "edital_new", kind: "event", subject: "edital", label: "Novo edital relevante", when: "surgir um edital de restauro novo (use a condição de relevância)", type: "edital_novo", params: [], defaults: {}, title: "Novo edital de restauro: {edital}", body: "{orgao} · {local}. {valor}. Propostas até {prazo}." },
   { id: "edital_closing", kind: "time", subject: "edital", label: "Edital de interesse encerrando", when: "o prazo de propostas de um edital marcado como interessante estiver chegando", type: "edital_prazo", params: ["daysBefore"], defaults: { daysBefore: [7, 3, 1] }, title: "Edital encerra {quando}: {edital}", body: "Propostas até {prazo}. {orgao} · {local}." },
+  { id: "proposta_step_soon", kind: "time", subject: "edital", label: "Etapa da proposta se aproximando", when: "o prazo de uma etapa da proposta de um edital estiver chegando", type: "proposta_prazo", params: ["daysBefore"], defaults: { daysBefore: [2, 0] }, title: "Etapa da proposta {quando}: {etapa}", body: "{edital} · {orgao}. Prazo da etapa: {prazo}. Responsável: {responsavel}." },
+  { id: "proposta_step_late", kind: "time", subject: "edital", label: "Etapa da proposta atrasada", when: "uma etapa da proposta de um edital passar do prazo", type: "proposta_prazo", params: ["days"], defaults: { days: 1 }, title: "Etapa da proposta atrasada: {etapa}", body: "{edital} · {orgao}. Venceu em {prazo} ({dias} de atraso). Responsável: {responsavel}." },
+  { id: "proposta_no_owner", kind: "time", subject: "edital", label: "Proposta sem responsável", when: "uma proposta em andamento continuar sem responsável perto da sessão", type: "proposta_prazo", params: ["days"], defaults: { days: 7 }, title: "Proposta sem responsável: {edital}", body: "{orgao}. A data limite é {prazo} ({dias}). Defina quem coordena a proposta." },
+  { id: "cofre_expiring", kind: "time", subject: "edital", label: "Documento do cofre vencendo", when: "um documento do cofre de habilitação estiver perto de vencer", type: "cofre_vencimento", params: ["daysBefore"], defaults: { daysBefore: [30, 15, 7] }, title: "Documento do cofre vence {quando}: {edital}", body: "Validade até {prazo}. Renove com antecedência: uma certidão vencida pode desclassificar a proposta." },
 ];
 
 export const TRIGGER_BY_ID = Object.fromEntries(TRIGGERS.map((t) => [t.id, t])) as Record<TriggerId, TriggerDef>;
@@ -324,6 +332,11 @@ export type EditalFacts = {
   closeDay: string | null;
 };
 
+/** Etapa de uma proposta em andamento (o fato avaliado é a etapa não concluída com prazo). */
+export type PropostaStepFacts = { editalId: string; title: string; stepKey: string; stepLabel: string; dueDay: string | null };
+export type PropostaFacts = { editalId: string; title: string; deadlineDay: string | null; hasOwner: boolean };
+export type CofreFacts = { id: string; title: string; validUntil: string | null };
+
 export type Now = { ms: number; today: string };
 export const nowOf = (d = new Date()): Now => ({ ms: d.getTime(), today: isoDateBR(d) });
 
@@ -374,6 +387,43 @@ export function evalEditalTime(trigger: TriggerId, params: RuleParams, f: Edital
   const list = params.daysBefore?.length ? params.daysBefore : [7, 3, 1];
   if (!list.includes(left)) return null;
   return { key: `editalclose:${f.id}:${f.closeDay}:${left}`, vars: { edital: f.title, prazo: brDate(f.closeDay), quando: whenText(left), dias: daysText(left) } };
+}
+
+/** Etapas da proposta: avisa antes do prazo (dias da lista) ou depois dele (atraso mínimo em dias). */
+export function evalPropostaStep(trigger: TriggerId, params: RuleParams, f: PropostaStepFacts, now: Now): Hit | null {
+  if (!f.dueDay) return null;
+  const base = { edital: f.title, etapa: f.stepLabel, prazo: brDate(f.dueDay) };
+  if (trigger === "proposta_step_soon") {
+    if (f.dueDay < now.today) return null;
+    const left = diffDays(now.today, f.dueDay);
+    const list = params.daysBefore?.length ? params.daysBefore : [2, 0];
+    if (!list.includes(left)) return null;
+    return { key: `pstep:${f.editalId}:${f.stepKey}:${f.dueDay}:${left}`, vars: { ...base, quando: whenText(left), dias: daysText(left) } };
+  }
+  if (trigger === "proposta_step_late") {
+    if (f.dueDay >= now.today) return null;
+    const late = diffDays(f.dueDay, now.today);
+    if (late < Math.max(1, params.days ?? 1)) return null;
+    return { key: `plate:${f.editalId}:${f.stepKey}:${f.dueDay}`, vars: { ...base, dias: daysText(late) } };
+  }
+  return null;
+}
+
+/** Proposta sem responsável quando faltam X dias (ou menos) para a data limite. */
+export function evalPropostaOwner(params: RuleParams, f: PropostaFacts, now: Now): Hit | null {
+  if (f.hasOwner || !f.deadlineDay || f.deadlineDay < now.today) return null;
+  const left = diffDays(now.today, f.deadlineDay);
+  if (left > Math.max(1, params.days ?? 7)) return null;
+  return { key: `pnoowner:${f.editalId}:${f.deadlineDay}`, vars: { edital: f.title, prazo: brDate(f.deadlineDay), quando: whenText(left), dias: daysText(left) } };
+}
+
+/** Documento do cofre: avisa nos dias da lista (30/15/7 por padrão) antes da validade. */
+export function evalCofre(params: RuleParams, f: CofreFacts, now: Now): Hit | null {
+  if (!f.validUntil || f.validUntil < now.today) return null;
+  const left = diffDays(now.today, f.validUntil);
+  const list = params.daysBefore?.length ? params.daysBefore : [30, 15, 7];
+  if (!list.includes(left)) return null;
+  return { key: `cofre:${f.id}:${f.validUntil}:${left}`, vars: { edital: f.title, prazo: brDate(f.validUntil), quando: whenText(left), dias: daysText(left) } };
 }
 
 export function evalDealTime(trigger: TriggerId, params: RuleParams, d: DealFacts, now: Now): Hit | null {
@@ -457,6 +507,10 @@ export const BUILTIN_RULES: BuiltinRule[] = [
   { key: "negocio_mudou_etapa", name: "Negócio mudou de etapa", description: "Avisa o gestor e o parceiro a cada mudança de etapa. Desligada por padrão (gera muitos avisos).", trigger: "deal_stage_changed", enabled: false, params: {}, conditions: [], actions: [notify("managers", "partner")] },
   { key: "edital_novo", name: "Novo edital de restauro relevante", description: "Avisa quem tem acesso a Editais quando surge um edital de restauro com relevância alta (a partir de 70 de 100). Ajuste a relevância mínima na condição.", trigger: "edital_new", enabled: true, params: {}, conditions: [{ field: "score", op: "gte", value: 70 }], actions: [notify("team")] },
   { key: "edital_prazo", name: "Edital de interesse encerrando", description: "Lembra o responsável (e o gestor) 7, 3 e 1 dia antes do fim do prazo de propostas dos editais marcados como interessantes ou em análise.", trigger: "edital_closing", enabled: true, params: { daysBefore: [7, 3, 1] }, conditions: [], actions: [notify("editalOwner", "managers")] },
+  { key: "proposta_etapa_prazo", name: "Etapa da proposta se aproximando", description: "Lembra o responsável 2 dias antes e no dia do prazo de cada etapa da esteira de proposta (analisar, habilitação, preço, revisão, envio…).", trigger: "proposta_step_soon", enabled: true, params: { daysBefore: [2, 0] }, conditions: [], actions: [notify("editalOwner", "managers")] },
+  { key: "proposta_etapa_atrasada", name: "Etapa da proposta atrasada", description: "Avisa o responsável e o gestor quando uma etapa da proposta passa do prazo.", trigger: "proposta_step_late", enabled: true, params: { days: 1 }, conditions: [], actions: [notify("editalOwner", "managers")] },
+  { key: "proposta_sem_responsavel", name: "Proposta sem responsável perto da sessão", description: "Avisa os gestores quando uma proposta em andamento continua sem responsável faltando 7 dias ou menos para a data limite.", trigger: "proposta_no_owner", enabled: true, params: { days: 7 }, conditions: [], actions: [notify("managers")] },
+  { key: "cofre_vencimento", name: "Certidão do cofre vencendo", description: "Avisa o responsável pelo documento e os administradores 30, 15 e 7 dias antes de vencer qualquer documento do cofre de habilitação.", trigger: "cofre_expiring", enabled: true, params: { daysBefore: [30, 15, 7] }, conditions: [], actions: [notify("editalOwner", "admins")] },
   { key: "lead_novo_tarefa", name: "Criar tarefa de primeiro contato", description: "Cria uma tarefa para o responsável fazer o primeiro contato com cada lead novo. Desligada até você ligar.", trigger: "deal_created", enabled: false, params: {}, conditions: [], actions: [{ type: "create_followup", title: "Fazer o primeiro contato — {negocio}", inDays: 0, to: "owner" }] },
 ];
 
@@ -591,9 +645,10 @@ export function recipientLabel(token: string, names: Record<string, string> = {}
 
 export function describeParams(trigger: TriggerId, p: RuleParams): string {
   const parts: string[] = [];
-  if (trigger === "task_overdue") parts.push(`atraso de pelo menos ${daysText(p.days ?? 1)}`);
-  if (trigger === "task_due_soon" || trigger === "deal_close_soon" || trigger === "edital_closing") parts.push(`avisa ${(p.daysBefore ?? TRIGGER_BY_ID[trigger].defaults.daysBefore ?? []).map((n) => (n === 0 ? "no dia" : `${daysText(n)} antes`)).join(" e ")}`);
+  if (trigger === "task_overdue" || trigger === "proposta_step_late") parts.push(`atraso de pelo menos ${daysText(p.days ?? 1)}`);
+  if (trigger === "task_due_soon" || trigger === "deal_close_soon" || trigger === "edital_closing" || trigger === "proposta_step_soon" || trigger === "cofre_expiring") parts.push(`avisa ${(p.daysBefore ?? TRIGGER_BY_ID[trigger].defaults.daysBefore ?? []).map((n) => (n === 0 ? "no dia" : `${daysText(n)} antes`)).join(" e ")}`);
   if (trigger === "task_unassigned" || trigger === "deal_new_no_contact") parts.push(`após ${hoursText(p.hours ?? TRIGGER_BY_ID[trigger].defaults.hours ?? 24)}`);
+  if (trigger === "proposta_no_owner") parts.push(`quando faltarem ${daysText(p.days ?? 7)} ou menos`);
   if (trigger === "deal_stalled" || trigger === "deal_no_activity" || trigger === "deal_high_value_stalled") {
     parts.push(`${daysText(p.days ?? TRIGGER_BY_ID[trigger].defaults.days ?? 7)}${p.stageDays && Object.keys(p.stageDays).length ? " · prazos próprios por etapa" : ""}`);
   }

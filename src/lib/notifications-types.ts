@@ -29,6 +29,8 @@ export const NOTIF_TYPES = {
   negocio_valor_alto: { label: "Valor alto parado", group: "negocios", help: "Um negócio de valor alto está sem andamento." },
   edital_novo: { label: "Edital novo", group: "editais", help: "Surgiu um edital de restauro relevante." },
   edital_prazo: { label: "Prazo de edital", group: "editais", help: "O prazo de propostas de um edital que você acompanha está chegando." },
+  proposta_prazo: { label: "Proposta de edital", group: "editais", help: "Uma etapa da proposta de um edital está perto do prazo, atrasada ou sem responsável." },
+  cofre_vencimento: { label: "Cofre de habilitação", group: "editais", help: "Um documento do cofre (certidão, atestado…) está perto de vencer." },
   automacao: { label: "Outras automações", group: "sistema", help: "Avisos de regras criadas por você." },
   sistema: { label: "Avisos do sistema", group: "sistema", help: "Comunicados gerais." },
 } as const satisfies Record<string, { label: string; group: NotifGroup; help: string }>;

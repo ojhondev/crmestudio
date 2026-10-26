@@ -49,7 +49,7 @@ export function TriagePill({ triage }: { triage: string }) {
   const tone =
     t === "novo"
       ? "border-brand/40 text-brand"
-      : t === "interessante" || t === "em_analise"
+      : t === "interessante" || t === "em_analise" || t === "em_proposta"
         ? "border-foreground/30 bg-muted text-foreground"
         : t === "proposta_enviada" || t === "ganho"
           ? "border-foreground bg-foreground text-background"

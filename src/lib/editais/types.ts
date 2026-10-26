@@ -24,11 +24,12 @@ export const SITUATION_LABEL: Record<EditalSituation, string> = { aberto: "Abert
 export const SITUATIONS = Object.keys(SITUATION_LABEL) as EditalSituation[];
 
 /** triagem feita pela equipe no CRM */
-export type EditalTriage = "novo" | "interessante" | "em_analise" | "proposta_enviada" | "descartado" | "ganho" | "perdido";
+export type EditalTriage = "novo" | "interessante" | "em_analise" | "em_proposta" | "proposta_enviada" | "descartado" | "ganho" | "perdido";
 export const TRIAGE_LABEL: Record<EditalTriage, string> = {
   novo: "Novo",
   interessante: "Interessante",
   em_analise: "Em análise",
+  em_proposta: "Em proposta",
   proposta_enviada: "Proposta enviada",
   descartado: "Descartado",
   ganho: "Ganho",
@@ -37,7 +38,7 @@ export const TRIAGE_LABEL: Record<EditalTriage, string> = {
 export const TRIAGES = Object.keys(TRIAGE_LABEL) as EditalTriage[];
 export const isTriage = (v: unknown): v is EditalTriage => typeof v === "string" && v in TRIAGE_LABEL;
 /** triagens "em andamento": o prazo importa e o lembrete vale */
-export const ACTIVE_TRIAGES: EditalTriage[] = ["interessante", "em_analise"];
+export const ACTIVE_TRIAGES: EditalTriage[] = ["interessante", "em_analise", "em_proposta"];
 
 export const DISCARD_REASONS = [
   "Fora do escopo (não é restauro)",

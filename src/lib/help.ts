@@ -649,7 +649,7 @@ export const articles: Article[] = [
         title: "Triar um edital",
         items: [
           "Toque no edital para abrir os detalhes: objeto completo, datas, links para o PNCP e para o portal onde se envia a proposta.",
-          "Marque Interessante, Em análise, Proposta enviada, Ganho ou Perdido. Quem marca assume o edital e recebe os lembretes de prazo.",
+          "Marque Interessante, Em análise, Proposta enviada, Ganho ou Perdido. Quem marca assume o edital e recebe os lembretes de prazo. Decidiu participar? Toque em Vou participar: o CRM monta a esteira de proposta (veja “Esteira de proposta”).",
           "Descarte com um motivo (fora do escopo, valor baixo, longe, exige acervo técnico que não temos…). Ele some da lista, mas dá para ver em Filtros → Triagem.",
           "Use Criar negócio para abrir o contato do órgão e o negócio já com valor, local e link; marque a opção para criar também a tarefa “Enviar proposta” com o prazo.",
           "Ou use Criar tarefa com o prazo, se só quer o lembrete.",
@@ -671,11 +671,82 @@ export const articles: Article[] = [
         items: [
           "Edital novo com relevância 70 ou mais avisa quem tem acesso a Editais (regra pronta; ajuste a relevância em Automações).",
           "Edital marcado como interessante ou em análise avisa o responsável 7, 3 e 1 dia antes do fim do prazo.",
-          "O Painel mostra o bloco “Oportunidades de restauro” com os novos e os que encerram em 7 dias.",
+          "O Painel mostra o bloco “Oportunidades de restauro” com os novos e os que encerram em 7 dias, e o bloco “Propostas em andamento”.",
         ],
       },
-      { t: "tip", text: "Nenhum edital é enviado, proposto ou assinado por este sistema: ele só encontra e organiza. A proposta é feita no portal do órgão." },
+      {
+        t: "list",
+        title: "As abas de Editais",
+        items: [
+          "Oportunidades: a lista de editais encontrados.",
+          "Propostas em andamento: as esteiras abertas, com contagem regressiva, progresso, pendências de habilitação e a taxa de êxito.",
+          "Cofre de habilitação: certidões e documentos com validade. Atestados e portfólio: obras e projetos para a proposta técnica.",
+          "Configuração (só quem gerencia Editais): dados do estúdio, responsáveis técnicos, BDI e modelos.",
+        ],
+      },
+      { t: "tip", text: "O sistema não envia propostas por você: ele encontra o edital e organiza a esteira. O envio é feito no portal do órgão." },
       { t: "warn", text: "O PNCP às vezes demora ou recusa conexões. Se a varredura rápida parar no meio, a completa do GitHub cobre o resto e se retoma sozinha." },
+    ],
+  },
+  {
+    slug: "esteira-de-proposta",
+    module: "Operação",
+    title: "Esteira de proposta (participar de editais)",
+    summary: "Do “vou participar” ao resultado: checklist com prazos, tarefas, habilitação, documentos, planilha de preços e aprendizado.",
+    href: "/editais?aba=propostas",
+    tour: "/editais/proposta/",
+    keywords: ["proposta", "esteira", "dossiê", "habilitação", "cofre", "certidão", "atestado", "portfólio", "checklist", "declaração", "impugnação", "esclarecimento", "bdi", "planilha de preços", "licitação", "sessão", "resultado", "vou participar"],
+    body: [
+      { t: "p", text: "Os prazos de licitação correm rápido. A esteira monta tudo o que se repete em toda proposta e deixa para a equipe só o que é específico do edital." },
+      {
+        t: "steps",
+        title: "Do edital ao envio",
+        items: [
+          "Em Editais, abra o edital e toque em Vou participar. Escolha o modelo de checklist (o sistema sugere pelo tipo) e se quer criar o negócio e as tarefas.",
+          "O CRM cria o dossiê com 8 etapas: analisar o edital, esclarecimentos e impugnação, habilitação, proposta técnica, proposta de preço, revisão interna, envio/protocolo e resultado.",
+          "Cada item do checklist ganha um prazo calculado de trás para frente a partir da data limite do edital, sempre em dia útil (revisão interna em D-2, protocolo em D-1…). Se o prazo do edital for curto, os itens que já passaram ficam para hoje e a tela avisa.",
+          "As tarefas dos itens aparecem no quadro Editais, em Tarefas, vinculadas ao negócio. Marcar o item no dossiê conclui a tarefa, e concluir a tarefa marca o item.",
+          "Acompanhe a barra de progresso, a contagem regressiva (terracota com 7, 3 e 1 dia, e quando vence) e as etapas atrasadas. Em Editais → Propostas em andamento ficam todas, com indicadores.",
+        ],
+      },
+      {
+        t: "list",
+        title: "Habilitação e cofre",
+        items: [
+          "O Cofre de habilitação guarda certidões, contrato social, balanço, atestados, CAT/ART/RRT, registros e declarações, com número, emissor, emissão, validade e o LINK do arquivo. O sistema não guarda arquivos: cole o link do Drive ou do site que emitiu.",
+          "Cada documento mostra se está válido, vence em 30 dias ou vencido. O sistema avisa os administradores e o responsável 30, 15 e 7 dias antes de vencer.",
+          "No dossiê, a matriz de habilitação lista as exigências do edital e o documento do cofre que atende cada uma. Ela acusa o que está faltando e o que vence antes da data da sessão. Dá para escolher o documento à mão, marcar “não se aplica” ou “atendida por outro meio”.",
+        ],
+      },
+      {
+        t: "list",
+        title: "Documentos, planilha e atestados",
+        items: [
+          "Gerar documentos da proposta cria, já preenchidos com os dados do edital e do estúdio e ligados ao negócio: carta-proposta, proposta comercial (tabela de preços, BDI, prazo e validade), proposta técnica e declarações padrão. Também há termo de renúncia a recurso, pedido de esclarecimento e impugnação. Cada um abre no editor de Documentos e tem PDF.",
+          "Os textos são modelos de partida: revise com o jurídico e com o edital antes de assinar ou enviar. O sistema não afirma que estão corretos para o seu caso.",
+          "Criar planilha de preços abre uma planilha com composição de custos, cronograma físico-financeiro e resumo, com o BDI e os encargos da Configuração (ajuste em cada proposta, na aba Resumo).",
+          "Atestados sugeridos: o banco de atestados (Editais → Atestados e portfólio) casa o tipo e as palavras do objeto do edital com suas obras e projetos, do mais para o menos aderente. Marque e toque em Inserir na proposta técnica.",
+        ],
+      },
+      {
+        t: "list",
+        title: "Resultado e aprendizado",
+        items: [
+          "Ao concluir a etapa Envio, o edital vira “Proposta enviada” e o negócio vai para a etapa “Proposta enviada” (se existir no seu funil; nenhuma etapa é criada ou alterada).",
+          "Em Resultado, registre ganhou, perdeu, desclassificada ou desistência. Ganhou leva o negócio para fechado ganho; perdeu leva para perdido, com o motivo.",
+          "Em Propostas em andamento, o quadro Aprendizado mostra a taxa de êxito por tipo e por órgão e os motivos de perda mais comuns.",
+        ],
+      },
+      {
+        t: "list",
+        title: "Avisos e configuração",
+        items: [
+          "Regras prontas em Automações (desligáveis): etapa da proposta se aproximando (2 dias antes e no dia), etapa atrasada, proposta sem responsável a 7 dias ou menos da data limite e certidão do cofre vencendo.",
+          "Em Editais → Configuração (só quem gerencia Editais): dados do estúdio (razão social, CNPJ, endereço), representante legal, responsáveis técnicos com registro, BDI e encargos padrão, validade da proposta, quem cuida de cada função, motivos de perda e os modelos de checklist e de habilitação, que você edita à vontade.",
+        ],
+      },
+      { t: "tip", text: "Preencha a Configuração antes da primeira proposta: razão social, CNPJ, endereço, representante legal e pelo menos um responsável técnico. Sem eles, os documentos saem com campos em destaque para completar." },
+      { t: "warn", text: "Os prazos contam dias úteis e feriados nacionais. Feriados estaduais e municipais não são conhecidos: confira a data limite e o horário no edital e no portal." },
     ],
   },
   {
@@ -713,6 +784,7 @@ export const articles: Article[] = [
           "Negócio ganho e negócio perdido.",
           "Valor alto parado (padrão: a partir de R$ 50 mil, 3 dias parado).",
           "Editais: edital novo relevante (a partir de 70) e prazo de edital de interesse chegando (7, 3 e 1 dia antes).",
+          "Esteira de proposta: etapa se aproximando (2 dias antes e no dia), etapa atrasada, proposta sem responsável a 7 dias ou menos da data limite e certidão do cofre vencendo (30, 15 e 7 dias).",
           "Desligadas por padrão: criar tarefa de follow-up em negócio parado, criar tarefa de primeiro contato em lead novo e aviso a cada mudança de etapa.",
         ],
       },
@@ -764,6 +836,9 @@ export const faq: { q: string; a: string }[] = [
   { q: "A agenda do Google não mostra um evento que criei.", a: "Se você conectou o Google Agenda, toque em Google Agenda → Sincronizar agora e procure a agenda “Estúdio Restaura”; só aparecem eventos em que você é o responsável. Se usa o link de assinatura, o Google atualiza a cada algumas horas." },
   { q: "Apaguei um negócio sem querer.", a: "A exclusão é definitiva. Por isso o sistema sempre pede confirmação. Se aconteceu, avise um administrador para tentar recuperar pelo banco." },
   { q: "Por que não vejo um módulo no menu (ex.: Financeiro)?", a: "Cada pessoa vê só os módulos liberados no seu perfil de acesso. Se precisar de outro, peça a um administrador em Equipe e acessos." },
+  { q: "Como começo a preparar uma proposta de edital?", a: "Em Editais, abra o edital e toque em Vou participar. O CRM cria o dossiê com checklist e prazos, as tarefas, a matriz de habilitação e os documentos. Antes da primeira vez, preencha Editais → Configuração." },
+  { q: "Os documentos da proposta (declarações, impugnação…) estão prontos para usar?", a: "São modelos de partida. Revise com o jurídico e com o edital antes de assinar ou enviar: o sistema não garante que estejam corretos para o seu caso." },
+  { q: "O cofre guarda os PDFs das certidões?", a: "Não. O CRM guarda só o link (do Drive ou do site que emitiu), a validade e os dados. Cole o link do arquivo e o sistema avisa antes de vencer." },
   { q: "Posso usar no computador e no celular ao mesmo tempo?", a: "Sim. Os dados são os mesmos em qualquer aparelho." },
 ];
 
@@ -796,6 +871,7 @@ export const tours: Record<string, { label: string; steps: TourStep[] }> = {
       { target: ["dash-kpis"], title: "Números do dia", body: "Valor no funil, fechado no mês, e a receber. Toque em um número para abrir a tela dele." },
       { target: ["dash-avisos"], title: "Avisos", body: "O resumo do que o sistema mapeou: atrasadas, o que vence hoje e amanhã, leads sem follow-up, negócios parados e o que os colegas fizeram. Administradores e gestores veem a equipe; os demais, só o que lhes diz respeito. Dá para recolher." },
       { target: ["dash-funnel"], title: "Funil", body: "Quantos negócios e quanto dinheiro há em cada etapa." },
+      { target: ["dash-propostas"], title: "Propostas em andamento", body: "As propostas de edital em preparação, a mais urgente primeiro, com contagem regressiva, etapa atual e pendências de habilitação." },
       { target: ["dash-editais"], title: "Oportunidades de restauro", body: "Editais novos e relevantes e os que encerram em 7 dias (aparece para quem tem acesso a Editais)." },
     ],
   },
@@ -808,6 +884,45 @@ export const tours: Record<string, { label: string; steps: TourStep[] }> = {
       { target: ["edital-tipos", "edital-ufs"], title: "Tipo e estado", body: "Separe projeto de restauro de execução de obra, e toque num estado para ver só ele." },
       { target: ["edital-filters"], title: "Filtros precisos", body: "Esfera, município, faixa de valor, prazo, situação, triagem, responsável e relevância mínima." },
       { target: ["edital-list", "edital-list-m"], title: "Os editais", body: "Relevância, órgão, local, tipo, valor e prazo (em terracota quando faltam 7 dias ou menos). Toque para abrir os detalhes, marcar a triagem e criar negócio ou tarefa." },
+      { target: ["edital-tab-propostas"], title: "Propostas em andamento", body: "Ao tocar em Vou participar num edital, a esteira de proposta nasce aqui: checklist com prazos, matriz de habilitação, documentos e planilha." },
+      { target: ["edital-tab-cofre"], title: "Cofre e atestados", body: "Certidões com validade (o sistema avisa antes de vencer) e o banco de obras para a proposta técnica." },
+    ],
+  },
+  "/editais/proposta/": {
+    label: "Tour do dossiê da proposta",
+    steps: [
+      { target: ["dossie-header"], title: "O dossiê", body: "Contagem até a data limite, barra de progresso e os links do edital. Terracota cheia quando falta menos de 1 dia ou venceu." },
+      { target: ["dossie-etapas"], title: "Etapas e checklist", body: "Cada etapa tem responsável, prazo e situação. Marque os itens ao concluir: a etapa avança sozinha e a tarefa correspondente também. Toque no lápis para editar, reordenar ou remover um item." },
+      { target: ["dossie-matriz"], title: "Matriz de habilitação", body: "As exigências do edital contra o cofre. Acusa o que falta e o que vence antes da sessão." },
+      { target: ["dossie-dados"], title: "Dados da proposta", body: "Nº do edital e do processo (entram nos documentos), responsável e, se o portal estiver desatualizado, a data limite à mão. “Recalcular prazos” refaz as datas." },
+      { target: ["dossie-docs"], title: "Documentos e planilha", body: "Gera carta, proposta comercial, proposta técnica e declarações já preenchidas, e a planilha de preços com o BDI padrão. Revise tudo com o jurídico e com o edital." },
+      { target: ["dossie-atestados"], title: "Atestados sugeridos", body: "Obras do seu portfólio que combinam com o objeto. Marque e insira na proposta técnica." },
+      { target: ["dossie-resultado"], title: "Resultado", body: "Ganhou, perdeu, desclassificada ou desistência, com o motivo. Alimenta a taxa de êxito do Painel de propostas." },
+    ],
+  },
+  "/editais/cofre": {
+    label: "Tour do cofre de habilitação",
+    steps: [
+      { target: ["cofre-kpis"], title: "Situação do cofre", body: "Quantos documentos há, quantos já venceram e quantos vencem em 30 dias." },
+      { target: ["cofre-novo"], title: "Novo documento", body: "Cadastre certidões, contrato social, atestados e registros com a validade e o link do arquivo (Drive ou site do órgão). O CRM não guarda o arquivo." },
+      { target: ["cofre-list"], title: "Validade à vista", body: "Cada cartão mostra se está válido, vencendo ou vencido. O sistema avisa 30, 15 e 7 dias antes." },
+    ],
+  },
+  "/editais/portfolio": {
+    label: "Tour do banco de atestados",
+    steps: [
+      { target: ["portfolio-novo"], title: "Nova obra ou projeto", body: "Título, cliente, ano, valor, técnica (etiquetas), tombamento e um texto pronto para colar na proposta técnica." },
+      { target: ["portfolio-list"], title: "Busca e etiquetas", body: "Filtre por técnica (forro, pintura mural, douramento…). “Testar com um edital” mostra o que o CRM sugeriria para um objeto." },
+    ],
+  },
+  "/editais/configuracao": {
+    label: "Tour da configuração",
+    steps: [
+      { target: ["config-estudio"], title: "Dados do estúdio", body: "Razão social, CNPJ e endereço entram em todas as cartas, declarações e contratos." },
+      { target: ["config-tecnicos"], title: "Responsáveis técnicos", body: "Nome, profissão e registro (CAU/CREA). O primeiro da lista é o principal." },
+      { target: ["config-padroes"], title: "Padrões", body: "BDI, encargos, validade da proposta, modelos por tipo de edital e a etapa do funil usada ao enviar a proposta." },
+      { target: ["config-funcoes"], title: "Funções", body: "Quem cuida de orçamento, habilitação, parte técnica e coordenação: os itens do checklist já nascem atribuídos." },
+      { target: ["config-modelos"], title: "Modelos", body: "Edite os checklists (com dias úteis antes da data limite) e as listas de habilitação. O que você apagar do modelo não afeta propostas em andamento." },
     ],
   },
   "/notificacoes": {

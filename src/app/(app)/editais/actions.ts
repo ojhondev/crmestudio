@@ -60,7 +60,7 @@ export async function setTriage(id: string, triage: string, reason?: string) {
       triage: t,
       discardReason: t === "descartado" ? why : null,
       // quem marca “interessante/em análise” assume o edital (se ninguém assumiu): é quem receberá os lembretes de prazo
-      ownerId: cur.ownerId ?? (t === "interessante" || t === "em_analise" || t === "proposta_enviada" ? user.id : null),
+      ownerId: cur.ownerId ?? (t === "interessante" || t === "em_analise" || t === "em_proposta" || t === "proposta_enviada" ? user.id : null),
       updatedAt: new Date(),
     })
     .where(eq(schema.editais.id, id));

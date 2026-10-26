@@ -1,9 +1,10 @@
 import { money, fmtPhone } from "@/lib/format";
 import { reaisPorExtenso } from "./extenso";
 import type { StudioProfile } from "./types";
+import { PROPOSTA_VARIABLES } from "@/lib/propostas/vars";
 
 /** Variáveis que o redator insere no texto: {{cliente.nome}}. Tudo é resolvido na hora de visualizar, gerar o PDF e enviar. */
-export const VARIABLES = [
+const BASE_VARIABLES = [
   { key: "cliente.nome", label: "Nome do cliente", group: "Cliente" },
   { key: "cliente.documento", label: "CPF/CNPJ do cliente", group: "Cliente" },
   { key: "cliente.empresa", label: "Paróquia / empresa", group: "Cliente" },
@@ -32,14 +33,17 @@ export const VARIABLES = [
   { key: "data.hoje", label: "Data de hoje (por extenso)", group: "Documento" },
 ] as const;
 
+export const VARIABLES = [...BASE_VARIABLES, ...PROPOSTA_VARIABLES] as const;
 export type VarKey = (typeof VARIABLES)[number]["key"];
-export const VAR_GROUPS = ["Cliente", "Negócio", "Estúdio", "Documento"] as const;
+export const VAR_GROUPS = ["Cliente", "Negócio", "Edital", "Estúdio", "Proposta", "Documento"] as const;
 
 export type VarContext = {
   studio: StudioProfile;
   contact?: { name: string; document?: string | null; company?: string | null; address?: string | null; city?: string | null; state?: string | null; email?: string | null; phone?: string | null } | null;
   deal?: { title: string; service?: string | null; property?: string | null; location?: string | null; valueCents: number } | null;
   doc: { number?: string | null; title: string };
+  /** valores extras (edital.*, proposta.*, estudio.*) já resolvidos */
+  extra?: Record<string, string>;
   /** campos personalizados: campo.nome → valor */
   fields?: Record<string, string>;
   /** data de referência (ISO yyyy-MM-dd, fuso do estúdio) */
@@ -86,6 +90,7 @@ export function valueMap(c: VarContext): Record<string, string> {
     "documento.titulo": c.doc.title,
     "data.hoje": dataPorExtenso(c.today),
   };
+  Object.assign(map, c.extra ?? {});
   for (const [k, v] of Object.entries(c.fields ?? {})) map[`campo.${k}`] = v;
   return map;
 }
