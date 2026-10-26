@@ -25,7 +25,12 @@ export async function handleCalendarCallback(request: Request) {
 
   const code = url.searchParams.get("code");
   const state = url.searchParams.get("state");
-  const cookie = request.headers.get("cookie")?.match(new RegExp(`${CAL_STATE_COOKIE}=([^;]+)`))?.[1];
+  // o ":" do prefixo "cal:" vai codificado (%3A) no cookie; sem decodificar o state nunca bate
+  const rawCookie = request.headers.get("cookie")?.match(new RegExp(`${CAL_STATE_COOKIE}=([^;]+)`))?.[1];
+  let cookie = rawCookie;
+  try {
+    cookie = rawCookie ? decodeURIComponent(rawCookie) : rawCookie;
+  } catch {}
   if (!state || !cookie || cookie !== state) return back("estado");
   if (url.searchParams.get("error")) return back("negado");
   if (!code) return back("estado");
