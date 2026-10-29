@@ -27,10 +27,14 @@ import { NewDocumentButton } from "../../documentos/new-document";
 import { EditDealForm } from "../deal-form";
 import { deleteDeal } from "../actions";
 
+const nowMs = () => Date.now();
+
 export const metadata: Metadata = { title: "Negócio" };
 
-export default async function DealPage({ params }: PageProps<"/negocios/[id]">) {
+export default async function DealPage({ params, searchParams }: PageProps<"/negocios/[id]">) {
   const { id } = await params;
+  const { aba } = await searchParams;
+  const tab = aba === "tarefas" || aba === "detalhes" ? aba : "historico";
   const user = await requireAccess("negocios");
   if (!/^[0-9a-f-]{36}$/.test(id)) notFound();
   const [deal] = await db.select().from(schema.deals).where(eq(schema.deals.id, id)).limit(1);
@@ -64,6 +68,7 @@ export default async function DealPage({ params }: PageProps<"/negocios/[id]">) 
     db.select().from(schema.events).where(eq(schema.events.dealId, id)).orderBy(desc(schema.events.startsAt)),
     !canFinance ? [] : db.select().from(schema.transactions).where(eq(schema.transactions.dealId, id)).orderBy(asc(schema.transactions.dueDate)),
   ]);
+  const lateCount = taskRows.filter((t) => !t.doneAt && t.dueAt && t.dueAt.getTime() < nowMs()).length;
   const stage = options.stages.find((s) => s.id === deal.stageId)!;
   const canDocs = has(user, "documentos");
   const canDocsEdit = has(user, "documentos", "edit");
@@ -111,11 +116,21 @@ export default async function DealPage({ params }: PageProps<"/negocios/[id]">) 
       </div>
 
       <PageBody className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
-        <Tabs defaultValue="historico" className="min-w-0">
+        <Tabs key={tab} defaultValue={tab} className="min-w-0">
           <TabsList>
             <TabsTrigger value="historico">Histórico</TabsTrigger>
+            <TabsTrigger value="tarefas">Tarefas{taskRows.length ? ` (${taskRows.filter((t) => !t.doneAt).length})` : ""}</TabsTrigger>
             <TabsTrigger value="detalhes">Detalhes</TabsTrigger>
           </TabsList>
+          <TabsContent value="tarefas" className="mt-4">
+            <TaskList
+              variant="grouped"
+              dealId={deal.id}
+              contactId={deal.contactId}
+              compose={canEdit}
+              tasks={taskRows.map((t) => ({ id: t.id, title: t.title, dueAt: t.dueAt?.toISOString() ?? null, doneAt: t.doneAt?.toISOString() ?? null, status: t.status, priority: t.priority }))}
+            />
+          </TabsContent>
           <TabsContent value="historico" className="mt-4 grid gap-6">
             {canEdit && <ActivityComposer dealId={deal.id} contactId={deal.contactId} />}
             <Timeline items={activities} />
@@ -157,13 +172,49 @@ export default async function DealPage({ params }: PageProps<"/negocios/[id]">) 
 
           <FilesBlock user={user} dealId={deal.id} contactId={deal.contactId} />
 
-          <Section title="Tarefas">
-            <TaskList
-              dealId={deal.id}
-              contactId={deal.contactId}
-              compose={canEdit}
-              tasks={taskRows.map((t) => ({ id: t.id, title: t.title, dueAt: t.dueAt?.toISOString() ?? null, doneAt: t.doneAt?.toISOString() ?? null, status: t.status, priority: t.priority }))}
-            />
+          <Section
+            title="Tarefas"
+            action={
+              <Button asChild variant="ghost" size="sm" className="h-7 text-xs">
+                <Link href={`/negocios/${deal.id}?aba=tarefas`}>Ver todas</Link>
+              </Button>
+            }
+          >
+            {taskRows.length ? (
+              <div className="grid gap-2.5 text-[13px]">
+                <div>
+                  <div className="mb-1 flex items-baseline justify-between text-xs text-muted-foreground">
+                    <span>
+                      {taskRows.filter((t) => t.doneAt).length} de {taskRows.length} concluídas
+                    </span>
+                    {lateCount > 0 && (
+                      <span className="font-medium text-destructive">{lateCount} atrasada(s)</span>
+                    )}
+                  </div>
+                  <div className="h-1.5 overflow-hidden rounded-full bg-secondary">
+                    <div className="h-full rounded-full bg-brand" style={{ width: `${Math.round((taskRows.filter((t) => t.doneAt).length / taskRows.length) * 100)}%` }} />
+                  </div>
+                </div>
+                <ul className="grid gap-1.5">
+                  {taskRows
+                    .filter((t) => !t.doneAt)
+                    .slice(0, 3)
+                    .map((t) => (
+                      <li key={t.id} className="grid leading-snug">
+                        <span className="line-clamp-2">{t.title}</span>
+                        <span className="text-xs text-muted-foreground">{t.dueAt ? fmtDateTime(t.dueAt) : "sem prazo"}</span>
+                      </li>
+                    ))}
+                </ul>
+                <Link href={`/negocios/${deal.id}?aba=tarefas`} className="text-xs font-medium text-brand hover:underline">
+                  Abrir todas as {taskRows.length} tarefas →
+                </Link>
+              </div>
+            ) : (
+              <p className="text-[13px] text-muted-foreground">
+                Nenhuma tarefa. <Link href={`/negocios/${deal.id}?aba=tarefas`} className="font-medium text-brand hover:underline">Criar a primeira</Link>
+              </p>
+            )}
           </Section>
 
           <Section

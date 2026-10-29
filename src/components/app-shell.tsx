@@ -154,7 +154,7 @@ function AppSidebar({ user }: { user: SessionUser }) {
                         <Icon />
                         <span>{label}</span>
                         <span className="ml-auto rounded-full border border-sidebar-border px-1.5 py-px text-[10px] leading-4 font-semibold tracking-wide whitespace-nowrap uppercase group-data-[collapsible=icon]:hidden">
-                          Em desenvolvimento
+                          Em breve
                         </span>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
