@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
+import { IN_DEVELOPMENT } from "@/lib/modules-status";
 import Link from "next/link";
 import { ExternalLink } from "lucide-react";
 import { has, requireAccess } from "@/lib/auth";
@@ -15,6 +17,7 @@ import { fmtDate } from "@/lib/format";
 export const metadata: Metadata = { title: "Google Drive" };
 
 export default async function GoogleDrivePage({ searchParams }: PageProps<"/drive/google">) {
+  if (IN_DEVELOPMENT.drive) redirect("/");
   const user = await requireAccess("drive");
   const sp = await searchParams;
   const st = await googleStatus();

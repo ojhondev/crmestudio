@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
+import { IN_DEVELOPMENT } from "@/lib/modules-status";
 import { CheckCircle2, CircleSlash, Link2, Unplug } from "lucide-react";
 import { has, requireAccess } from "@/lib/auth";
 import { PageToolbar } from "@/components/toolbar";
@@ -26,6 +28,7 @@ const STEPS = [
 ];
 
 export default async function ConexaoPage({ searchParams }: PageProps<"/drive/conexao">) {
+  if (IN_DEVELOPMENT.drive) redirect("/");
   const user = await requireAccess("drive");
   const sp = await searchParams;
   const st = await googleStatus();

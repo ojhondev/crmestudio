@@ -55,6 +55,8 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 
+import { IN_DEVELOPMENT } from "@/lib/modules-status";
+
 type Item = { key: string; href: string; label: string; icon: React.ElementType; badge?: number };
 type Group = { label: string; items: Item[] };
 
@@ -139,7 +141,24 @@ function AppSidebar({ user }: { user: SessionUser }) {
             <SidebarGroupLabel className="label h-6 px-2 text-xs tracking-[0.16em]">{group.label}</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-                {group.items.map(({ key, href, label, icon: Icon, badge }) => (
+                {group.items.map(({ key, href, label, icon: Icon, badge }) =>
+                  IN_DEVELOPMENT[key] ? (
+                    <SidebarMenuItem key={key}>
+                      <SidebarMenuButton
+                        aria-disabled="true"
+                        tooltip={`${label} — em desenvolvimento`}
+                        title="Em desenvolvimento"
+                        onClick={(e) => e.preventDefault()}
+                        className="h-11 cursor-not-allowed text-[13.5px] opacity-50 hover:bg-transparent active:bg-transparent md:h-9"
+                      >
+                        <Icon />
+                        <span>{label}</span>
+                        <span className="ml-auto rounded-full border border-sidebar-border px-1.5 py-px text-[10px] leading-4 font-semibold tracking-wide whitespace-nowrap uppercase group-data-[collapsible=icon]:hidden">
+                          Em desenvolvimento
+                        </span>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ) : (
                   <SidebarMenuItem key={key}>
                     <SidebarMenuButton asChild isActive={isActive(pathname, href)} tooltip={label} className="h-11 text-[13.5px] md:h-9">
                       <Link href={href} onClick={close} data-tour={`nav-${key}`}>
@@ -149,7 +168,8 @@ function AppSidebar({ user }: { user: SessionUser }) {
                     </SidebarMenuButton>
                     {!!badge && <SidebarMenuBadge className="rounded-full bg-brand text-xs font-semibold text-on-brand peer-data-active/menu-button:text-on-brand">{badge}</SidebarMenuBadge>}
                   </SidebarMenuItem>
-                ))}
+                  ),
+                )}
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>

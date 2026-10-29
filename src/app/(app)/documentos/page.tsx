@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
+import { IN_DEVELOPMENT } from "@/lib/modules-status";
 import Link from "next/link";
 import { and, desc, eq } from "drizzle-orm";
 import { BookOpen, FileSignature, FileText, Presentation } from "lucide-react";
@@ -30,6 +32,7 @@ const STATUSES = [
 ] as const;
 
 export default async function DocumentsPage({ searchParams }: PageProps<"/documentos">) {
+  if (IN_DEVELOPMENT.documentos) redirect("/");
   const user = await requireAccess("documentos");
   const canEdit = has(user, "documentos", "edit");
   const canManage = has(user, "documentos", "manage");

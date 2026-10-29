@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
+import { IN_DEVELOPMENT } from "@/lib/modules-status";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { asc } from "drizzle-orm";
@@ -11,6 +13,7 @@ import { Templates } from "./templates-client";
 export const metadata: Metadata = { title: "Modelos e cláusulas" };
 
 export default async function TemplatesPage() {
+  if (IN_DEVELOPMENT.documentos) redirect("/");
   await requireAccess("documentos", "manage");
   const custom = await db.select().from(schema.docTemplates).orderBy(asc(schema.docTemplates.name));
   return (

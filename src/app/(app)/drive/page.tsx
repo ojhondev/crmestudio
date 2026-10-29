@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
+import { IN_DEVELOPMENT } from "@/lib/modules-status";
 import { desc, eq } from "drizzle-orm";
 import { db, schema } from "@/lib/db";
 import { has, requireAccess } from "@/lib/auth";
@@ -17,6 +19,7 @@ async function siteProjectTitles() {
 }
 
 export default async function DrivePage({ searchParams }: PageProps<"/drive">) {
+  if (IN_DEVELOPMENT.drive) redirect("/");
   const user = await requireAccess("drive");
   const sp = await searchParams;
   const pasta = typeof sp.pasta === "string" && /^[0-9a-f-]{36}$/i.test(sp.pasta) ? sp.pasta : null;
