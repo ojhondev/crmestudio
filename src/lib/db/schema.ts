@@ -12,6 +12,7 @@ import {
   index,
   jsonb,
   uniqueIndex,
+  type AnyPgColumn,
 } from "drizzle-orm/pg-core";
 
 /** admin = acesso total (tech) · equipe = operação · parceiro = só o que é dele */
@@ -60,10 +61,86 @@ export const contacts = pgTable(
     tags: text("tags").array().notNull().default([]),
     notes: text("notes"),
     ownerId: uuid("owner_id").references(() => users.id, { onDelete: "set null" }),
+    /** lote de importação que CRIOU este contato (nulo = cadastro normal). Desfazer só remove quem tem este vínculo. */
+    importBatchId: uuid("import_batch_id").references((): AnyPgColumn => contactImports.id, { onDelete: "set null" }),
+    /** id do contato no Google (resourceName, prefixado pela pessoa que conectou) para não duplicar em novas sincronizações */
+    externalId: text("external_id"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [index("contacts_phone_idx").on(t.phone)],
+  (t) => [index("contacts_phone_idx").on(t.phone), index("contacts_import_batch_idx").on(t.importBatchId), index("contacts_external_idx").on(t.externalId)],
+);
+
+/** Lote de importação de contatos (arquivo .vcf/.csv, Google Contatos ou sincronização). */
+export const contactImports = pgTable(
+  "contact_imports",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id").references(() => users.id, { onDelete: "set null" }),
+    /** de onde veio: google | arquivo | sincronizacao */
+    kind: text("kind").notNull().default("arquivo"),
+    /** origem gravada nos contatos (WhatsApp, Google Contatos, Importação…) */
+    source: text("source"),
+    /** etiqueta aplicada a todos os contatos do lote */
+    label: text("label").notNull(),
+    /** o que fazer com duplicados: pular | completar | mesclar */
+    dupMode: text("dup_mode").notNull().default("pular"),
+    total: integer("total").notNull().default(0),
+    created: integer("created").notNull().default(0),
+    updated: integer("updated").notNull().default(0),
+    skipped: integer("skipped").notNull().default(0),
+    /** em_andamento | concluido | desfeito */
+    status: text("status").notNull().default("em_andamento"),
+    undoneCount: integer("undone_count").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    finishedAt: timestamp("finished_at", { withTimezone: true }),
+    undoneAt: timestamp("undone_at", { withTimezone: true }),
+  },
+  (t) => [index("contact_imports_user_idx").on(t.userId, t.createdAt)],
+);
+
+/** Conexão (por pessoa) com o Google Contatos — somente leitura. Tokens sempre criptografados. */
+export const contactConnections = pgTable(
+  "contact_connections",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    googleEmail: text("google_email"),
+    accessTokenEnc: text("access_token_enc"),
+    refreshTokenEnc: text("refresh_token_enc"),
+    expiresAt: timestamp("expires_at", { withTimezone: true }),
+    scope: text("scope"),
+    /** syncToken da People API (sincronização incremental); nulo = ainda não houve importação completa */
+    syncToken: text("sync_token"),
+    /** sincronização automática diária ligada? */
+    autoSync: boolean("auto_sync").notNull().default(false),
+    /** novos contatos do Google: "confirmar" (ficam pendentes) ou "direto" (entram no CRM) */
+    autoMode: text("auto_mode").notNull().default("confirmar"),
+    status: text("status").notNull().default("ativo"), // ativo | erro | reautorizar | desconectado
+    lastError: text("last_error"),
+    lastSyncAt: timestamp("last_sync_at", { withTimezone: true }),
+    importedTotal: integer("imported_total").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("contact_connections_user_uq").on(t.userId)],
+);
+
+/** Contatos novos do Google aguardando confirmação (sincronização no modo "confirmar"). Só dados do contato, nenhum token. */
+export const contactPending = pgTable(
+  "contact_pending",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    connectionId: uuid("connection_id")
+      .notNull()
+      .references(() => contactConnections.id, { onDelete: "cascade" }),
+    externalId: text("external_id").notNull(),
+    payload: jsonb("payload").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("contact_pending_ext_uq").on(t.connectionId, t.externalId)],
 );
 
 export type StageKind = "aberto" | "ganho" | "perdido";

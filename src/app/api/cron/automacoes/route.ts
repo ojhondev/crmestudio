@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 import { NextResponse } from "next/server";
 import { housekeeping, runTimeRules } from "@/lib/automations-engine";
+import { syncAllContacts } from "@/lib/contacts-import/service";
 
 export const maxDuration = 60;
 
@@ -16,5 +17,10 @@ export async function GET(req: Request) {
   if (!secret || !got || a.length !== b.length || !crypto.timingSafeEqual(a, b)) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
   const result = await runTimeRules();
   await housekeeping().catch((e) => console.error("[cron] limpeza", e));
-  return NextResponse.json({ ok: true, ...result });
+  // Google Contatos (só quem ligou a sincronização automática); falha aqui não derruba as automações
+  const contacts = await syncAllContacts().catch((e) => {
+    console.error("[cron] contatos", e instanceof Error ? e.message : "erro");
+    return null;
+  });
+  return NextResponse.json({ ok: true, ...result, contacts });
 }

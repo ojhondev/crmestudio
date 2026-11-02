@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
-import { Search, Users } from "lucide-react";
+import { FileUp, Search, Users, X } from "lucide-react";
 import { db, schema } from "@/lib/db";
 import { has, requireAccess } from "@/lib/auth";
 import { getFormOptions } from "@/lib/options";
@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/page-header";
 import { PageToolbar, ToolArea } from "@/components/toolbar";
+import { Button } from "@/components/ui/button";
 import { NewContactButton } from "./contact-form";
 
 export const metadata: Metadata = { title: "Leads e contatos" };
@@ -21,6 +22,9 @@ export default async function ContactsPage({ searchParams }: PageProps<"/contato
   const sp = await searchParams;
   const q = typeof sp.q === "string" ? sp.q.trim() : "";
   const origem = typeof sp.origem === "string" ? sp.origem : "";
+  const lote = typeof sp.lote === "string" && /^[0-9a-f-]{36}$/i.test(sp.lote) ? sp.lote : "";
+  const batch = lote ? (await db.select({ label: schema.contactImports.label }).from(schema.contactImports).where(eq(schema.contactImports.id, lote)))[0] : undefined;
+  const originOptions = [...SOURCES, ...["Google Contatos", "Importação"].filter((x) => !SOURCES.includes(x))];
 
   // estágio do negócio aberto mais recente de cada contato
   const latestDeal = db
@@ -67,6 +71,7 @@ export default async function ContactsPage({ searchParams }: PageProps<"/contato
               )
             : undefined,
           origem ? eq(schema.contacts.source, origem) : undefined,
+          lote ? eq(schema.contacts.importBatchId, lote) : undefined,
         ),
       )
       .orderBy(desc(schema.contacts.createdAt))
@@ -84,11 +89,17 @@ export default async function ContactsPage({ searchParams }: PageProps<"/contato
               <Search className="absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input name="q" defaultValue={q} placeholder="Buscar nome, instituição, e-mail…" aria-label="Buscar contatos" className="h-9 pl-8" />
               {origem && <input type="hidden" name="origem" value={origem} />}
+              {lote && <input type="hidden" name="lote" value={lote} />}
             </form>
-            {["", ...SOURCES].map((s) => (
+            {lote && (
+              <Link href={{ query: { ...(q ? { q } : {}), ...(origem ? { origem } : {}) } }} className="inline-flex shrink-0 items-center gap-1 rounded-full border border-foreground bg-foreground px-3 py-1 text-[13px] whitespace-nowrap text-background max-md:min-h-10">
+                Lote: {batch?.label ?? "importação"} <X className="size-3.5" />
+              </Link>
+            )}
+            {["", ...originOptions].map((s) => (
               <Link
                 key={s || "all"}
-                href={{ query: { ...(q ? { q } : {}), ...(s ? { origem: s } : {}) } }}
+                href={{ query: { ...(q ? { q } : {}), ...(lote ? { lote } : {}), ...(s ? { origem: s } : {}) } }}
                 className={`inline-flex shrink-0 items-center rounded-full border px-3 py-1 text-[13px] whitespace-nowrap transition-colors max-md:min-h-10 ${
                   origem === s ? "border-foreground bg-foreground text-background" : "text-muted-foreground hover:border-foreground/30"
                 }`}
@@ -99,13 +110,26 @@ export default async function ContactsPage({ searchParams }: PageProps<"/contato
             <span className="text-xs whitespace-nowrap text-muted-foreground">{rows.length} {rows.length === 1 ? "registro" : "registros"}</span>
           </>
         }
-        actions={canEdit ? <NewContactButton team={options.team} /> : undefined}
+        actions={
+          canEdit ? (
+            <>
+              {!user.ownOnly && (
+                <Button asChild variant="outline" data-tour="contacts-import">
+                  <Link href="/contatos/importar">
+                    <FileUp /> Importar contatos
+                  </Link>
+                </Button>
+              )}
+              <NewContactButton team={options.team} />
+            </>
+          ) : undefined
+        }
       />
       <ToolArea>
       <div className="p-4 sm:p-5">
         {rows.length === 0 ? (
-          <EmptyState icon={Users} title={q || origem ? "Nada encontrado" : "Nenhum lead ainda"}>
-            {q || origem ? "Tente outro termo de busca." : "Cadastre o primeiro lead."}
+          <EmptyState icon={Users} title={q || origem || lote ? "Nada encontrado" : "Nenhum lead ainda"}>
+            {q || origem || lote ? "Tente outro termo de busca." : "Cadastre o primeiro lead."}
           </EmptyState>
         ) : (
           <>

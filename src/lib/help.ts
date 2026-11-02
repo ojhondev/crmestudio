@@ -157,6 +157,46 @@ export const articles: Article[] = [
     ],
   },
   {
+    slug: "importar-contatos",
+    module: "Operação",
+    title: "Importar contatos do WhatsApp e do Google",
+    summary: "Traga os contatos salvos no celular para o CRM, sem digitar.",
+    href: "/contatos/importar",
+    keywords: ["importar", "whatsapp", "google contatos", "vcf", "csv", "agenda do celular", "sincronizar", "duplicados", "desfazer"],
+    body: [
+      { t: "p", text: "O WhatsApp não permite exportar a lista de contatos. O que dá para importar são os contatos salvos na agenda do celular, de dois jeitos: pelo Google Contatos (um toque, depois de conectar) ou por um arquivo .vcf ou .csv. Quem só aparece nas conversas e não está salvo na agenda não pode ser importado." },
+      {
+        t: "steps",
+        title: "Importar pelo Google Contatos",
+        items: [
+          "Em Leads e contatos, toque em “Importar contatos”.",
+          "No cartão Google Contatos, toque em “Conectar Google Contatos” e autorize. O estúdio só lê; nada é alterado nem apagado no Google.",
+          "Toque em “Importar do Google Contatos” e aguarde a busca.",
+          "Veja a prévia (novos, já existem, sem telefone, inválidos), ajuste os filtros e marque quem importar.",
+          "Escolha o que fazer com quem já existe (pular, completar ou mesclar), a origem, a etiqueta do lote e o responsável.",
+          "Confirme. Ao final, veja o lote ou toque em “Desfazer importação”.",
+        ],
+      },
+      {
+        t: "steps",
+        title: "Importar por arquivo",
+        items: ["Em “Arquivo (.vcf ou .csv)”, toque em “Escolher arquivo”. O arquivo é lido no seu aparelho e não fica guardado.", "Se for .csv, confira o que é cada coluna.", "Siga a prévia e as regras, como acima."],
+      },
+      {
+        t: "steps",
+        title: "Ativar a sincronização do celular com o Google",
+        items: [
+          "Android: Configurações → Contas → sua conta Google → Sincronização de conta → ligue “Contatos”.",
+          "iPhone: Ajustes → Contatos → Contas → Gmail → ligue “Contatos”.",
+          "Para exportar um .vcf: no Android, app Contatos → Ajustes → Exportar; ou em contacts.google.com → Exportar → vCard.",
+        ],
+      },
+      { t: "list", title: "Sincronização automática", items: ["Com o Google conectado, ligue “Buscar contatos novos do Google todo dia”.", "Escolha se os novos aguardam sua confirmação ou entram direto.", "Só traz contatos novos ou alterados; nunca apaga contatos do CRM nem escreve de volta no Google."] },
+      { t: "tip", text: "Reimportar é seguro: quem já está no CRM (pelo telefone, e-mail ou id do Google) não é duplicado. “Desfazer” só remove contatos criados pelo lote e que ainda não têm negócio ou histórico." },
+      { t: "warn", text: "LGPD: o estúdio é responsável pelos dados importados. Importe só contatos que você tem base legal para tratar. Se aparecer “A People API do Google ainda não foi ativada”, peça ao administrador do Google Cloud para ativar a People API." },
+    ],
+  },
+  {
     slug: "agenda",
     module: "Operação",
     title: "Agenda",
@@ -827,6 +867,7 @@ export const articles: Article[] = [
 export const articleBySlug = (slug: string) => articles.find((a) => a.slug === slug);
 
 export const faq: { q: string; a: string }[] = [
+  { q: "Dá para importar os contatos do WhatsApp?", a: "Só os que estão salvos na agenda do celular, pelo Google Contatos ou por um arquivo .vcf/.csv (Leads e contatos → Importar contatos). O WhatsApp não exporta contatos nem conversas, então números que não estão salvos na agenda não podem ser importados." },
   { q: "Esqueci minha senha. E agora?", a: "Peça a um administrador para gerar uma nova senha provisória em Equipe e acessos (toque na sua pessoa → Gerar nova senha). No próximo login você cria uma senha nova só sua." },
   { q: "A agenda do Google não mostra um evento que criei.", a: "Se você conectou o Google Agenda, toque em Google Agenda → Sincronizar agora e procure a agenda “Estúdio Restaura”; só aparecem eventos em que você é o responsável. Se usa o link de assinatura, o Google atualiza a cada algumas horas." },
   { q: "Apaguei um negócio sem querer.", a: "A exclusão é definitiva. Por isso o sistema sempre pede confirmação. Se aconteceu, avise um administrador para tentar recuperar pelo banco." },

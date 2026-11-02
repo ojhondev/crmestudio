@@ -4,15 +4,17 @@ import { audit } from "@/lib/audit";
 import { exchangeCode, fetchAccountEmail, googleConfigured, saveConnection } from "@/lib/drive/google";
 import { redirectUriFor } from "@/lib/drive";
 import { handleCalendarCallback, isCalendarState } from "@/lib/calendar/callback";
+import { handleContactsCallback, isContactsState } from "@/lib/contacts-import/callback";
 
 /**
  * Retorno do Google: troca o código por tokens e guarda criptografados.
  * Esta é também a URI de retorno do Google Agenda (já autorizada no Google Cloud): um `state` com prefixo "cal:" é
- * desviado para o fluxo da Agenda; qualquer outro segue exatamente o fluxo do Drive.
+ * desviado para o fluxo da Agenda e "ppl:" para o do Google Contatos; qualquer outro segue exatamente o fluxo do Drive.
  */
 export async function GET(request: Request) {
   const url = new URL(request.url);
   if (isCalendarState(url.searchParams.get("state"))) return handleCalendarCallback(request);
+  if (isContactsState(url.searchParams.get("state"))) return handleContactsCallback(request); // "ppl:" = Google Contatos
   const back = (q: string) => {
     const r = NextResponse.redirect(new URL(`/drive/conexao?${q}`, url.origin));
     r.cookies.delete({ name: "drive_oauth_state", path: "/api/drive" });

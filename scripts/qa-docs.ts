@@ -113,6 +113,9 @@ async function main() {
     await db.delete(schema.editais).where(like(schema.editais.externalId, "QA-%"));
     await db.delete(schema.contacts).where(like(schema.contacts.company, "QA%"));
     await db.delete(schema.notifications).where(like(schema.notifications.title, "%QA —%"));
+    // Importação de contatos: contatos, lotes e usuários de QA
+    await db.delete(schema.contacts).where(or(eq(schema.contacts.source, "QA-import"), like(schema.contacts.email, "%@qa-import.example.test"), like(schema.contacts.phone, "559990000%")));
+    await db.delete(schema.contactImports).where(like(schema.contactImports.label, "QA%"));
     await db.delete(schema.automationRuns).where(like(schema.automationRuns.entityLabel, "QA%"));
     await db.delete(schema.automationRules).where(like(schema.automationRules.name, "QA%"));
     await db.delete(schema.auditLog).where(like(schema.auditLog.actorName, "QA %"));
