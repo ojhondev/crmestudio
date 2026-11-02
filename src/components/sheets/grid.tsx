@@ -11,7 +11,13 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import type { Book } from "@/lib/sheets/formula";
 import { formatValue, FErr } from "@/lib/sheets/format";
 import { colName, type Cell, type TabData } from "@/lib/sheets/types";
+import { errInfo } from "@/lib/sheets/errors";
 import { HEADER_H, HEADER_W, indexAt, rangeOf, readableOn, type Layout, type Range, type Sel } from "./model";
+
+const errTipOf = (text: string) => {
+  const e = errInfo(text);
+  return e ? `${e.label} — ${e.title}. ${e.help}` : undefined;
+};
 
 export type Editing = { r: number; c: number; text: string; mode: "enter" | "edit" | "bar" };
 
@@ -33,6 +39,8 @@ type Props = {
   canEdit: boolean;
   /** celular: arrastar com o dedo estende a seleção (em vez de rolar a grade) */
   selectMode?: boolean;
+  /** referências da fórmula em edição, para destacar na grade */
+  refRanges?: { r1: number; c1: number; r2: number; c2: number; color: string }[];
   /** referência pelo clique/arrasto enquanto edita uma fórmula (devolve true se tratou) */
   onPoint: (r: number, c: number, phase: "start" | "move") => boolean;
   onSelect: (s: Sel, keepAnchor?: boolean) => void;
@@ -76,9 +84,10 @@ type CellProps = {
   z: number;
   filterBtn: boolean;
   filterOn: boolean;
+  errTip?: string;
 };
 
-const CellView = memo(function CellView({ x, y, w, h, ext, text, isNum, isBool, isErr, cell, grid, z, filterBtn, filterOn }: CellProps) {
+const CellView = memo(function CellView({ x, y, w, h, ext, text, isNum, isBool, isErr, cell, grid, z, filterBtn, filterOn, errTip }: CellProps) {
   const s = cell?.s;
   const style: CSSProperties = { left: x, top: y, width: w + ext, height: h, zIndex: z };
   if (s) {
@@ -108,7 +117,9 @@ const CellView = memo(function CellView({ x, y, w, h, ext, text, isNum, isBool, 
     <div
       className={`absolute flex overflow-hidden px-1 leading-tight select-none ${grid ? "border-r border-b border-r-[color:var(--sheet-line)] border-b-[color:var(--sheet-line)]" : ""} ${isErr ? "text-destructive" : ""}`}
       style={style}
+      title={errTip}
     >
+      {isErr && <span aria-hidden data-cell-error className="absolute top-0 right-0 size-0 border-t-[7px] border-l-[7px] border-t-destructive border-l-transparent" />}
       <span className={s?.wrap ? "min-w-0" : "min-w-0 truncate"}>{text}</span>
       {filterBtn && (
         <span className={`absolute top-1/2 right-0.5 grid size-4.5 -translate-y-1/2 place-items-center rounded border bg-background text-muted-foreground ${filterOn ? "border-brand text-brand" : ""}`} data-filter-btn>
@@ -543,6 +554,14 @@ export function SheetGrid({ ref, ...props }: Props) {
       isNum = typeof v === "number";
       isBool = typeof v === "boolean";
       isErr = v instanceof FErr;
+    } else if (!cell) {
+      const sv = book.isSpilled(tabIndex, r, c) ? book.get(tabIndex, r, c) : null;
+      if (sv !== null) {
+        text = formatValue(sv, undefined);
+        isNum = typeof sv === "number";
+        isBool = typeof sv === "boolean";
+        isErr = sv instanceof FErr;
+      }
     }
     // texto que "vaza" para as células vazias da direita
     let ext = 0;
@@ -576,6 +595,7 @@ export function SheetGrid({ ref, ...props }: Props) {
         z={ext ? Math.max(z, 1) + 0.5 : z}
         filterBtn={isHeaderFilter}
         filterOn={isHeaderFilter && !!filter?.rules[c]}
+        errTip={isErr ? errTipOf(text) : undefined}
       />,
     );
   };
@@ -714,6 +734,10 @@ export function SheetGrid({ ref, ...props }: Props) {
               />
             )}
             {fillTarget && <div className="pointer-events-none absolute z-[6] border-2 border-dashed border-brand/70" style={rectOf(fillTarget)} />}
+            {editing &&
+              props.refRanges?.map((rr, i) => (
+                <div key={i} data-ref-highlight className="pointer-events-none absolute z-[6] border-2" style={{ ...rectOf(rr), borderColor: rr.color, background: rr.color + "18" }} />
+              ))}
             {/* editor */}
             {editRect && editing && (
               <textarea

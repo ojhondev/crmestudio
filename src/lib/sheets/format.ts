@@ -11,6 +11,10 @@ export class FErr {
   }
 }
 
+/** Rótulo em português do código de erro (o código interno segue o do Excel/.xlsx). */
+const ERR_LABEL: Record<string, string> = { "#NAME?": "#NOME?", "#VALUE!": "#VALOR!", "#N/A": "#N/D", "#NUM!": "#NÚM!" };
+export const errLabel = (code: string) => ERR_LABEL[code] ?? code;
+
 /* ------------------------------- datas (serial do Excel) ------------------------------- */
 
 const EPOCH = Date.UTC(1899, 11, 30);
@@ -298,7 +302,7 @@ export const makeFmt = (kind: string, d: number) => (kind === "n" || kind === "b
 /** Texto exibido de uma célula. */
 export function formatValue(v: CellValue | null | undefined | FErr, fmt?: string): string {
   if (v === null || v === undefined) return "";
-  if (v instanceof FErr) return v.code;
+  if (v instanceof FErr) return errLabel(v.code);
   if (typeof v === "boolean") return v ? "VERDADEIRO" : "FALSO";
   if (typeof v === "string") return v;
   const { kind, d, pattern } = parseFmt(fmt);

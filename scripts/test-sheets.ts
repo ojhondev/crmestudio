@@ -9,6 +9,7 @@ import { FErr, formatPattern, formatValue, parseTyped, serialFromYMD } from "../
 import { fillLine, parseTSV, shiftStructure, sortRange, toTSV } from "../src/lib/sheets/ops";
 import { importFile, previewOf } from "../src/lib/sheets/import";
 import { toCsv, toXlsx } from "../src/lib/sheets/export";
+import { runFnTests } from "./test-sheets-fn";
 import { emptyTab, type Grid, type TabData } from "../src/lib/sheets/types";
 
 let fail = 0;
@@ -320,6 +321,7 @@ async function main() {
   }
   eq(msg.length > 0, true, "xlsx corrompido dá erro amigável");
 
+  await runFnTests(eq);
   console.log(fail ? `\n${fail} de ${n} testes falharam.` : `OK — ${n} verificações de planilhas passaram.`);
   process.exit(fail ? 1 : 0);
 }

@@ -183,6 +183,8 @@ export function selectionStats(tab: TabData, book: Book, ti: number, rg: Range, 
   let nums = 0;
   let count = 0;
   let seen = 0;
+  let min = Infinity;
+  let max = -Infinity;
   const g = tab.grid;
   for (const rk in g) {
     const r = Number(rk);
@@ -190,15 +192,17 @@ export function selectionStats(tab: TabData, book: Book, ti: number, rg: Range, 
     for (const ck in g[rk]) {
       const c = Number(ck);
       if (c < rg.c1 || c > rg.c2) continue;
-      if (++seen > cap) return { sum, nums, count, partial: true };
+      if (++seen > cap) return { sum, nums, count, min: nums ? min : 0, max: nums ? max : 0, partial: true };
       const v = book.get(ti, r, c);
       if (v === null || v === "") continue;
       count++;
       if (typeof v === "number") {
         sum += v;
         nums++;
+        if (v < min) min = v;
+        if (v > max) max = v;
       }
     }
   }
-  return { sum, nums, count, partial: false };
+  return { sum, nums, count, min: nums ? min : 0, max: nums ? max : 0, partial: false };
 }

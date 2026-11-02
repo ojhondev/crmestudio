@@ -41,6 +41,7 @@ import {
   WrapText,
   DollarSign,
   CircleAlert,
+  Sigma,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuShortcut, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -94,6 +95,8 @@ export type Api = {
   rename(name: string): void;
   toggleFavorite(): void;
   focusGrid(): void;
+  openFunctions(tab?: "lib" | "examples"): void;
+  autoSum(fn: "SUM" | "AVERAGE" | "COUNT" | "MAX" | "MIN"): void;
   state: {
     b: boolean;
     i: boolean;
@@ -297,6 +300,13 @@ function MenuList({ api, backHref }: { api: Api; backHref: string }) {
           <Item onClick={api.showHidden}>Mostrar linhas e colunas ocultas</Item>
         </Menu>
         <Menu label="Inserir" api={api}>
+          <Item onClick={() => api.openFunctions("lib")} disabled={!e}>
+            <Sigma /> Função…
+          </Item>
+          <Sub label="Somar rápido (Σ)">
+            <QuickSumItems api={api} />
+          </Sub>
+          <Sep />
           <Item onClick={() => api.insertRows("above")} disabled={!e}>
             {s.multiRows > 1 ? `${s.multiRows} linhas acima` : "Linha acima"}
           </Item>
@@ -407,6 +417,16 @@ function MenuList({ api, backHref }: { api: Api; backHref: string }) {
             Excluir colunas selecionadas
           </Item>
         </Menu>
+        <Menu label="Funções" api={api}>
+          <Item onClick={() => api.openFunctions("lib")}>
+            <Sigma /> Biblioteca de funções…
+          </Item>
+          <Item onClick={() => api.openFunctions("examples")}>Exemplos do estúdio (orçamento, BDI, estoque…)</Item>
+          <Sep />
+          <Sub label="Somar rápido (Σ)">
+            <QuickSumItems api={api} />
+          </Sub>
+        </Menu>
     </>
   );
 }
@@ -475,6 +495,27 @@ export function MenuBar({ api, name, status, backHref }: { api: Api; name: strin
         </SheetContent>
       </Sheet>
     </div>
+  );
+}
+
+function QuickSumItems({ api }: { api: Api }) {
+  const e = api.canEdit;
+  return (
+    <>
+      {(
+        [
+          ["SUM", "Soma"],
+          ["AVERAGE", "Média"],
+          ["COUNT", "Contar números"],
+          ["MAX", "Máximo"],
+          ["MIN", "Mínimo"],
+        ] as const
+      ).map(([k, l]) => (
+        <Item key={k} onClick={() => api.autoSum(k)} disabled={!e}>
+          {l}
+        </Item>
+      ))}
+    </>
   );
 }
 
@@ -589,6 +630,21 @@ export function IconBar({ api }: { api: Api }) {
         </DropdownMenuContent>
       </DropdownMenu>
       <ISep />
+      <IBtn label="Inserir função (fx)" onClick={() => api.openFunctions("lib")} disabled={!e}>
+        <span className="text-[13px] font-semibold italic">fx</span>
+      </IBtn>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button type="button" disabled={!e} aria-label="Soma rápida (Σ)" title="Soma rápida (Σ)" className="flex h-8 shrink-0 items-center gap-0.5 rounded-md px-1.5 hover:bg-muted disabled:opacity-35 max-md:h-11 max-md:min-w-11 max-md:justify-center">
+            <Sigma className="size-4" /> <ChevronDown className="size-3" />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start" onCloseAutoFocus={(ev) => { ev.preventDefault(); api.focusGrid(); }}>
+          <DropdownMenuLabel>Somar rápido</DropdownMenuLabel>
+          <QuickSumItems api={api} />
+        </DropdownMenuContent>
+      </DropdownMenu>
+      <ISep />
       <select
         aria-label="Tamanho da fonte"
         disabled={!e}
@@ -672,6 +728,7 @@ export function IconBar({ api }: { api: Api }) {
 
 export function FormulaBar({
   nameBox,
+  onFx,
   onGoto,
   value,
   editing,
@@ -690,6 +747,7 @@ export function FormulaBar({
   onToggleSelect,
 }: {
   nameBox: string;
+  onFx: () => void;
   onGoto: (text: string) => void;
   value: string;
   editing: boolean;
@@ -732,9 +790,9 @@ export function FormulaBar({
         onBlur={() => setNb(null)}
         className="h-8 w-24 shrink-0 border-r bg-transparent px-2 text-center text-[12.5px] outline-none focus:bg-muted max-md:h-11 max-md:w-[4.5rem] max-md:px-1 max-md:text-base"
       />
-      <span aria-hidden className="grid h-8 w-8 shrink-0 place-items-center border-r text-[12px] font-semibold text-muted-foreground italic max-md:h-11">
+      <button type="button" disabled={disabled} onMouseDown={(e) => e.preventDefault()} onClick={onFx} aria-label="Inserir função (fx)" title="Inserir função (fx)" className="grid h-8 w-8 shrink-0 place-items-center border-r text-[12px] font-semibold text-muted-foreground italic hover:bg-muted hover:text-brand disabled:opacity-40 max-md:h-11 max-md:w-11">
         fx
-      </span>
+      </button>
       <input
         ref={inputRef}
         aria-label="Barra de fórmulas"

@@ -2,7 +2,7 @@
  * Exportação: .xlsx (formatos, estilos, fórmulas, mesclagens, larguras, congelamento) e .csv/.tsv.
  */
 import ExcelJS from "exceljs";
-import { Book } from "./formula";
+import { Book, toXlsxFormula } from "./formula";
 import { FErr, fmtToExcel, numToText, parseFmt, utcDateFromSerial, ymdFromSerial } from "./format";
 import { DEFAULT_COL_W, DEFAULT_ROW_H, type Cell, type CellStyle, type TabData, usedRange } from "./types";
 
@@ -32,6 +32,8 @@ function applyStyle(xc: ExcelJS.Cell, s: CellStyle | undefined) {
   }
 }
 
+const xlsxError = (c: string) => (c === "#CIRC!" ? "#REF!" : c === "#ERRO!" ? "#VALUE!" : c) as ExcelJS.ErrorValue;
+
 export async function toXlsx(name: string, tabs: TabData[]): Promise<Buffer> {
   const book = new Book(tabs.map((t) => ({ name: t.name, grid: t.grid })));
   const wb = new ExcelJS.Workbook();
@@ -59,13 +61,13 @@ export async function toXlsx(name: string, tabs: TabData[]): Promise<Buffer> {
         const { kind } = parseFmt(cell.fmt);
         const isDate = kind === "date" || kind === "datetime" || kind === "time";
         let jsVal: ExcelJS.CellValue = null;
-        if (val instanceof FErr) jsVal = { error: val.code as ExcelJS.ErrorValue };
+        if (val instanceof FErr) jsVal = { error: xlsxError(val.code) };
         else if (val === null) jsVal = null;
         else if (typeof val === "number" && isDate) jsVal = utcDateFromSerial(val);
         else jsVal = val;
         if (cell.f !== undefined) {
           const result = val instanceof FErr ? undefined : isDate && typeof val === "number" ? utcDateFromSerial(val) : (val as string | number | boolean | null);
-          xc.value = { formula: cell.f, result: result ?? undefined } as ExcelJS.CellFormulaValue;
+          xc.value = { formula: toXlsxFormula(cell.f), result: result ?? undefined } as ExcelJS.CellFormulaValue;
         } else if (jsVal !== null) xc.value = jsVal;
         const nf = fmtToExcel(cell.fmt);
         if (nf) xc.numFmt = nf;
@@ -77,6 +79,16 @@ export async function toXlsx(name: string, tabs: TabData[]): Promise<Buffer> {
     for (const rk in tab.rowH) {
       const r = Number(rk);
       if (tab.rowH[r] !== DEFAULT_ROW_H && !tab.grid[r]) ws.getRow(r + 1).height = (tab.rowH[r] * 3) / 4;
+    }
+    for (const sp of book.spills(ti)) {
+      for (let i = 0; i < sp.rows; i++) {
+        for (let j = 0; j < sp.cols; j++) {
+          if (!i && !j) continue;
+          const v = book.get(ti, sp.r + i, sp.c + j);
+          if (v === null) continue;
+          ws.getCell(sp.r + i + 1, sp.c + j + 1).value = v instanceof FErr ? { error: xlsxError(v.code) } : v;
+        }
+      }
     }
     for (const m of tab.merges) {
       try {

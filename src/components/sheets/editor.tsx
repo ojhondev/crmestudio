@@ -7,7 +7,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { CircleAlert, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -15,12 +15,16 @@ import { DialogCloseBtn } from "@/components/touch-close";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Field, SimpleSelect } from "@/components/form";
 import { Book, displayFormula, offsetFormula } from "@/lib/sheets/formula";
+import { REF_COLORS, applySuggestion, closeParens, formulaContext, insertFunctionAt, refSpans, suggest, toggleAbsolute } from "@/lib/sheets/assist";
+import { errInfo } from "@/lib/sheets/errors";
+import type { FnDef } from "@/lib/sheets/functions";
 import { FErr, formatValue, makeFmt, numToText, parseFmt, parseTyped } from "@/lib/sheets/format";
 import { cellFromTyped, fillLine, parseTSV, renameTab as renameTabOp, shiftStructure, sortRange, toTSV, uniqueTabName, cloneGrid } from "@/lib/sheets/ops";
 import { MAX_COLS, MAX_ROWS, addr, applyCells, colName, emptyTab, normRange, parseAddr, usedRange, type Cell, type CellStyle, type Merge, type TabData } from "@/lib/sheets/types";
 import { createVersion, linkSheet, listVersions, renameSheet, restoreVersion, toggleFavorite } from "@/app/(app)/planilhas/actions";
 import { FormulaBar, IconBar, MenuBar, TabsBar, type Api, type SaveStatus } from "./chrome";
 import { SheetGrid, type Editing, type GridHandle } from "./grid";
+import { FormulaAssistPanel, FunctionDialog, SymbolRow } from "./formula-assist";
 import { ContextMenu, FilterPopover, type CtxItem } from "./popovers";
 import { cellSel, computeLayout, currentRegion, filterHiddenRows, jumpEdge, mapRange, rangeOf, selectionStats, stepVisible, withStyle, type Range, type Sel } from "./model";
 import { fmtDateTime } from "@/lib/format";
@@ -90,6 +94,11 @@ export function SheetEditor({ sheet, tabs: initialTabs, canEdit, deals, contacts
   const editingRef = useRef<Editing | null>(null);
   const clipRef = useRef<Clip | null>(null);
   const pointRef = useRef<{ start: number; end: number; ar: number; ac: number; r: number; c: number } | null>(null);
+  const [caret, setCaret] = useState(0);
+  const [ac, setAc] = useState({ key: "", index: 0, nav: false });
+  const [acOff, setAcOff] = useState<string | null>(null);
+  const assistRef = useRef<{ suggestions: FnDef[]; index: number; nav: boolean; key: string }>({ suggestions: [], index: 0, nav: false, key: "" });
+  const [fnDialog, setFnDialog] = useState<"" | "lib" | "examples">("");
   const [name, setName] = useState(sheet.name);
   const [favorite, setFavorite] = useState(sheet.favorite);
   const [dealId, setDealId] = useState(sheet.dealId ?? "");
@@ -118,7 +127,14 @@ export function SheetEditor({ sheet, tabs: initialTabs, canEdit, deals, contacts
   const ti = tabs.indexOf(tab);
 
   const book = useMemo(() => {
-    const b = new Book(tabs.map((t) => ({ name: t.name, grid: t.grid })));
+    const b: Book = new Book(
+      tabs.map((t, idx) => ({
+        name: t.name,
+        grid: t.grid,
+        hiddenManual: t.hiddenRows.length ? new Set(t.hiddenRows) : undefined,
+        hiddenFilter: t.filter ? () => filterHiddenRows(t, b, idx) ?? new Set<number>() : undefined,
+      })),
+    );
     // calcula em ordem (evita recursão profunda em cadeias longas de fórmulas)
     let n = 0;
     for (const rk in tab.grid) n += Object.keys(tab.grid[rk]).length;
@@ -343,10 +359,13 @@ export function SheetEditor({ sheet, tabs: initialTabs, canEdit, deals, contacts
 
   const applyText = (r: number, c: number, text: string) => {
     const old = tab.grid[r]?.[c];
-    let cell = cellFromTyped(text, old);
+    let cell = cellFromTyped(closeParens(text), old);
     if (cell?.f && !cell.fmt) {
-      if (/^(TODAY|DATE|EDATE|EOMONTH)\(/.test(cell.f)) cell = { ...cell, fmt: "date" };
+      if (/^(TODAY|DATE|EDATE|EOMONTH|WORKDAY|WORKDAY\.INTL|DATEVALUE)\(/.test(cell.f)) cell = { ...cell, fmt: "date" };
       else if (/^NOW\(/.test(cell.f)) cell = { ...cell, fmt: "datetime" };
+      else if (/^(TIME|TIMEVALUE)\(/.test(cell.f)) cell = { ...cell, fmt: "time" };
+      else if (/^-?(PMT|PPMT|IPMT|FV|PV|NPV|SLN|DB)\(/.test(cell.f)) cell = { ...cell, fmt: "brl:2" };
+      else if (/^(RATE|IRR|EFFECT|NOMINAL)\(/.test(cell.f)) cell = { ...cell, fmt: "pct:2" };
     }
     if (sameCell(old, cell)) return;
     putCells([{ r, c, cell }]);
@@ -426,11 +445,130 @@ export function SheetEditor({ sheet, tabs: initialTabs, canEdit, deals, contacts
     return true;
   };
 
+  const refocusCaret = (pos: number, expect: string) =>
+    requestAnimationFrame(() => {
+      if (editingRef.current?.text !== expect) return; // o usuário já digitou mais: não mexe no cursor
+      const el = document.activeElement;
+      if (el instanceof HTMLTextAreaElement || el instanceof HTMLInputElement) el.setSelectionRange(pos, pos);
+      setCaret(pos);
+    });
+  const pickSuggestion = (def: FnDef) => {
+    const ed = editingRef.current;
+    if (!ed) return;
+    const r = applySuggestion(ed.text, formulaContext(ed.text, caretOf(ed)), def);
+    pointRef.current = null;
+    setAc({ key: "", index: 0, nav: false });
+    setEdit({ ...ed, text: r.text });
+    refocusCaret(r.caret, r.text);
+  };
+  /** Teclas de símbolo do celular: insere no cursor da edição em andamento. */
+  const insertSymbol = (sym: string) => {
+    const ed = editingRef.current;
+    if (!ed) return;
+    const el = document.activeElement;
+    const a = el instanceof HTMLTextAreaElement || el instanceof HTMLInputElement ? (el.selectionStart ?? ed.text.length) : ed.text.length;
+    const b = el instanceof HTMLTextAreaElement || el instanceof HTMLInputElement ? (el.selectionEnd ?? a) : a;
+    pointRef.current = null;
+    const nt = ed.text.slice(0, a) + sym + ed.text.slice(b);
+    setEdit({ ...ed, text: nt });
+    refocusCaret(a + sym.length, nt);
+  };
+  const focusBar = (pos: number) =>
+    setTimeout(() => {
+      const el = barRef.current;
+      if (!el) return;
+      el.focus();
+      el.setSelectionRange(pos, pos);
+      setCaret(pos);
+    }, 80);
+  /** Botão fx / biblioteca: insere "=FUNÇÃO(" na célula (no cursor, se já está editando uma fórmula). */
+  const insertFunctionFromLib = (def: FnDef) => {
+    if (!canEdit) return;
+    const ed = editingRef.current;
+    const base = ed ?? { r: selRef.current.ar, c: selRef.current.ac, text: "", mode: "bar" as const };
+    const r = insertFunctionAt(base.text, Math.min(caret, base.text.length), def);
+    pointRef.current = null;
+    setEdit({ r: base.r, c: base.c, text: r.text, mode: "bar" });
+    focusBar(r.caret);
+  };
+  const useFormulaFromLib = (text: string) => {
+    if (!canEdit) return;
+    const s0 = selRef.current;
+    pointRef.current = null;
+    setEdit({ r: s0.ar, c: s0.ac, text, mode: "bar" });
+    focusBar(text.length);
+  };
+  const autoSum = (fnEn: "SUM" | "AVERAGE" | "COUNT" | "MAX" | "MIN") => {
+    if (!canEdit) return;
+    const pt = { SUM: "SOMA", AVERAGE: "MÉDIA", COUNT: "CONT.NÚM", MAX: "MÁXIMO", MIN: "MÍNIMO" }[fnEn];
+    const g = tabsRef.current.find((x) => x.id === activeRef.current)!;
+    const s0 = selRef.current;
+    const r0 = rangeOf(s0);
+    const isNum = (r: number, c: number) => typeof book.get(ti, r, c) === "number";
+    const changes: { r: number; c: number; cell: Cell | undefined }[] = [];
+    const put = (r: number, c: number, r1: number, c1: number, r2: number, c2: number) => {
+      const cell = cellFromTyped(`=${pt}(${addr(r1, c1)}:${addr(r2, c2)})`, g.grid[r]?.[c]);
+      changes.push({ r, c, cell });
+    };
+    let target = { r: r0.r1, c: r0.c1 };
+    if (r0.r1 === r0.r2 && r0.c1 === r0.c2) {
+      let top = r0.r1;
+      while (top - 1 >= 0 && isNum(top - 1, r0.c1)) top--;
+      let left = r0.c1;
+      while (left - 1 >= 0 && isNum(r0.r1, left - 1)) left--;
+      if (top < r0.r1) put(r0.r1, r0.c1, top, r0.c1, r0.r1 - 1, r0.c1);
+      else if (left < r0.c1) put(r0.r1, r0.c1, r0.r1, left, r0.r1, r0.c1 - 1);
+      else {
+        startEdit(r0.r1, r0.c1, "enter", `=${pt}(`);
+        return;
+      }
+    } else if (r0.r1 === r0.r2) {
+      put(r0.r1, r0.c2 + 1, r0.r1, r0.c1, r0.r1, r0.c2);
+      target = { r: r0.r1, c: r0.c2 + 1 };
+    } else {
+      for (let c = r0.c1; c <= r0.c2; c++) put(r0.r2 + 1, c, r0.r1, c, r0.r2, c);
+      target = { r: r0.r2 + 1, c: r0.c1 };
+    }
+    putCells(changes);
+    setSel(r0.r1 !== r0.r2 && r0.c1 !== r0.c2 ? { ar: target.r, ac: target.c, fr: target.r, fc: r0.c2 } : cellSel(target.r, target.c));
+  };
+
   const onEditKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement | HTMLInputElement>) => {
     const ed = editingRef.current;
     if (!ed) return;
     const k = e.key;
     if (e.nativeEvent.isComposing) return;
+    const as = assistRef.current;
+    if (as.suggestions.length && ed.text.startsWith("=")) {
+      if (k === "ArrowDown" || k === "ArrowUp") {
+        e.preventDefault();
+        setAc({ key: as.key, index: (as.index + (k === "ArrowDown" ? 1 : -1) + as.suggestions.length) % as.suggestions.length, nav: true });
+        return;
+      }
+      const pick = as.suggestions[Math.min(as.index, as.suggestions.length - 1)];
+      const exact = as.suggestions.some((f) => f.pt.toLowerCase() === (formulaContext(ed.text, caretOf(ed)).typing?.text ?? "").toLowerCase());
+      if (k === "Tab" || (k === "Enter" && !e.shiftKey && !e.altKey && (as.nav || !exact))) {
+        e.preventDefault();
+        pickSuggestion(pick);
+        return;
+      }
+      if (k === "Escape") {
+        e.preventDefault();
+        setAcOff(ed.text);
+        return;
+      }
+    }
+    if (k === "F4" && ed.text.startsWith("=")) {
+      e.preventDefault();
+      const el = e.currentTarget;
+      const r = toggleAbsolute(ed.text, el.selectionStart ?? ed.text.length);
+      if (r) {
+        pointRef.current = null;
+        setEdit({ ...ed, text: r.text });
+        requestAnimationFrame(() => el.setSelectionRange(r.caret, r.caret));
+      }
+      return;
+    }
     if (k === "Enter" && e.altKey) {
       e.preventDefault();
       const el = e.currentTarget;
@@ -560,7 +698,9 @@ export function SheetEditor({ sheet, tabs: initialTabs, canEdit, deals, contacts
       const text = await navigator.clipboard.readText();
       doPaste(text, valuesOnly);
     } catch {
-      toast.message("Para colar, use Ctrl+V (o navegador não liberou o acesso à área de transferência).");
+      // Firefox/Safari sem permissão: cola o que foi copiado nesta planilha (mantém fórmulas ajustadas)
+      if (clipRef.current) doPaste(clipRef.current.tsv, valuesOnly);
+      else toast.message("Para colar, use Ctrl+V (o navegador não liberou o acesso à área de transferência).");
     }
   };
 
@@ -864,6 +1004,7 @@ export function SheetEditor({ sheet, tabs: initialTabs, canEdit, deals, contacts
     const nm = uniqueTabName(tabsRef.current, `Planilha${tabsRef.current.length + 1}`);
     commit((ts) => [...ts, emptyTab(id, nm)]);
     setActive(id);
+    requestAnimationFrame(() => gridRef.current?.focusSink());
   };
   const renameTabTo = (id: string, raw: string) => {
     const nm = cleanName(raw);
@@ -1071,6 +1212,8 @@ export function SheetEditor({ sheet, tabs: initialTabs, canEdit, deals, contacts
       void toggleFavorite(sheet.id, !favorite);
     },
     focusGrid: () => requestAnimationFrame(() => gridRef.current?.focusSink()),
+    openFunctions: (tabName = "lib") => setFnDialog(tabName),
+    autoSum,
     state: {
       b: !!styleOfActive.b,
       i: !!styleOfActive.i,
@@ -1092,6 +1235,42 @@ export function SheetEditor({ sheet, tabs: initialTabs, canEdit, deals, contacts
     },
   };
 
+  const isFormulaEdit = !!editing && editing.text.startsWith("=");
+  const fctx = useMemo(() => (isFormulaEdit ? formulaContext(editing!.text, Math.min(caret, editing!.text.length)) : { typing: null, call: null }), [isFormulaEdit, editing?.text, caret]); // eslint-disable-line react-hooks/exhaustive-deps
+  const suggestions = useMemo(() => {
+    if (!isFormulaEdit || acOff === editing!.text) return [];
+    const t = fctx.typing?.text.toUpperCase();
+    if (t === "TRUE" || t === "FALSE" || t === "VERDADEIRO" || t === "FALSO") return [];
+    return suggest(fctx);
+  }, [isFormulaEdit, fctx, acOff, editing?.text]); // eslint-disable-line react-hooks/exhaustive-deps
+  const typingKey = fctx.typing?.text ?? "";
+  const acIndex = ac.key === typingKey ? Math.min(ac.index, Math.max(0, suggestions.length - 1)) : 0;
+  const acNavOn = ac.key === typingKey && ac.nav;
+  useLayoutEffect(() => {
+    assistRef.current = { suggestions, index: acIndex, nav: acNavOn, key: typingKey };
+  });
+  useEffect(() => {
+    if (!editing) return;
+    const upd = () => {
+      const el = document.activeElement;
+      if ((el instanceof HTMLTextAreaElement || el instanceof HTMLInputElement) && editingRef.current) setCaret(el.selectionStart ?? editingRef.current.text.length);
+    };
+    document.addEventListener("selectionchange", upd);
+    upd();
+    return () => document.removeEventListener("selectionchange", upd);
+  }, [!!editing]); // eslint-disable-line react-hooks/exhaustive-deps
+  const refRanges = useMemo(
+    () =>
+      isFormulaEdit
+        ? refSpans(editing!.text)
+            .filter((r) => !r.sheet || r.sheet.toLowerCase() === tab.name.toLowerCase())
+            .map((r) => ({ r1: Math.min(r.r1, tab.rows - 1), c1: Math.min(r.c1, tab.cols - 1), r2: Math.min(r.r2, tab.rows - 1), c2: Math.min(r.c2, tab.cols - 1), color: REF_COLORS[r.color] }))
+        : [],
+    [isFormulaEdit, editing?.text, tab.name, tab.rows, tab.cols], // eslint-disable-line react-hooks/exhaustive-deps
+  );
+  const activeVal = activeCell?.f !== undefined ? book.get(ti, sel.ar, sel.ac) : null;
+  const activeErr = activeVal instanceof FErr ? errInfo(activeVal.code) : undefined;
+
   const readOnlyNote = !canEdit;
   const isMobile = useIsMobile();
   const [tools, setTools] = useState<boolean | null>(null);
@@ -1105,6 +1284,7 @@ export function SheetEditor({ sheet, tabs: initialTabs, canEdit, deals, contacts
         <IconBar api={api} />
       </div>
       <FormulaBar
+        onFx={() => setFnDialog("lib")}
         active={!!editing}
         onCommit={() => finishEdit(true)}
         onCancel={() => finishEdit(false)}
@@ -1149,10 +1329,26 @@ export function SheetEditor({ sheet, tabs: initialTabs, canEdit, deals, contacts
           }
         }}
       />
+      {editing && canEdit && <SymbolRow onInsert={insertSymbol} onFunctions={() => setFnDialog("lib")} />}
+      <div className="relative z-40 h-0">
+        <FormulaAssistPanel ctx={fctx} suggestions={suggestions} index={acIndex} onPick={pickSuggestion} onHover={(i) => setAc({ key: typingKey, index: i, nav: true })} />
+      </div>
+      {activeErr && !editing && (
+        <div role="status" data-error-hint className="flex items-start gap-2 border-b bg-destructive/10 px-3 py-1.5 text-[12.5px] leading-snug">
+          <CircleAlert className="mt-0.5 size-4 shrink-0 text-destructive" />
+          <p>
+            <b>
+              {activeErr.label} — {activeErr.title}.
+            </b>{" "}
+            {activeErr.help}
+          </p>
+        </div>
+      )}
       {readOnlyNote && <p className="border-b bg-muted/50 px-3 py-1 text-[12px] text-muted-foreground">Você pode ver e baixar esta planilha, mas não editar.</p>}
       <SheetGrid
         ref={gridRef}
         selectMode={selectMode}
+        refRanges={refRanges}
         tab={tab}
         tabIndex={ti}
         book={book}
@@ -1216,6 +1412,19 @@ export function SheetEditor({ sheet, tabs: initialTabs, canEdit, deals, contacts
         }}
         onLoadMore={growRows}
       />
+      {stats && stats.count > 0 && (
+        <div className="thin-scroll flex items-center gap-3 overflow-x-auto border-t bg-card px-3 py-1 text-[12px] whitespace-nowrap text-muted-foreground sm:hidden" aria-live="polite" data-status-mobile>
+          <span>Contagem: {stats.count.toLocaleString("pt-BR")}</span>
+          {stats.nums > 0 && (
+            <>
+              <span>Soma: {formatValue(stats.sum, "n:2")}</span>
+              <span>Média: {formatValue(stats.sum / stats.nums, "n:2")}</span>
+              <span>Mín: {formatValue(stats.min, "n:2")}</span>
+              <span>Máx: {formatValue(stats.max, "n:2")}</span>
+            </>
+          )}
+        </div>
+      )}
       <div className="flex items-stretch border-t bg-card">
         <div className="min-w-0 flex-1">
           <TabsBar
@@ -1239,12 +1448,15 @@ export function SheetEditor({ sheet, tabs: initialTabs, canEdit, deals, contacts
                 <>
                   <span>Soma: {formatValue(stats.sum, "n:2")}</span>
                   <span>Média: {formatValue(stats.sum / stats.nums, "n:2")}</span>
+                  <span>Mín: {formatValue(stats.min, "n:2")}</span>
+                  <span>Máx: {formatValue(stats.max, "n:2")}</span>
                 </>
               )}
             </>
           )}
         </div>
       </div>
+      <FunctionDialog open={fnDialog !== ""} onOpenChange={(o) => !o && setFnDialog("")} initialTab={fnDialog === "examples" ? "examples" : "lib"} canEdit={canEdit} onInsertFunction={insertFunctionFromLib} onUseFormula={useFormulaFromLib} />
 
       {ctx && <ContextMenu x={ctx.x} y={ctx.y} items={ctxItems()} onClose={closeCtx} />}
       {filterUi && tab.filter && (
