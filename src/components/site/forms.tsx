@@ -14,6 +14,7 @@ import { ConfirmButton } from "@/components/crm/confirm-button";
 import { ImageField } from "./image-field";
 import { GalleryEditor } from "./gallery-editor";
 import { ParagraphEditor } from "./paragraph-editor";
+import { BeforeAfterEditor } from "./before-after-editor";
 import { deleteJob, deletePost, deleteProject, saveJob, savePost, saveProject, type JobInput, type PostInput, type ProjectInput } from "@/app/(app)/site/actions";
 
 // celular: campos de 44px (o Input já usa 16px de fonte)
@@ -93,7 +94,9 @@ function useSave<T extends { id?: number }>(save: (v: T) => Promise<{ ok: true; 
 
 /* --------------------------------- projeto ---------------------------------- */
 
-export const PROJECT_CATEGORIES = ["Restauro", "Conservação", "Projeto", "Reabilitação", "Laudo", "Bens integrados"];
+export const PROJECT_CATEGORIES = ["Restauro", "Conservação", "Diagnóstico", "Projeto", "Reabilitação", "Laudo", "Bens integrados"];
+
+const UF_LIST = ["AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS", "MG", "PA", "PB", "PR", "PE", "PI", "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO"];
 
 export function ProjectForm({ initial, canEdit, canDelete, viewUrl }: { initial: ProjectInput; canEdit: boolean; canDelete: boolean; viewUrl?: string }) {
   const [v, setV] = useState(initial);
@@ -122,8 +125,25 @@ export function ProjectForm({ initial, canEdit, canDelete, viewUrl }: { initial:
                 ))}
               </datalist>
             </Field>
-            <Field label="Localização">
+            <Field label="Localização (texto exibido)">
               <Input value={v.location} onChange={(e) => set("location", e.target.value)} placeholder="Itu · SP" />
+            </Field>
+            <Field label="Cidade">
+              <Input value={v.city} onChange={(e) => set("city", e.target.value)} placeholder="Itu" maxLength={120} />
+            </Field>
+            <Field label="Estado (UF)" hint="Define em qual estado o projeto aparece no mapa da home.">
+              <select
+                value={v.state}
+                onChange={(e) => set("state", e.target.value)}
+                className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 max-md:h-11"
+              >
+                <option value="">— sem estado (fora do mapa) —</option>
+                {UF_LIST.map((uf) => (
+                  <option key={uf} value={uf}>
+                    {uf}
+                  </option>
+                ))}
+              </select>
             </Field>
             <Field label="Ano">
               <Input value={v.year} onChange={(e) => set("year", e.target.value)} placeholder="2025" />
@@ -145,6 +165,10 @@ export function ProjectForm({ initial, canEdit, canDelete, viewUrl }: { initial:
         <section className={card}>
           <ImageField label="Capa" value={v.coverUrl} onChange={(u) => set("coverUrl", u)} />
           <GalleryEditor value={v.gallery} onChange={(g) => set("gallery", g)} onCover={(u) => set("coverUrl", u)} />
+        </section>
+
+        <section className={card}>
+          <BeforeAfterEditor value={v.beforeAfter} onChange={(p) => set("beforeAfter", p)} />
         </section>
 
         <section className={card}>

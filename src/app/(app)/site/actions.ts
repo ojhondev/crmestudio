@@ -37,10 +37,15 @@ export type ProjectInput = {
   body: string;
   coverUrl: string;
   gallery: string[];
+  state: string;
+  city: string;
+  beforeAfter: { before: string; after: string; caption: string }[];
   published: boolean;
   featured: boolean;
   sort: number;
 };
+
+const UFS = new Set(["AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS", "MG", "PA", "PB", "PR", "PE", "PI", "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO"]);
 
 export async function saveProject(input: ProjectInput): Promise<Result<{ id: number }>> {
   const user = await requireAccess("site", "edit");
@@ -58,6 +63,12 @@ export async function saveProject(input: ProjectInput): Promise<Result<{ id: num
     body: body(input.body),
     coverUrl: urlOrEmpty(input.coverUrl) || null,
     gallery: list(input.gallery).filter((u) => urlOrEmpty(u)),
+    state: UFS.has(str(input.state, 2).trim().toUpperCase()) ? str(input.state, 2).trim().toUpperCase() : "",
+    city: str(input.city, 120).trim(),
+    beforeAfter: (Array.isArray(input.beforeAfter) ? input.beforeAfter : [])
+      .map((p) => ({ before: urlOrEmpty(p?.before), after: urlOrEmpty(p?.after), caption: str(p?.caption, 300).trim() }))
+      .filter((p) => p.before && p.after)
+      .slice(0, 20),
     published: !!input.published,
     featured: !!input.featured,
     sort: Math.trunc(Number(input.sort)) || 0,

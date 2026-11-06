@@ -23,6 +23,14 @@ export const projects = pgTable("projects", {
   coverUrl: text("cover_url"),
   /** JSON array of image URLs */
   gallery: jsonb("gallery").$type<string[]>().notNull().default([]),
+  /** UF (ex.: "SP") — define em que estado o projeto aparece no mapa da home */
+  state: text("state").notNull().default(""),
+  city: text("city").notNull().default(""),
+  /** pares de fotos antes/depois (comparador na página do projeto) */
+  beforeAfter: jsonb("before_after")
+    .$type<{ before: string; after: string; caption: string }[]>()
+    .notNull()
+    .default([]),
   published: boolean("published").notNull().default(true),
   featured: boolean("featured").notNull().default(false),
   sort: integer("sort").notNull().default(0),
