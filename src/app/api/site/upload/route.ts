@@ -3,7 +3,6 @@ import { put } from "@vercel/blob";
 import { getUser, has } from "@/lib/auth";
 import { audit } from "@/lib/audit";
 import { siteDb, siteSchema } from "@/lib/site-db";
-import { applyWatermark } from "@/lib/watermark";
 
 export const runtime = "nodejs";
 
@@ -38,12 +37,10 @@ export async function POST(request: Request) {
 
   try {
     const pathname = `uploads/${Date.now()}-${slug}.${ext}`;
-    // marca d'água do Estúdio em toda foto que entra no site (mesmo formato da imagem enviada)
-    const marked = await applyWatermark(input, ext === "jpg" ? "jpeg" : (ext as "webp" | "png"));
-    const blob = await put(pathname, marked, { access: "public", contentType: type, token });
+    const blob = await put(pathname, input, { access: "public", contentType: type, token });
     const [row] = await siteDb.insert(siteSchema.media).values({ url: blob.url, pathname, label }).returning();
     await audit(user, "site_midia_enviada", `Enviou a imagem “${label}” para o site`, { entity: "site_midia", entityId: String(row.id) });
-    return NextResponse.json({ url: blob.url, id: row.id, bytes: marked.byteLength });
+    return NextResponse.json({ url: blob.url, id: row.id, bytes: input.byteLength });
   } catch (err) {
     console.error("[site/upload]", err);
     return NextResponse.json({ error: "Falha ao enviar a imagem." }, { status: 500 });
