@@ -3,7 +3,6 @@ import { and, desc, eq, inArray, lt, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db, schema } from "@/lib/db";
 import { audit } from "@/lib/audit";
-import { fireEditalEvent } from "@/lib/automations-engine";
 import { runScan } from "./scan";
 import { titleOf } from "./pncp";
 import { triage } from "./triage";
@@ -56,7 +55,8 @@ export type IngestResult = { received: number; kept: number; created: number; up
  * Grava um lote de editais. A relevância é SEMPRE recalculada aqui (a verdade está no servidor, não no que o coletor mandou).
  * Idempotente: o mesmo edital (numeroControlePNCP) nunca duplica; reenviar só atualiza prazo, situação e valor.
  */
-export async function ingestBatch(raw: unknown[], runId: number | null, opts: { notify?: boolean } = {}): Promise<IngestResult> {
+export async function ingestBatch(raw: unknown[], runId: number | null, _opts: { notify?: boolean } = {}): Promise<IngestResult> {
+  void _opts; // mantido por compatibilidade: a coleta nunca gera aviso
   const parsed = raw.map((r) => ItemSchema.safeParse(r)).flatMap((r) => (r.success ? [r.data] : []));
   const result: IngestResult = { received: raw.length, kept: 0, created: 0, updated: 0, filtered: 0, createdIds: [] };
   if (!parsed.length) return result;
@@ -140,16 +140,7 @@ export async function ingestBatch(raw: unknown[], runId: number | null, opts: { 
     result.updated++;
   }
 
-  // avisos / automações para os novos relevantes (sem derrubar a gravação)
-  if (result.createdIds.length && opts.notify !== false) {
-    const top = await db
-      .select({ id: schema.editais.id })
-      .from(schema.editais)
-      .where(inArray(schema.editais.id, result.createdIds))
-      .orderBy(desc(schema.editais.score))
-      .limit(25);
-    for (const t of top) await fireEditalEvent(["edital_new"], t.id);
-  }
+  // Política de poucos avisos: editais recém-coletados NÃO geram aviso (só a ação da equipe: interesse, proposta, compartilhar).
   return result;
 }
 

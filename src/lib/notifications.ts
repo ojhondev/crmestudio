@@ -1,5 +1,6 @@
 import "server-only";
-import { and, desc, eq, inArray, isNull, lt, sql } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, isNull, lt, sql } from "drizzle-orm";
+import { isoDateBR } from "@/lib/format";
 import { db, schema } from "@/lib/db";
 import { isNotifType, type NotifType } from "@/lib/notifications-types";
 
@@ -20,14 +21,28 @@ export type NotifPayload = {
  * então ligar de novo depois não despeja avisos antigos).
  * Devolve os ids de quem realmente recebeu um aviso novo (e visível).
  */
+/** Limite duro de avisos por pessoa por dia (fuso do estúdio). Passou disso, vira um único aviso “limite atingido”. */
+export const DAILY_CAP = 20;
+
 export async function notifyUsers(userIds: string[], p: NotifPayload | ((userId: string) => NotifPayload)): Promise<string[]> {
   const ids = [...new Set(userIds)];
   if (!ids.length) return [];
   const prefs = await db.select().from(schema.notificationPrefs).where(inArray(schema.notificationPrefs.userId, ids));
   const prefOf = new Map(prefs.map((x) => [x.userId, x]));
   const now = new Date();
+  const day = isoDateBR(now);
+  const counts = await db
+    .select({ userId: schema.notifications.userId, n: sql<number>`count(*)::int` })
+    .from(schema.notifications)
+    .where(and(inArray(schema.notifications.userId, ids), gte(schema.notifications.createdAt, new Date(`${day}T00:00:00-03:00`)), isNull(schema.notifications.archivedAt)))
+    .groupBy(schema.notifications.userId);
+  const todayCount = new Map(counts.map((c) => [c.userId, c.n]));
+  const capped = new Set(ids.filter((u) => (todayCount.get(u) ?? 0) >= DAILY_CAP));
   const rows = ids.map((userId) => {
-    const pay = typeof p === "function" ? p(userId) : p;
+    const pay0 = typeof p === "function" ? p(userId) : p;
+    const pay: NotifPayload = capped.has(userId)
+      ? { type: "sistema", title: "Limite diário de avisos atingido", body: `Você já recebeu ${DAILY_CAP} avisos hoje. O restante continua nas telas de Tarefas e Negócios; amanhã os avisos voltam a chegar.`, href: "/notificacoes", dedupeKey: `cap:${day}` }
+      : pay0;
     const pref = prefOf.get(userId);
     const silenced = !!pref && (pref.muted || pref.disabledTypes.includes(pay.type));
     return {
@@ -48,7 +63,7 @@ export async function notifyUsers(userIds: string[], p: NotifPayload | ((userId:
     .values(rows)
     .onConflictDoNothing()
     .returning({ userId: schema.notifications.userId });
-  const visible = new Set(rows.filter((r) => !r.archivedAt).map((r) => r.userId));
+  const visible = new Set(rows.filter((r) => !r.archivedAt && !capped.has(r.userId)).map((r) => r.userId));
   return inserted.map((r) => r.userId).filter((u) => visible.has(u));
 }
 

@@ -28,6 +28,7 @@ export const NOTIF_TYPES = {
   negocio_etapa: { label: "Mudança de etapa", group: "negocios", help: "Um negócio mudou de etapa no funil." },
   negocio_valor_alto: { label: "Valor alto parado", group: "negocios", help: "Um negócio de valor alto está sem andamento." },
   edital_novo: { label: "Edital novo", group: "editais", help: "Surgiu um edital de restauro relevante." },
+  edital_interesse: { label: "Interesse da equipe em edital", group: "editais", help: "Alguém da equipe marcou interesse em um edital." },
   edital_prazo: { label: "Prazo de edital", group: "editais", help: "O prazo de propostas de um edital que você acompanha está chegando." },
   proposta_prazo: { label: "Proposta de edital", group: "editais", help: "Uma etapa da proposta de um edital está perto do prazo, atrasada ou sem responsável." },
   edital_compartilhado: { label: "Edital compartilhado com você", group: "editais", help: "A equipe compartilhou um edital ou uma proposta com você." },

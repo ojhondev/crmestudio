@@ -73,7 +73,7 @@ const st = evalDealTime("deal_stalled", { days: 7 }, deal(), NOW);
 eq(st?.vars.dias, "10 dias", "10 dias na etapa");
 eq(st?.key, `stalled:d1:${NOW.ms - 10 * DAY}:1`, "chave inclui a entrada na etapa e o período");
 eq(evalDealTime("deal_stalled", { days: 7 }, deal(), NOW)?.key, st?.key, "idempotente");
-eq(evalDealTime("deal_stalled", { days: 7 }, deal({ stageEntryMs: NOW.ms - 15 * DAY }), NOW)?.key.endsWith(":2"), true, "15 dias = 2º período (novo lembrete)");
+eq(evalDealTime("deal_stalled", { days: 7 }, deal({ stageEntryMs: NOW.ms - 15 * DAY }), NOW)?.key.endsWith(":1"), true, "15 dias parado: segue sendo o único aviso da etapa (não repete)");
 eq(evalDealTime("deal_stalled", { days: 7 }, deal({ stageEntryMs: NOW.ms - 3 * DAY }), NOW), null, "recente não dispara");
 ok(evalDealTime("deal_stalled", { days: 30, stageDays: { "2": 5 } }, deal({ stageEntryMs: NOW.ms - 6 * DAY }), NOW), "prazo por etapa (5 dias) dispara antes do padrão (30)");
 eq(evalDealTime("deal_stalled", { days: 7, stageIds: [1] }, deal(), NOW), null, "limitado a outras etapas");
@@ -349,6 +349,25 @@ for (const bad of [[0, 3], [3, 61], [], Array.from({ length: 11 }, (_, i) => i +
   eq(sanitizeRule({ name: "Cadência", trigger: "deal_followup_cadence", params: { cadence: bad }, actions: [{ type: "notify", to: ["owner"] }] }), { error: "Cadência: use de 1 a 10 marcos, cada um entre 1 e 60 dias." }, "editor recusa cadência " + JSON.stringify(bad));
 }
 eq(sanitizeRule({ name: "Cadência", trigger: "deal_followup_cadence", params: {}, actions: [{ type: "notify", to: ["owner"] }] }) && ("error" in (sanitizeRule({ name: "Cadência", trigger: "deal_followup_cadence", params: {}, actions: [{ type: "notify", to: ["owner"] }] }) as object)), false, "sem informar a cadência: usa o padrão (não é erro)");
+
+/* ------------------- política “só o necessário” (padrões das regras prontas) ------------------- */
+const B = (k: string) => BUILTIN_RULES.find((x) => x.key === k)!;
+for (const k of ["lead_novo", "lead_sem_contato", "followup_cadencia", "previsao_vencida", "previsao_proxima", "tarefa_prazo", "tarefa_atrasada", "tarefa_atribuida", "negocio_ganho", "tarefa_comentario", "tarefa_recorrente", "proposta_etapa_atrasada", "edital_interesse", "negocio_parado", "edital_prazo", "proposta_etapa_prazo", "cofre_vencimento"]) ok(B(k)?.enabled, "ligada por padrão: " + k);
+for (const k of ["negocio_sem_atividade", "valor_alto_parado", "tarefa_concluida", "tarefa_travada", "tarefa_sem_responsavel", "negocio_perdido", "edital_novo", "negocio_mudou_etapa", "proposta_sem_responsavel"]) eq(B(k)?.enabled, false, "desligada por padrão: " + k);
+eq(B("edital_prazo").params, { daysBefore: [3, 1] }, "prazo de edital: 3 e 1 dia");
+eq(B("proposta_etapa_prazo").params, { daysBefore: [0] }, "etapa da proposta: só no dia");
+eq(B("cofre_vencimento").params, { daysBefore: [15, 7] }, "cofre: 15 e 7 dias");
+eq(B("previsao_proxima").params, { daysBefore: [0] }, "previsão próxima: só no dia");
+eq(B("tarefa_comentario").actions, [{ type: "notify", to: ["mentioned"] }], "comentário avisa só quem foi mencionado");
+eq(B("negocio_parado").actions, [{ type: "notify", to: ["owner"] }], "negócio parado avisa só o responsável");
+eq(B("lead_novo").actions, [{ type: "notify", to: ["owner", "managers"] }], "lead novo: responsável + gestores");
+eq(B("edital_interesse").actions, [{ type: "notify", to: ["managers", "editalOwner"] }], "interesse em edital: gestores + responsável");
+eq(B("edital_interesse").trigger, "edital_interest", "gatilho de interesse");
+eq(TRIGGER_BY_ID.edital_interest.kind, "event", "interesse é evento (nunca por varredura)");
+eq(BUILTIN_RULES.some((b) => b.enabled && b.trigger === "edital_new"), false, "nenhuma regra ligada para edital recém-coletado");
+// parado: um único aviso por negócio e etapa (não repete a cada período)
+eq(evalDealTime("deal_stalled", { days: 7 }, deal({ stageEntryMs: NOW.ms - 8 * DAY }), NOW)?.key, evalDealTime("deal_stalled", { days: 7 }, deal({ stageEntryMs: NOW.ms - 8 * DAY }), NOW)?.key, "estável");
+eq(evalDealTime("deal_stalled", { days: 7 }, deal({ stageEntryMs: NOW.ms - 30 * DAY }), NOW)?.key.endsWith(":1"), true, "30 dias parado: continua sendo o mesmo (único) aviso da etapa");
 
 console.log(fail ? `\n${fail} de ${total} verificações falharam` : `Todas as ${total} verificações passaram`);
 process.exit(fail ? 1 : 0);

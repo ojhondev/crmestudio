@@ -203,7 +203,18 @@ export function PrefsView({ initial }: { initial: { muted: boolean; disabledType
 
       {groups.map(({ g, types }) => (
         <section key={g} className={cn("overflow-hidden rounded-xl border bg-card", muted && "opacity-60")}>
-          <h2 className="label border-b px-4 py-2.5">{NOTIF_GROUPS[g]}</h2>
+          <div className="flex items-center justify-between gap-3 border-b px-4 py-2.5">
+            <h2 className="label">{NOTIF_GROUPS[g]}</h2>
+            <label className="flex items-center gap-2 text-xs text-muted-foreground">
+              Categoria toda
+              <Switch
+                checked={types.every((k) => !off.includes(k))}
+                disabled={muted}
+                onCheckedChange={(v) => persist(muted, v ? off.filter((x) => !types.includes(x as NotifType)) : [...new Set([...off, ...types])])}
+                aria-label={`Receber avisos de ${NOTIF_GROUPS[g]}`}
+              />
+            </label>
+          </div>
           <ul className="divide-y">
             {types.map((k) => (
               <li key={k}>

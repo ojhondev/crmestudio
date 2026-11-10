@@ -18,6 +18,7 @@
     "test:sheets": "node node_modules/tsx/dist/cli.mjs scripts/test-sheets.ts",
     "test:automations": "node node_modules/tsx/dist/cli.mjs scripts/test-automations.ts",
     "test:stages:db": "node --env-file=.env.local node_modules/tsx/dist/cli.mjs scripts/test-stages-db.ts",
+    "test:notifications:db": "node --env-file=.env.local node_modules/tsx/dist/cli.mjs scripts/test-notifications-db.ts",
     "test:calendar": "node node_modules/tsx/dist/cli.mjs scripts/test-calendar.ts",
     "test:contacts-import": "node node_modules/tsx/dist/cli.mjs scripts/test-contacts-import.ts",
     "test:contacts-import:db": "node --env-file=.env.local node_modules/tsx/dist/cli.mjs scripts/test-contacts-import.ts --db",

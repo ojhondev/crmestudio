@@ -29,7 +29,7 @@ export function ScanButton() {
           if (!r || !("ok" in r)) return;
           window.dispatchEvent(new Event(EVENT));
           toast.success(r.alreadyOpen ? "Já havia um pedido em andamento — acompanhe abaixo." : "Busca pedida: a varredura rápida já começou e o GitHub fará a completa.", {
-            description: r.alreadyOpen ? undefined : r.githubDispatched ? "Disparei o GitHub agora mesmo." : "O GitHub verifica pedidos a cada 30 minutos.",
+            description: r.alreadyOpen ? undefined : r.githubDispatched ? "Disparei o GitHub agora mesmo." : "O GitHub verifica pedidos de hora em hora.",
           });
           router.refresh();
         })
@@ -131,7 +131,7 @@ export function RunStatus({ initial }: { initial: RunDTO[] }) {
       icon: full.status === "executando" ? "spin" : full.status === "solicitada" ? "wait" : full.status === "concluida" ? "ok" : "warn",
       text:
         full.status === "solicitada" ? (
-          <>Varredura completa solicitada por {full.requestedByName ?? "alguém"} — o GitHub atende em até ~30 minutos.</>
+          <>Varredura completa solicitada por {full.requestedByName ?? "alguém"} — o GitHub atende em até ~1 hora.</>
         ) : full.status === "executando" ? (
           <>
             Varredura completa rodando no GitHub ({n(s.scanned)} editais vistos, {n(s.created)} novos até agora).{link}

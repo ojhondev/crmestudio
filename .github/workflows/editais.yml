@@ -4,14 +4,14 @@ name: Editais de restauro (varredura do PNCP)
 #  - O job pede ao GitHub um token OIDC (permissions: id-token: write) para a audiência do CRM e usa esse token
 #    para falar com /api/editais/pending e /api/editais/ingest. O CRM confere a assinatura do token, o repositório,
 #    o branch e este arquivo de workflow (ver src/lib/editais/oidc.ts).
-#  - A cada 30 minutos o job só pergunta ao CRM se alguém clicou em “Buscar oportunidades” (ou se há varredura
+#  - De hora em hora o job só pergunta ao CRM se alguém clicou em “Buscar oportunidades” (ou se há varredura
 #    interrompida para retomar). Se não há nada, termina em segundos. Se há, faz a varredura completa.
 #  - Uma vez por dia (06:17 em Brasília) faz a varredura completa de qualquer jeito.
 #  - Manual: aba Actions → “Editais de restauro” → Run workflow (dias e fonte são opcionais).
 
 on:
   schedule:
-    - cron: "*/30 * * * *"
+    - cron: "7 * * * *"
     - cron: "17 9 * * *"
   workflow_dispatch:
     inputs:

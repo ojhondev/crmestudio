@@ -93,7 +93,7 @@ export default async function Dashboard({ searchParams }: PageProps<"/">) {
       .from(schema.transactions)
       .where(and(eq(schema.transactions.kind, "receita"), isNull(schema.transactions.paidAt), lte(schema.transactions.dueDate, in30)));
 
-  scheduleLazyTick(); // abrir o painel também "acorda" as regras de tempo (no máximo 1 rodada a cada 15 min)
+  scheduleLazyTick(); // abrir o painel também "acorda" as regras de tempo (no máximo 1 rodada a cada 30 min)
   const [funnel, [won], agenda, myTasks, [receivable], avisos, editaisData, propostasData] = await Promise.all([
     canDeals ? funnelQ() : [],
     canDeals ? wonQ() : [],

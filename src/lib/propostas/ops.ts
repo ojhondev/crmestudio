@@ -4,7 +4,7 @@ import { db, schema } from "@/lib/db";
 import type { EditalRow } from "@/lib/db/schema";
 import type { SessionUser } from "@/lib/auth";
 import { has } from "@/lib/auth";
-import { afterResponse, fireDealEvent, stageTriggers } from "@/lib/automations-engine";
+import { afterResponse, fireDealEvent, fireEditalEvent, stageTriggers } from "@/lib/automations-engine";
 import { cleanHtml } from "@/lib/docs/sanitize";
 import { escapeHtml } from "@/lib/docs/variables";
 import { insertSheet } from "@/lib/sheets/server";
@@ -310,6 +310,7 @@ export async function startProposta(user: Actor, editalId: string, opts: { templ
 
   // o edital passa a “em proposta” (sem rebaixar quem já enviou, ganhou ou perdeu)
   const advance = ["novo", "interessante", "em_analise"].includes(e.triage);
+  if (advance) afterResponse(() => fireEditalEvent(["edital_interest"], e.id, user, { eventKey: `em_proposta:${Math.floor(Date.now() / 864e5)}` }));
   await db
     .update(schema.editais)
     .set({ triage: advance ? "em_proposta" : e.triage, discardReason: advance ? null : e.discardReason, ownerId: opts.ownerId ?? e.ownerId ?? d.ownerId ?? user.id, updatedAt: new Date() })

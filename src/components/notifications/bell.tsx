@@ -11,7 +11,7 @@ import { NOTIF_GROUPS, NOTIF_TYPES, type NotifGroup } from "@/lib/notifications-
 import { markAllRead, markRead } from "@/app/(app)/notificacoes/actions";
 import { NotifRow, type NotifItem } from "./notif-row";
 
-const POLL_MS = 60_000;
+const POLL_MS = 300_000; // política de poucas chamadas: no máximo a cada 5 min (e ao abrir/focar a aba, com intervalo mínimo)
 
 type Filter = "todas" | "nao-lidas" | NotifGroup;
 const FILTERS: { key: Filter; label: string }[] = [
@@ -31,10 +31,12 @@ export function NotificationBell() {
   const [filter, setFilter] = useState<Filter>("todas");
   const [now, setNow] = useState(0);
   const busy = useRef(false);
+  const last = useRef(0);
 
   const refresh = useCallback(async () => {
     if (busy.current) return;
     busy.current = true;
+    last.current = Date.now();
     try {
       const r = await fetch("/api/notificacoes?limit=40", { cache: "no-store" });
       if (!r.ok) return;
@@ -53,14 +55,16 @@ export function NotificationBell() {
   useEffect(() => {
     const first = setTimeout(refresh, 0);
     const wake = () => document.visibilityState === "visible" && refresh();
+    // ao voltar para a aba/janela: só busca se já passou 1 min da última busca
+    const onFocus = () => Date.now() - last.current > 60_000 && wake();
     const timer = setInterval(wake, POLL_MS);
-    document.addEventListener("visibilitychange", wake);
-    window.addEventListener("focus", wake);
+    document.addEventListener("visibilitychange", onFocus);
+    window.addEventListener("focus", onFocus);
     return () => {
       clearTimeout(first);
       clearInterval(timer);
-      document.removeEventListener("visibilitychange", wake);
-      window.removeEventListener("focus", wake);
+      document.removeEventListener("visibilitychange", onFocus);
+      window.removeEventListener("focus", onFocus);
     };
   }, [refresh]);
 

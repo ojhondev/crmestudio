@@ -8,7 +8,7 @@ export async function GET(req: Request) {
   const user = await getUser();
   if (!user || user.mustChangePassword) return NextResponse.json({ error: "Não autenticado" }, { status: 401, headers: { "Cache-Control": "no-store" } });
   const sp = new URL(req.url).searchParams;
-  // quem abre o app também "acorda" as regras de tempo (no máximo uma rodada a cada 15 min, para todo mundo)
+  // quem abre o app também "acorda" as regras de tempo (no máximo uma rodada a cada 30 min, para todo mundo)
   scheduleLazyTick();
   const [unread, items] = await Promise.all([
     unreadCount(user.id),

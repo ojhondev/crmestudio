@@ -181,7 +181,7 @@ function Oportunidades() {
           <strong>Varredura completa automática</strong>: roda no GitHub todos os dias às 06:17 (horário de Brasília), mesmo sem ninguém pedir.
         </>
         <>
-          <strong>A cada 30 minutos</strong> o GitHub confere se alguém pediu uma busca e, se houver pedido, faz a varredura completa.
+          <strong>De hora em hora</strong> o GitHub confere se alguém pediu uma busca e, se houver pedido, faz a varredura completa.
         </>
         <>
           <strong>Varredura rápida</strong>: ao tocar em <UI>Buscar oportunidades</UI> ela roda na hora, no próprio sistema (cerca de 30 segundos), nas buscas mais importantes.
@@ -205,7 +205,7 @@ function Oportunidades() {
 
       <Bullets title="Os estados da busca (faixa acima da lista)">
         <>
-          <UI>Solicitada</UI>: o pedido foi gravado e o GitHub atende em até cerca de 30 minutos.
+          <UI>Solicitada</UI>: o pedido foi gravado e o GitHub atende em até cerca de 1 hora (a busca rápida roda na hora).
         </>
         <>
           <UI>Executando</UI>: a varredura está rodando. Mostra quantos editais foram vistos e quantos são novos; o link “ver execução” abre o GitHub.
@@ -638,12 +638,11 @@ function CofrePortfolio() {
 }
 
 const AVISOS: { regra: string; quando: string; quem: string }[] = [
-  { regra: "Novo edital relevante", quando: "Surge um edital com relevância 70 ou mais, publicado nos últimos 3 dias.", quem: "Quem tem acesso a Editais" },
-  { regra: "Edital de interesse encerrando", quando: "7, 3 e 1 dia antes do fim do prazo de um edital aberto marcado como Interessante, Em análise ou Em proposta.", quem: "Responsável pelo edital e gestor" },
-  { regra: "Etapa da proposta se aproximando", quando: "2 dias antes e no dia do prazo de cada etapa.", quem: "Responsável pelo edital e gestor" },
+  { regra: "Interesse da equipe em um edital", quando: "Alguém da equipe marca Interessante, Em análise ou Vou participar (um aviso por edital e ação). Editais recém-coletados NÃO geram aviso.", quem: "Gestores, administradores e responsável" },
+  { regra: "Edital de interesse encerrando", quando: "3 e 1 dia antes do fim do prazo de um edital com interesse ou em proposta (nunca do Radar geral).", quem: "Responsável pelo edital e gestor" },
+  { regra: "Etapa da proposta se aproximando", quando: "No dia do prazo de cada etapa.", quem: "Responsável pelo edital e gestor" },
   { regra: "Etapa da proposta atrasada", quando: "Uma etapa passa do prazo (a partir de 1 dia).", quem: "Responsável pelo edital e gestor" },
-  { regra: "Proposta sem responsável", quando: "Proposta em andamento sem responsável faltando 7 dias ou menos para a data limite.", quem: "Gestores" },
-  { regra: "Certidão do cofre vencendo", quando: "30, 15 e 7 dias antes da validade de qualquer documento do cofre.", quem: "Responsável pelo documento e administradores" },
+    { regra: "Certidão do cofre vencendo", quando: "15 e 7 dias antes da validade de qualquer documento do cofre.", quem: "Responsável pelo documento e administradores" },
 ];
 
 function Avisos() {
@@ -711,7 +710,7 @@ function Avisos() {
           A aba <UI>Registro</UI> mostra o que cada regra já disparou.
         </>
       </Steps>
-      <Tip>Se chegarem avisos demais de edital novo, em vez de desligar a regra suba a relevância mínima dela. As regras de prazo e de certidão é melhor deixar sempre ligadas.</Tip>
+      <Tip>Editais encontrados pela varredura não geram aviso: só a ação da equipe (interesse, proposta). As regras de prazo e de certidão é melhor deixar sempre ligadas.</Tip>
     </Sec>
   );
 }
@@ -864,7 +863,7 @@ function FaqSec() {
         </Faq>
         <Faq q="O botão Buscar oportunidades demora. Está travado?">
           <p>
-            Não necessariamente. A varredura rápida leva cerca de 30 segundos; a completa roda no GitHub e pode levar até cerca de 30 minutos só para começar. A faixa mostra <UI>Solicitada</UI>, <UI>Executando</UI> e <UI>Concluída</UI>. Não precisa tocar de novo: o sistema avisa que já há um pedido em andamento.
+            Não necessariamente. A varredura rápida leva cerca de 30 segundos; a completa roda no GitHub e pode levar até cerca de 1 hora só para começar. A faixa mostra <UI>Solicitada</UI>, <UI>Executando</UI> e <UI>Concluída</UI>. Não precisa tocar de novo: o sistema avisa que já há um pedido em andamento.
           </p>
           <p>
             Se aparecer <UI>Parcial</UI>, o PNCP demorou e a busca será retomada sozinha. Se aparecer <UI>Falhou</UI>, leia o motivo e tente de novo mais tarde.

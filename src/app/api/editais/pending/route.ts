@@ -5,7 +5,7 @@ import { bearer, oidcConfig, verifyGithubOidc } from "@/lib/editais/oidc";
 export const maxDuration = 30;
 
 /**
- * O workflow agendado (a cada 30 min) pergunta aqui se alguém clicou em “Buscar oportunidades” (pedido pendente)
+ * O workflow agendado (de hora em hora) pergunta aqui se alguém clicou em “Buscar oportunidades” (pedido pendente)
  * ou se há uma rodada parcial para retomar. Autenticado só pelo token OIDC do GitHub.
  */
 export async function GET(req: Request) {

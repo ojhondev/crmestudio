@@ -16,7 +16,7 @@ function cronSecretOk(req: Request) {
 
 /**
  * Sincroniza o Google Agenda de todas as pessoas conectadas.
- * Chamado a cada 15 min pelo GitHub Actions (token OIDC, workflow calendar-sync.yml, mesmo padrão dos Editais)
+ * Chamado de hora em hora pelo GitHub Actions (token OIDC, workflow calendar-sync.yml, mesmo padrão dos Editais)
  * e, como reserva diária, pelo Vercel Cron (CRON_SECRET).
  */
 async function run(req: Request) {

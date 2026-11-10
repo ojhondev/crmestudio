@@ -6,7 +6,7 @@ import { and, eq, ilike, max } from "drizzle-orm";
 import { db, schema } from "@/lib/db";
 import { has, requireAccess, type SessionUser } from "@/lib/auth";
 import { audit } from "@/lib/audit";
-import { afterResponse, fireDealEvent } from "@/lib/automations-engine";
+import { afterResponse, fireDealEvent, fireEditalEvent } from "@/lib/automations-engine";
 import { requestScan, runQuickScan } from "@/lib/editais/ingest";
 import { KIND_LABEL, TRIAGE_LABEL, isTriage, type EditalTriage } from "@/lib/editais/types";
 import { parseMoney } from "@/lib/format";
@@ -64,6 +64,10 @@ export async function setTriage(id: string, triage: string, reason?: string) {
       updatedAt: new Date(),
     })
     .where(eq(schema.editais.id, id));
+  // interesse da EQUIPE (única origem de avisos de edital): um aviso por edital e ação a cada 24 h
+  if ((t === "interessante" || t === "em_analise" || t === "em_proposta") && cur.triage !== t) {
+    afterResponse(() => fireEditalEvent(["edital_interest"], id, user, { eventKey: `${t}:${Math.floor(Date.now() / 864e5)}` }));
+  }
   await note(id, user, "triagem", `Triagem: ${TRIAGE_LABEL[t]}${t === "descartado" ? ` — ${why}` : ""}`);
   await audit(user, "edital_triagem", `Edital “${cur.title.slice(0, 80)}”: ${TRIAGE_LABEL[t]}`, { entity: "edital", entityId: id });
   revalidatePath("/editais-avancado");

@@ -1,4 +1,4 @@
-name: Google Agenda (sincronização a cada 15 minutos)
+name: Google Agenda (sincronização de hora em hora)
 
 # Como funciona (sem nenhum segredo guardado no GitHub), no mesmo padrão do workflow de Editais:
 #  - O job pede ao GitHub um token OIDC (permissions: id-token: write) para a audiência do CRM e o envia em
@@ -10,7 +10,7 @@ name: Google Agenda (sincronização a cada 15 minutos)
 
 on:
   schedule:
-    - cron: "*/15 * * * *"
+    - cron: "17 * * * *"
   workflow_dispatch:
 
 permissions:

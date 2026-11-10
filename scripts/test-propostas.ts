@@ -378,7 +378,7 @@ for (const id of ["proposta_step_soon", "proposta_step_late", "proposta_no_owner
 }
 const built = BUILTIN_RULES.filter((r) => ["proposta_etapa_prazo", "proposta_etapa_atrasada", "proposta_sem_responsavel", "cofre_vencimento"].includes(r.key));
 eq(built.length, 4, "4 regras prontas novas");
-ok(built.every((r) => r.enabled && r.actions.length > 0), "regras prontas ligadas e com ação");
+ok(built.every((r) => r.actions.length > 0 && r.enabled === (r.key !== "proposta_sem_responsavel")), "regras prontas com ação; ligadas, exceto a de proposta sem responsável (política de poucos avisos)");
 for (const r of built) ok(!("error" in sanitizeRule({ name: r.name, trigger: r.trigger, params: r.params, conditions: r.conditions, actions: r.actions }, r.trigger)), `regra ${r.key} passa na validação`);
 eq(sanitizeParams("cofre_expiring", { daysBefore: [7, 30, 15, 15] }).daysBefore, [30, 15, 7], "dias do cofre: ordena e remove repetidos");
 eq(sanitizeParams("proposta_no_owner", { days: 0 }).days, 7, "dias inválidos voltam ao padrão");

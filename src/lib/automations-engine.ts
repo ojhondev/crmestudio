@@ -4,7 +4,7 @@ import { and, asc, desc, eq, inArray, isNull, lt, max, ne, sql } from "drizzle-o
 import { db, schema } from "@/lib/db";
 import type { AutomationRule, RuleAction } from "@/lib/db/schema";
 import { resolvePermissions, atLeast } from "@/lib/permissions";
-import { notifyUsers } from "@/lib/notifications";
+import { notifyUsers, type NotifPayload } from "@/lib/notifications";
 import { isoDateBR } from "@/lib/format";
 import {
   BUILTIN_RULES,
@@ -202,7 +202,12 @@ function varsFor(c: Ctx, users: UserRow[], hit: Record<string, string> = {}, ext
 
 /* ----------------------------------- ações ----------------------------------- */
 
-type Env = { rule: AutomationRule; ctx: Ctx; vars: Record<string, string>; key: string; users: UserRow[]; dir: DirUser[]; today: string };
+/** Avisos de tempo juntados por pessoa durante uma rodada: quem tem 3 ou mais do mesmo tipo recebe UM resumo. */
+export type Collector = Map<string, NotifPayload[]>;
+type Env = { rule: AutomationRule; ctx: Ctx; vars: Record<string, string>; key: string; users: UserRow[]; dir: DirUser[]; today: string; collector?: Collector };
+
+/** Quantos avisos do mesmo tipo, para a mesma pessoa na mesma rodada, viram um resumo. */
+export const SUMMARY_FROM = 3;
 
 const plain = (n: number, s: string, p: string) => `${n} ${n === 1 ? s : p}`;
 
@@ -227,6 +232,23 @@ async function doNotify(a: Extract<RuleAction, { type: "notify" }>, env: Env): P
   const mention = new Set(ctx.mentioned ?? []);
   const titleTpl = (uid: string) => (a.title ? a.title : rule.trigger === "task_comment" && mention.has(uid) ? "{pessoa} mencionou você em “{tarefa}”" : def.title);
   const bodyTpl = a.body ?? def.body;
+  if (env.collector) {
+    const col = env.collector;
+    for (const uid of allowed) {
+      const list = col.get(uid) ?? [];
+      list.push({
+        type: def?.type ?? "automacao",
+        title: renderTemplate(titleTpl(uid), env.vars) || def.label,
+        body: renderTemplate(bodyTpl, env.vars) || null,
+        href: ctx.entity.href,
+        entity: ctx.entity.kind === "task" ? "tarefa" : ctx.entity.kind === "edital" ? "edital" : "negocio",
+        entityId: ctx.entity.id,
+        dedupeKey: `${rule.id}:${env.key}`,
+      });
+      col.set(uid, list);
+    }
+    return `aviso enfileirado para ${plain(allowed.length, "pessoa", "pessoas")}`;
+  }
   const sent = await notifyUsers(allowed, (uid) => ({
     type: def?.type ?? "automacao",
     title: renderTemplate(titleTpl(uid), env.vars) || def.label,
@@ -353,7 +375,7 @@ async function applyAction(a: RuleAction, env: Env): Promise<string> {
 }
 
 /** Avalia condições, "reserva" o fato (chave única) e executa as ações. Devolve true se agiu. */
-async function execute(rule: AutomationRule, ctx: Ctx, key: string, hit: Record<string, string>, users: UserRow[], dir: DirUser[], today: string, extraVars: Record<string, string> = {}): Promise<boolean> {
+async function execute(rule: AutomationRule, ctx: Ctx, key: string, hit: Record<string, string>, users: UserRow[], dir: DirUser[], today: string, extraVars: Record<string, string> = {}, collector?: Collector): Promise<boolean> {
   if (!conditionsHold(ctx.entity, rule.conditions ?? [])) return false;
   const [claim] = await db
     .insert(schema.automationRuns)
@@ -371,7 +393,7 @@ async function execute(rule: AutomationRule, ctx: Ctx, key: string, hit: Record<
     .returning({ id: schema.automationRuns.id });
   if (!claim) return false; // este fato já foi tratado por esta regra
 
-  const env: Env = { rule, ctx, vars: varsFor(ctx, users, hit, extraVars), key, users, dir, today };
+  const env: Env = { rule, ctx, vars: varsFor(ctx, users, hit, extraVars), key, users, dir, today, collector };
   const parts: string[] = [];
   let status: "ok" | "erro" = "ok";
   for (const a of rule.actions ?? []) {
@@ -531,6 +553,29 @@ export async function loadOpenDeals(limit = 2000): Promise<OpenDeal[]> {
   });
 }
 
+const rule0 = (list: { rule: AutomationRule }[]) => list[0].rule;
+
+/** Entrega os avisos juntados: 1–2 por pessoa saem como estão; a partir de ${SUMMARY_FROM} viram um único resumo do dia. */
+export async function flushCollector(rule: AutomationRule, col: Collector, today: string) {
+  const def = TRIGGER_BY_ID[rule.trigger as TriggerId];
+  for (const [uid, items] of col) {
+    if (items.length < SUMMARY_FROM) {
+      for (const it of items) await notifyUsers([uid], it);
+      continue;
+    }
+    const href = def.subject === "task" ? "/tarefas" : def.subject === "edital" ? "/editais/radar" : "/negocios";
+    const names = items.slice(0, 4).map((i) => i.title.replace(/^[^:]*:\s*/, ""));
+    await notifyUsers([uid], {
+      type: def.type,
+      title: `${items.length} avisos: ${def.label.toLowerCase()}`,
+      body: `${names.join(" · ")}${items.length > 4 ? ` e mais ${items.length - 4}` : ""}.`,
+      href,
+      entity: null,
+      dedupeKey: `${rule.id}:resumo:${today}`,
+    });
+  }
+}
+
 export type TickResult = { rules: number; candidates: number; fired: number; ms: number };
 
 /** Avalia todas as regras baseadas em tempo. Idempotente: pode rodar a qualquer hora, quantas vezes quiser. */
@@ -656,23 +701,25 @@ export async function runTimeRules(at: Date = new Date()): Promise<TickResult> {
   const byRule = new Map<string, Cand[]>();
   for (const c of cands) byRule.set(c.rule.id, [...(byRule.get(c.rule.id) ?? []), c]);
   for (const [ruleId, list] of byRule) {
+    const collector: Collector = new Map();
     const have = await existingKeys(ruleId, list.map((c) => c.hit.key));
     let n = 0;
     for (const c of list) {
       if (have.has(c.hit.key)) continue;
       if (n >= CAP_PER_RULE || Date.now() - started > 40_000) break; // o resto fica para a próxima rodada
-      if (await execute(c.rule, c.ctx, c.hit.key, c.hit.vars, users, dir, now.today)) {
+      if (await execute(c.rule, c.ctx, c.hit.key, c.hit.vars, users, dir, now.today, {}, collector)) {
         n++;
         result.fired++;
       }
     }
+    await flushCollector(rule0(list), collector, now.today);
   }
   result.ms = Date.now() - started;
   return result;
 }
 
 const TICK_KEY = "automations_tick";
-const TICK_EVERY_MS = 15 * 60_000;
+const TICK_EVERY_MS = 30 * 60_000; // política de poucas chamadas: no máximo uma rodada completa a cada 30 min (mais o cron diário)
 
 /**
  * Avaliação "preguiçosa": chamada quando alguém abre o app/painel ou o sino atualiza.

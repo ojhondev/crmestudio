@@ -145,7 +145,7 @@ export function GoogleSync({ info, result }: { info: GoogleInfo; result?: string
                 <p className="font-medium break-all">Conectado como {info.email ?? "sua conta Google"}</p>
                 <p className="text-muted-foreground">
                   Última sincronização: {ago(info.lastSyncAt)}
-                  {info.realtime ? " · atualização quase instantânea" : " · atualiza a cada 15 minutos e quando você abre a Agenda"}
+                  {info.realtime ? " · atualização quase instantânea" : " · atualiza de hora em hora e quando você abre a Agenda"}
                 </p>
               </div>
               {problem && (
