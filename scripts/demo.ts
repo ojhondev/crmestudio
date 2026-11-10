@@ -41,8 +41,8 @@ async function main() {
     .insert(schema.deals)
     .values([
       { title: "Restauro do forro pintado — Matriz de Itu", contactId: C(0), stageId: S("Proposta enviada"), valueCents: 18500000, service: "Restauro", property: "Pintura mural / forro", location: "Itu/SP", ownerId: admin?.id, position: 1, expectedClose: date(20) },
-      { title: "Laudo de fachada — Edifício Horizonte", contactId: C(1), stageId: S("Qualificação"), valueCents: 2800000, service: "Diagnóstico / laudo técnico", property: "Edifício institucional", location: "Belo Horizonte/MG", ownerId: admin?.id, position: 1 },
-      { title: "Conservação do retábulo-mor", contactId: C(2), stageId: S("Visita técnica"), valueCents: 9200000, service: "Conservação preventiva", property: "Retábulo / talha", location: "Sorocaba/SP", ownerId: admin?.id, position: 1, expectedClose: date(35) },
+      { title: "Laudo de fachada — Edifício Horizonte", contactId: C(1), stageId: S("Follow Up"), valueCents: 2800000, service: "Diagnóstico / laudo técnico", property: "Edifício institucional", location: "Belo Horizonte/MG", ownerId: admin?.id, position: 1 },
+      { title: "Conservação do retábulo-mor", contactId: C(2), stageId: S("Negociação"), valueCents: 9200000, service: "Conservação preventiva", property: "Retábulo / talha", location: "Sorocaba/SP", ownerId: admin?.id, position: 1, expectedClose: date(35) },
       { title: "Projeto de restauro — Casarão Prado", contactId: C(3), stageId: S("Negociação"), valueCents: 6400000, service: "Projeto de arquitetura", property: "Casarão", location: "Goiás/GO", ownerId: admin?.id, position: 1, expectedClose: date(7) },
       { title: "Aprovação IPHAN — Igreja do Rosário", contactId: C(4), stageId: S("Novo lead"), valueCents: 0, service: "Consultoria / aprovação em órgão de patrimônio", property: "Igreja / capela", location: "Tiradentes/MG", ownerId: admin?.id, position: 1 },
       { title: "Restauro de tela séc. XIX", contactId: C(5), stageId: S("Fechado"), valueCents: 1650000, service: "Restauro de obra de arte", property: "Pintura / tela", location: "São Paulo/SP", ownerId: admin?.id, position: 1, closedAt: at(-3) },

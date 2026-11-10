@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
+import { and, count, desc, eq, ilike, or, sql } from "drizzle-orm";
 import { FileUp, Search, Users, X } from "lucide-react";
 import { db, schema } from "@/lib/db";
 import { has, requireAccess } from "@/lib/auth";
@@ -13,6 +13,7 @@ import { EmptyState } from "@/components/page-header";
 import { PageToolbar, ToolArea } from "@/components/toolbar";
 import { Button } from "@/components/ui/button";
 import { NewContactButton } from "./contact-form";
+import { ContatosTabs } from "./contatos-tabs";
 
 export const metadata: Metadata = { title: "Leads e contatos" };
 
@@ -40,7 +41,7 @@ export default async function ContactsPage({ searchParams }: PageProps<"/contato
     .as("ld");
 
   const digits = q.replace(/\D/g, "");
-  const [rows, options] = await Promise.all([
+  const [rows, options, [{ n: talentosNovos }]] = await Promise.all([
     db
       .select({
         id: schema.contacts.id,
@@ -77,12 +78,14 @@ export default async function ContactsPage({ searchParams }: PageProps<"/contato
       .orderBy(desc(schema.contacts.createdAt))
       .limit(300),
     getFormOptions(user),
+    user.ownOnly ? Promise.resolve([{ n: 0 }]) : db.select({ n: count() }).from(schema.talentos).where(eq(schema.talentos.status, "Novo")),
   ]);
 
   return (
     <>
       <PageToolbar
         title="Leads e contatos"
+        tabs={user.ownOnly ? undefined : <ContatosTabs active="contatos" novos={talentosNovos} />}
         filters={
           <>
             <form data-tour="contacts-search" className="relative w-56 shrink-0 sm:w-72">
@@ -125,7 +128,7 @@ export default async function ContactsPage({ searchParams }: PageProps<"/contato
           ) : undefined
         }
       />
-      <ToolArea>
+      <ToolArea className="md:h-[calc(100dvh-9.5rem)]">
       <div className="p-4 sm:p-5">
         {rows.length === 0 ? (
           <EmptyState icon={Users} title={q || origem || lote ? "Nada encontrado" : "Nenhum lead ainda"}>

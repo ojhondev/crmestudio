@@ -695,6 +695,8 @@ export type RuleParams = {
   stageDays?: Record<string, number>;
   /** limita a regra a estas etapas (vazio = todas) */
   stageIds?: number[];
+  /** marcos da cadência de follow-up: dias desde a entrada na etapa (1–60, crescentes, até 10) */
+  cadence?: number[];
 };
 export type RuleCondition = { field: string; op: "eq" | "neq" | "in" | "gte" | "lte" | "contains" | "empty" | "notempty"; value?: string | number | string[] };
 export type RuleAction =
@@ -1113,3 +1115,43 @@ export const editalComments = pgTable(
 export type EditalPartnerRow = typeof editalPartners.$inferSelect;
 export type EditalShareRow = typeof editalShares.$inferSelect;
 export type EditalCommentRow = typeof editalComments.$inferSelect;
+
+/**
+ * Banco de Talentos: cadastros vindos do site (/banco-de-talentos).
+ * O currículo fica no próprio banco (base64, limite de 2 MB no site) — sem link público —
+ * e só é baixado por quem tem acesso a "Leads e contatos" (rota autenticada).
+ */
+export const talentos = pgTable(
+  "talentos",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    nome: text("nome").notNull(),
+    email: text("email").notNull(),
+    telefone: text("telefone").notNull(),
+    cidade: text("cidade").notNull(),
+    uf: text("uf").notNull(),
+    link: text("link"),
+    areas: text("areas").array().notNull().default([]),
+    areaOutra: text("area_outra"),
+    formacao: text("formacao").notNull(),
+    anosExperiencia: text("anos_experiencia").notNull(),
+    regimes: text("regimes").array().notNull().default([]),
+    disponibilidade: text("disponibilidade").notNull(),
+    viaja: boolean("viaja").notNull().default(false),
+    viajaAte: text("viaja_ate"),
+    equipe: text("equipe").notNull(),
+    equipeNota: text("equipe_nota"),
+    faixaSalarial: text("faixa_salarial").notNull(),
+    experiencias: jsonb("experiencias").$type<{ empresa: string; cargo: string; periodo: string; atividades: string }[]>().notNull().default([]),
+    cvNome: text("cv_nome").notNull(),
+    cvTipo: text("cv_tipo").notNull(),
+    cvBytes: integer("cv_bytes").notNull().default(0),
+    /** conteúdo do arquivo em base64 — nunca selecionar nas listagens */
+    cvBase64: text("cv_base64").notNull(),
+    status: text("status").notNull().default("Novo"),
+    notas: text("notas"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("talentos_status_idx").on(t.status), index("talentos_created_idx").on(t.createdAt), index("talentos_email_idx").on(t.email)],
+);

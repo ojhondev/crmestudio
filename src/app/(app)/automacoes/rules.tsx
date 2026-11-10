@@ -20,6 +20,7 @@ import {
   TRIGGER_BY_ID,
   describeAction,
   describeParams,
+  cleanCadence,
   isTrigger,
   type Subject,
   type TriggerId,
@@ -351,8 +352,27 @@ function ParamFields({ trigger, params, setParams, stages }: { trigger: TriggerI
   const lab = PARAM_LABEL[trigger] ?? {};
   const [before, setBefore] = useState((params.daysBefore ?? def.defaults.daysBefore ?? []).join(", "));
   const [showStage, setShowStage] = useState(!!params.stageDays && Object.keys(params.stageDays).length > 0);
+  const [cad, setCad] = useState((params.cadence ?? def.defaults.cadence ?? []).join(", "));
+  const cadList = (params.cadence ?? []) as number[];
+  const cadError = def.params.includes("cadence") && !cleanCadence(cadList) ? "Use de 1 a 10 marcos, cada um entre 1 e 60 dias (ex.: 2, 5, 9, 14, 21, 30)." : null;
   return (
     <div className="grid gap-3">
+      {def.params.includes("cadence") && (
+        <Field label="Marcos da cadência (dias na etapa Follow Up)" htmlFor="p-cadence" hint="Dias corridos desde a entrada do negócio na etapa. Separe por vírgula; de 1 a 10 marcos entre 1 e 60 dias. Padrão: 2, 5, 9, 14, 21, 30.">
+          <Input
+            id="p-cadence"
+            value={cad}
+            inputMode="numeric"
+            aria-invalid={!!cadError}
+            onChange={(e) => {
+              setCad(e.target.value);
+              setParams({ cadence: e.target.value.split(/[,\s;]+/).filter(Boolean).map((x) => Number(x)) });
+            }}
+            className="sm:w-80"
+          />
+          {cadError && <p className="text-xs text-destructive">{cadError}</p>}
+        </Field>
+      )}
       {def.params.includes("days") && (
         <Field label={lab.days ?? "Dias"} htmlFor="p-days">
           <Input id="p-days" type="number" min={1} max={365} inputMode="numeric" value={params.days ?? ""} onChange={(e) => setParams({ days: num(e.target.value) })} className="sm:w-40" />
@@ -384,10 +404,10 @@ function ParamFields({ trigger, params, setParams, stages }: { trigger: TriggerI
       )}
       {def.params.includes("stageIds") && (
         <div className="grid gap-1.5">
-          <span className="text-[13px] font-medium">Vale para quais etapas?</span>
+          <span className="text-[13px] font-medium">{trigger === "deal_followup_cadence" ? "Qual etapa conta como Follow Up?" : "Vale para quais etapas?"}</span>
           <div className="flex flex-wrap gap-1.5">
             <Chip active={!params.stageIds?.length} onClick={() => setParams({ stageIds: [] })}>
-              Todas
+              {trigger === "deal_followup_cadence" ? "A etapa chamada “Follow Up” (padrão)" : "Todas"}
             </Chip>
             {stages.map((s) => (
               <Chip

@@ -34,6 +34,7 @@ export type TriggerId =
   | "deal_close_soon"
   | "deal_new_no_contact"
   | "deal_high_value_stalled"
+  | "deal_followup_cadence"
   | "edital_new"
   | "edital_closing"
   | "proposta_step_soon"
@@ -42,7 +43,7 @@ export type TriggerId =
   | "cofre_expiring";
 
 export type Subject = "task" | "deal" | "edital";
-export type ParamKey = "days" | "hours" | "daysBefore" | "minValueCents" | "stageDays" | "stageIds";
+export type ParamKey = "days" | "hours" | "daysBefore" | "minValueCents" | "stageDays" | "stageIds" | "cadence";
 
 export type TriggerDef = {
   id: TriggerId;
@@ -57,6 +58,9 @@ export type TriggerDef = {
   title: string;
   body: string;
 };
+
+/** Cadência padrão do follow-up (dias corridos desde a entrada na etapa Follow Up): 6 toques em 30 dias, espaçamento crescente. */
+export const DEFAULT_CADENCE = [2, 5, 9, 14, 21, 30];
 
 export const TRIGGERS: TriggerDef[] = [
   { id: "task_overdue", kind: "time", subject: "task", label: "Tarefa atrasada", when: "uma tarefa estiver atrasada", type: "tarefa_atrasada", params: ["days"], defaults: { days: 1 }, title: "Tarefa atrasada: {tarefa}", body: "Venceu em {prazo} ({dias} de atraso). Responsável: {responsavel}." },
@@ -77,6 +81,7 @@ export const TRIGGERS: TriggerDef[] = [
   { id: "deal_close_soon", kind: "time", subject: "deal", label: "Previsão de fechamento próxima", when: "a previsão de fechamento de um negócio estiver chegando", type: "negocio_previsao", params: ["daysBefore", "stageIds"], defaults: { daysBefore: [3, 0] }, title: "Fechamento {quando}: {negocio}", body: "Previsão em {prazo}. {valor}." },
   { id: "deal_new_no_contact", kind: "time", subject: "deal", label: "Lead novo sem primeiro contato", when: "um lead novo ficar sem primeiro contato", type: "lead_followup", params: ["hours"], defaults: { hours: 4 }, title: "Lead sem primeiro contato: {negocio}", body: "Chegou há {horas} e ainda não tem contato registrado." },
   { id: "deal_high_value_stalled", kind: "time", subject: "deal", label: "Valor alto parado", when: "um negócio de valor alto ficar parado", type: "negocio_valor_alto", params: ["minValueCents", "days", "stageIds"], defaults: { minValueCents: 5_000_000, days: 3 }, title: "Negócio de valor alto parado: {negocio}", body: "{valor} há {dias} na etapa “{etapa}”." },
+  { id: "deal_followup_cadence", kind: "time", subject: "deal", label: "Cadência de follow-up", when: "um negócio estiver na etapa Follow Up e chegar a um marco da cadência (dias desde a entrada na etapa)", type: "lead_followup", params: ["cadence", "stageIds"], defaults: { cadence: DEFAULT_CADENCE }, title: "{aviso}", body: "{orientacao}" },
   { id: "edital_new", kind: "event", subject: "edital", label: "Novo edital relevante", when: "surgir um edital de restauro novo (use a condição de relevância)", type: "edital_novo", params: [], defaults: {}, title: "Novo edital de restauro: {edital}", body: "{orgao} · {local}. {valor}. Propostas até {prazo}." },
   { id: "edital_closing", kind: "time", subject: "edital", label: "Edital de interesse encerrando", when: "o prazo de propostas de um edital marcado como interessante estiver chegando", type: "edital_prazo", params: ["daysBefore"], defaults: { daysBefore: [7, 3, 1] }, title: "Edital encerra {quando}: {edital}", body: "Propostas até {prazo}. {orgao} · {local}." },
   { id: "proposta_step_soon", kind: "time", subject: "edital", label: "Etapa da proposta se aproximando", when: "o prazo de uma etapa da proposta de um edital estiver chegando", type: "proposta_prazo", params: ["daysBefore"], defaults: { daysBefore: [2, 0] }, title: "Etapa da proposta {quando}: {etapa}", body: "{edital} · {orgao}. Prazo da etapa: {prazo}. Responsável: {responsavel}." },
@@ -278,7 +283,7 @@ export const conditionsHold = (e: Entity, list: RuleCondition[]) => list.every((
 
 /* ------------------------------- modelos de mensagem ------------------------------- */
 
-export const TEMPLATE_VARS = ["tarefa", "negocio", "edital", "orgao", "local", "pessoa", "responsavel", "prazo", "dias", "etapa", "valor", "quando"];
+export const TEMPLATE_VARS = ["tarefa", "negocio", "edital", "orgao", "local", "pessoa", "responsavel", "prazo", "dias", "etapa", "valor", "quando", "contato", "telefone", "whatsapp", "ultimo"];
 
 /** Troca {variavel} pelo valor; variável desconhecida some. */
 export const renderTemplate = (tpl: string, vars: Record<string, string>) =>
@@ -321,6 +326,11 @@ export type DealFacts = {
   stageEntryMs: number;
   /** último contato/atividade humana; null = nenhuma */
   lastContactMs: number | null;
+  /** o negócio está na etapa Follow Up E a regra de cadência está ligada (as demais regras de “parado” o ignoram) */
+  isFollowUp?: boolean;
+  contactName?: string | null;
+  /** telefone do contato (E.164 sem "+") */
+  phone?: string | null;
 };
 
 export type EditalFacts = {
@@ -355,6 +365,70 @@ export function thresholdFor(params: RuleParams, stageId: number, fallback: numb
 }
 
 const inStages = (params: RuleParams, stageId: number) => !params.stageIds?.length || params.stageIds.includes(stageId);
+
+/** Nome da etapa de follow-up (sem acento/caixa/hífen): “Follow Up”, “follow-up”, “Followup”. */
+export const isFollowUpName = (name: string) =>
+  /^follow ?-?up$/.test(
+    name
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/\s+/g, " ")
+      .trim(),
+  );
+
+/**
+ * Textos de cada marco da cadência (indexados pelo dia padrão). Marcos com outros dias (cadência editada)
+ * usam o texto genérico do toque (“Nº follow-up”); o último marco a partir do dia 30 é sempre o encerramento.
+ */
+export const CADENCE_STEPS: Record<number, { title: string; tip: string }> = {
+  2: { title: "1º follow-up: {negocio}", tip: "Mande um WhatsApp curto perguntando se recebeu a proposta e se há dúvidas." },
+  5: { title: "2º follow-up: {negocio}", tip: "Ligue — é mais difícil ignorar uma ligação." },
+  9: { title: "3º follow-up: {negocio}", tip: "Reenvie a proposta por e-mail com um resumo de 3 linhas e ofereça ajustar escopo/prazo." },
+  14: { title: "4º follow-up: {negocio}", tip: "Traga novidade ou prova social (obra parecida, laudo, foto de processo) em vez de só cobrar." },
+  21: { title: "5º follow-up (última chamada): {negocio}", tip: "Última chamada gentil: pergunte se faz sentido manter a proposta aberta." },
+  30: { title: "Encerramento do follow-up: {negocio}", tip: "Sem resposta há 30 dias — defina: mover para Perdido (registrando o motivo) ou reagendar." },
+};
+const CLOSING = CADENCE_STEPS[30];
+
+/** Lista de marcos válida: inteiros 1–60, únicos, em ordem crescente, no máximo 10. Vazia/inválida → null. */
+export function cleanCadence(raw: unknown): number[] | null {
+  if (!Array.isArray(raw)) return null;
+  const list = raw.map((x) => Number(x));
+  if (list.length === 0 || list.length > 10 || list.some((n) => !Number.isInteger(n) || n < 1 || n > 60)) return null;
+  return [...new Set(list)].sort((a, b) => a - b);
+}
+
+/** Telefone → link wa.me (assume Brasil quando vier sem DDI). */
+export function whatsappLink(phone: string | null | undefined): string {
+  const digits = (phone ?? "").replace(/\D/g, "");
+  if (digits.length < 10) return "";
+  return `https://wa.me/${digits.length <= 11 ? "55" + digits : digits}`;
+}
+
+/** Aviso do marco da cadência: o marco mais recente já atingido, com título e orientação. */
+function cadenceHit(params: RuleParams, d: DealFacts, now: Now, base: Record<string, string>): Hit | null {
+  const onStage = params.stageIds?.length ? params.stageIds.includes(d.stageId) : !!d.isFollowUp;
+  if (!onStage) return null;
+  const days = cleanCadence(params.cadence) ?? DEFAULT_CADENCE;
+  // dias corridos no fuso do estúdio desde a ENTRADA na etapa (última mudança de etapa)
+  const elapsed = Math.max(0, diffDays(isoDateBR(new Date(d.stageEntryMs)), now.today));
+  const reached = days.filter((x) => x <= elapsed);
+  if (!reached.length) return null;
+  // “atingiu o marco e ainda não avisado”: vale o marco mais recente atingido, mesmo que o cron tenha atrasado
+  const day = reached[reached.length - 1];
+  const idx = days.indexOf(day);
+  const isLast = idx === days.length - 1;
+  const step = CADENCE_STEPS[day] ?? (isLast && day >= 30 ? CLOSING : { title: `${idx + 1}º follow-up: {negocio}`, tip: "Retome o contato e pergunte como está a decisão sobre a proposta." });
+  const link = whatsappLink(d.phone);
+  const lastDay = d.lastContactMs ? isoDateBR(new Date(d.lastContactMs)) : null;
+  const last = lastDay ? `Último contato registrado: ${brDate(lastDay)} (há ${daysText(Math.max(0, diffDays(lastDay, now.today)))}).` : "Nenhum contato registrado ainda.";
+  const who = d.contactName ? `Contato: ${d.contactName}${d.phone ? ` — ${d.phone}` : ""}.` : "";
+  const vars: Record<string, string> = { ...base, dias: daysText(elapsed), marco: String(day), contato: d.contactName ?? "", telefone: d.phone ?? "", whatsapp: link, ultimo: last };
+  vars.aviso = renderTemplate(step.title, vars);
+  vars.orientacao = [step.tip, `Há ${daysText(elapsed)} em Follow Up (marco do dia ${day}).`, who, link ? `WhatsApp: ${link}` : "", last].filter(Boolean).join(" ");
+  return { key: `fucad:${d.id}:${d.stageEntryMs}:${day}`, vars };
+}
 
 export function evalTaskTime(trigger: TriggerId, params: RuleParams, t: TaskFacts, now: Now): Hit | null {
   if (!t.open) return null;
@@ -429,6 +503,11 @@ export function evalCofre(params: RuleParams, f: CofreFacts, now: Now): Hit | nu
 export function evalDealTime(trigger: TriggerId, params: RuleParams, d: DealFacts, now: Now): Hit | null {
   if (!d.open) return null;
   const base = { negocio: d.title, etapa: d.stageName, valor: moneyText(d.valueCents) };
+  if (trigger === "deal_followup_cadence") return cadenceHit(params, d, now, base);
+  // negócios em Follow Up já são cobrados pela cadência: as regras de “parado/sem atividade” os ignoram
+  // (a não ser que a própria regra liste a etapa Follow Up em “Vale para quais etapas?”)
+  const coveredByCadence = !!d.isFollowUp && !params.stageIds?.includes(d.stageId);
+  if (coveredByCadence && (trigger === "deal_stalled" || trigger === "deal_high_value_stalled" || trigger === "deal_no_activity")) return null;
   if (trigger === "deal_stalled" || trigger === "deal_high_value_stalled") {
     if (!inStages(params, d.stageId)) return null;
     if (trigger === "deal_high_value_stalled" && d.valueCents < (params.minValueCents ?? 5_000_000)) return null;
@@ -498,6 +577,7 @@ export const BUILTIN_RULES: BuiltinRule[] = [
   { key: "lead_sem_contato", name: "Lead novo sem primeiro contato", description: "Cobra o responsável e o gestor se o lead ficar 4 horas sem contato.", trigger: "deal_new_no_contact", enabled: true, params: { hours: 4 }, conditions: [], actions: [notify("owner", "managers")] },
   { key: "negocio_parado", name: "Negócio parado na etapa", description: "Avisa o responsável e o gestor quando o negócio passa de 7 dias na mesma etapa (ajustável por etapa).", trigger: "deal_stalled", enabled: true, params: { days: 7 }, conditions: [], actions: [notify("owner", "managers")] },
   { key: "negocio_parado_tarefa", name: "Criar tarefa de follow-up em negócio parado", description: "Cria uma tarefa para o responsável retomar o contato quando o negócio fica parado. Desligada até você ligar.", trigger: "deal_stalled", enabled: false, params: { days: 7 }, conditions: [], actions: [{ type: "create_followup", title: "Retomar contato — {negocio}", inDays: 1, to: "owner" }] },
+  { key: "followup_cadencia", name: "Cadência de follow-up (30 dias)", description: "Negócios na etapa Follow Up: avisa o responsável e os administradores nos dias 2, 5, 9, 14, 21 e 30 depois da entrada na etapa, cada vez com a orientação do toque (WhatsApp, ligação, e-mail, prova social, última chamada, encerramento). Sair da etapa cancela; voltar reinicia a contagem.", trigger: "deal_followup_cadence", enabled: true, params: { cadence: DEFAULT_CADENCE }, conditions: [], actions: [notify("owner", "managers", "admins")] },
   { key: "negocio_sem_atividade", name: "Negócio sem atividade ou contato", description: "Avisa quando passam 5 dias sem nenhuma atividade registrada no negócio.", trigger: "deal_no_activity", enabled: true, params: { days: 5 }, conditions: [], actions: [notify("owner", "managers")] },
   { key: "previsao_vencida", name: "Previsão de fechamento vencida", description: "Avisa quando a data prevista de fechamento já passou e o negócio segue aberto.", trigger: "deal_close_overdue", enabled: true, params: {}, conditions: [], actions: [notify("owner", "managers")] },
   { key: "previsao_proxima", name: "Previsão de fechamento chegando", description: "Lembra o responsável 3 dias antes e no dia da previsão de fechamento.", trigger: "deal_close_soon", enabled: true, params: { daysBefore: [3, 0] }, conditions: [], actions: [notify("owner")] },
@@ -554,6 +634,9 @@ export function sanitizeParams(trigger: TriggerId, raw: unknown): RuleParams {
         if (/^\d+$/.test(id) && n) o[id] = n;
       }
       if (Object.keys(o).length) out.stageDays = o;
+    } else if (k === "cadence") {
+      const list = cleanCadence(p.cadence);
+      if (list) out.cadence = list;
     } else if (k === "stageIds") {
       const list = Array.isArray(p.stageIds) ? p.stageIds.map((x) => clampInt(x, 1, 1e9)).filter((x): x is number => x !== null) : [];
       if (list.length) out.stageIds = [...new Set(list)];
@@ -624,6 +707,10 @@ export function sanitizeRule(input: RuleInput, lockedTrigger?: TriggerId): Clean
   const trigger = lockedTrigger ?? input.trigger;
   if (!isTrigger(trigger)) return { error: "Escolha o gatilho (o “Quando…”)." };
   const subject = TRIGGER_BY_ID[trigger].subject;
+  if (trigger === "deal_followup_cadence") {
+    const raw = (input.params as { cadence?: unknown } | undefined)?.cadence;
+    if (raw !== undefined && !cleanCadence(raw)) return { error: "Cadência: use de 1 a 10 marcos, cada um entre 1 e 60 dias." };
+  }
   const actions = sanitizeActions(subject, input.actions);
   if (!actions.length) return { error: "Escolha pelo menos uma ação (o “Então…”)." };
   return {
@@ -651,6 +738,10 @@ export function describeParams(trigger: TriggerId, p: RuleParams): string {
   if (trigger === "proposta_no_owner") parts.push(`quando faltarem ${daysText(p.days ?? 7)} ou menos`);
   if (trigger === "deal_stalled" || trigger === "deal_no_activity" || trigger === "deal_high_value_stalled") {
     parts.push(`${daysText(p.days ?? TRIGGER_BY_ID[trigger].defaults.days ?? 7)}${p.stageDays && Object.keys(p.stageDays).length ? " · prazos próprios por etapa" : ""}`);
+  }
+  if (trigger === "deal_followup_cadence") {
+    const list = cleanCadence(p.cadence) ?? DEFAULT_CADENCE;
+    parts.push(`avisa nos dias ${list.length > 1 ? list.slice(0, -1).join(", ") + " e " + list[list.length - 1] : list[0]} da etapa Follow Up`);
   }
   if (trigger === "deal_high_value_stalled") parts.push(`a partir de ${moneyText(p.minValueCents ?? 5_000_000)}`);
   return parts.join(" · ");

@@ -4,7 +4,7 @@
  * Sem banco, sem rede.   npm run test:automations
  */
 import {
-  BUILTIN_RULES, TRIGGERS, TRIGGER_BY_ID, conditionHolds, conditionsHold, evalDealTime, evalTaskTime, extractMentions, isContactActivity, managersOf, nowOf, periodBucket,
+  BUILTIN_RULES, CADENCE_STEPS, DEFAULT_CADENCE, TRIGGERS, cleanCadence, isFollowUpName, whatsappLink, TRIGGER_BY_ID, conditionHolds, conditionsHold, evalDealTime, evalTaskTime, extractMentions, isContactActivity, managersOf, nowOf, periodBucket,
   renderTemplate, resolveOne, resolveRecipients, sanitizeActions, sanitizeConditions, sanitizeParams, sanitizeRule, teamScope, thresholdFor, describeAction, describeParams,
   type Ctx, type DealFacts, type DirUser, type Entity, type TaskFacts,
 } from "../src/lib/automations";
@@ -235,6 +235,120 @@ ok(BUILTIN_RULES.some((b) => b.actions.some((a) => a.type === "create_followup")
 eq(BUILTIN_RULES.filter((b) => b.actions.some((a) => a.type === "create_followup")).every((b) => !b.enabled), true, "follow-up automático vem desligado");
 eq(describeAction({ type: "notify", to: ["assignee", "managers"] }), "avisar responsável pela tarefa, gestor da pessoa (ou administradores)", "descrição da ação");
 eq(describeParams("task_due_soon", { daysBefore: [1, 0] }), "avisa 1 dia antes e no dia", "descrição dos parâmetros");
+
+/* ----------------------- cadência de follow-up (Follow Up) ----------------------- */
+const fu = (days: number, o: Partial<DealFacts> = {}): DealFacts =>
+  deal({ id: "dfu", title: "Igreja do Carmo", stageId: 8, stageName: "Follow Up", isFollowUp: true, stageEntryMs: NOW.ms - days * DAY, lastContactMs: null, contactName: "Padre Paulo", phone: "11987654321", ...o });
+const cad = (days: number, o: Partial<DealFacts> = {}, params = {}) => evalDealTime("deal_followup_cadence", params, fu(days, o), NOW);
+eq(DEFAULT_CADENCE, [2, 5, 9, 14, 21, 30], "cadência padrão: 6 toques em 30 dias");
+eq(TRIGGER_BY_ID.deal_followup_cadence.defaults.cadence, [2, 5, 9, 14, 21, 30], "o gatilho já nasce com a cadência padrão");
+// marcos exatos
+eq(cad(0), null, "dia 0: ainda cedo");
+eq(cad(1), null, "dia 1: ainda cedo");
+for (const d of [2, 5, 9, 14, 21, 30]) {
+  const h = cad(d);
+  eq(h?.key, "fucad:dfu:" + (NOW.ms - d * DAY) + ":" + d, "marco do dia " + d + " dispara (exato)");
+  eq(h?.vars.marco, String(d), "marco " + d + " informado");
+}
+// dias entre marcos: o aviso do marco já atingido continua sendo o mesmo (idempotente por negócio+marco)
+eq(cad(3)?.key, cad(2, {}, {}) && "fucad:dfu:" + (NOW.ms - 3 * DAY) + ":2", "dia 3 ainda é o marco 2");
+eq(cad(4)?.vars.marco, "2", "dia 4 ainda é o marco 2");
+eq(cad(8)?.vars.marco, "5", "dia 8 ainda é o marco 5");
+// atraso do cron: “atingiu o marco e ainda não avisado” (o mais recente atingido)
+eq(cad(12)?.vars.marco, "9", "cron atrasou: dia 12 avisa o marco 9");
+eq(cad(17)?.vars.marco, "14", "cron atrasou: dia 17 avisa o marco 14");
+eq(cad(45)?.vars.marco, "30", "cron muito atrasado: encerramento");
+eq(cad(200)?.vars.marco, "30", "depois do último marco não há novos avisos (só o encerramento, uma vez)");
+// dias corridos no fuso de São Paulo: 23h59 do dia anterior ao marco ainda não é o marco; meia-noite+1 já é
+const lateNight = nowOf(new Date("2026-10-20T02:30:00Z")); // 19/10 23:30 em Brasília
+eq(evalDealTime("deal_followup_cadence", {}, fu(0, { stageEntryMs: new Date("2026-10-17T15:00:00Z").getTime() }), lateNight)?.vars.marco, "2", "entrou 17/10 12h; em 19/10 23:30 (SP) já são 2 dias corridos");
+eq(evalDealTime("deal_followup_cadence", {}, fu(0, { stageEntryMs: new Date("2026-10-19T02:30:00Z").getTime() }), lateNight), null, "entrou 18/10 23:30 (SP): em 19/10 23:30 só 1 dia corrido — ainda sem marco");
+// idempotência e reinício
+eq(cad(5)?.key, cad(5)?.key, "mesma entrada e marco, mesma chave");
+ok(cad(5)?.key !== cad(5, { stageEntryMs: NOW.ms - 5 * DAY + 1000 })?.key, "sair e voltar à etapa (nova entrada) gera novas chaves: a cadência reinicia");
+eq(evalDealTime("deal_followup_cadence", {}, fu(1, { stageEntryMs: NOW.ms - DAY }), NOW), null, "voltou há 1 dia: recomeça do zero (sem marco ainda)");
+// alvo
+eq(cad(5, { isFollowUp: false }), null, "negócio fora da etapa Follow Up não recebe cadência");
+eq(cad(5, { open: false }), null, "ganho/perdido não recebe cadência");
+ok(cad(5, { isFollowUp: false, stageId: 9 }, { stageIds: [9] }), "etapa indicada em “stageIds” vale como Follow Up");
+eq(cad(5, { isFollowUp: true, stageId: 8 }, { stageIds: [9] }), null, "com stageIds definido só vale a etapa listada");
+// cadência editada
+eq(cad(3, {}, { cadence: [3, 10] })?.vars.marco, "3", "cadência personalizada: marco 3");
+eq(cad(3, {}, { cadence: [3, 10] })?.vars.aviso, "1º follow-up: Igreja do Carmo", "marco personalizado usa o texto do toque (ordem)");
+eq(cad(10, {}, { cadence: [3, 10] })?.vars.aviso, "2º follow-up: Igreja do Carmo", "segundo marco personalizado");
+eq(cad(40, {}, { cadence: [3, 40] })?.vars.aviso, "Encerramento do follow-up: Igreja do Carmo", "último marco a partir do dia 30 é o encerramento");
+eq(cad(2, {}, { cadence: [] })?.vars.marco, "2", "cadência vazia/ inválida cai no padrão");
+// mensagens
+const MSG: Record<number, [string, string]> = {
+  2: ["1º follow-up: Igreja do Carmo", "WhatsApp curto"],
+  5: ["2º follow-up: Igreja do Carmo", "Ligue"],
+  9: ["3º follow-up: Igreja do Carmo", "resumo de 3 linhas"],
+  14: ["4º follow-up: Igreja do Carmo", "prova social"],
+  21: ["5º follow-up (última chamada): Igreja do Carmo", "manter a proposta aberta"],
+  30: ["Encerramento do follow-up: Igreja do Carmo", "mover para Perdido"],
+};
+for (const d of [2, 5, 9, 14, 21, 30]) {
+  const h = cad(d)!;
+  eq(h.vars.aviso, MSG[d][0], "título do marco " + d);
+  ok(h.vars.orientacao.includes(MSG[d][1]), "orientação do marco " + d + " contém “" + MSG[d][1] + "”");
+  ok(h.vars.orientacao.includes("Há " + d + " dias em Follow Up"), "corpo do marco " + d + " informa os dias");
+  ok(h.vars.orientacao.includes("https://wa.me/5511987654321"), "corpo do marco " + d + " traz o link do WhatsApp");
+  ok(h.vars.orientacao.includes("Padre Paulo"), "corpo do marco " + d + " traz o contato");
+  ok(CADENCE_STEPS[d].tip.length > 20, "texto padrão do marco " + d);
+}
+ok(cad(5)!.vars.orientacao.includes("Nenhum contato registrado ainda."), "sem atividade: diz que não há contato");
+ok(cad(5, { lastContactMs: NOW.ms - 3 * DAY })!.vars.orientacao.includes("Último contato registrado: 16/10/2026 (há 3 dias)."), "mostra o último contato registrado para contexto");
+eq(cad(5, { lastContactMs: NOW.ms - 3 * DAY })?.key, cad(5)?.key && "fucad:dfu:" + (NOW.ms - 5 * DAY) + ":5", "registrar atividade NÃO cancela nem muda a chave da cadência");
+eq(cad(5, { phone: null, contactName: null })!.vars.orientacao.includes("wa.me"), false, "sem telefone não há link");
+eq(renderTemplate("{aviso}", cad(5)!.vars), "2º follow-up: Igreja do Carmo", "o modelo do gatilho renderiza o título");
+eq(renderTemplate(TRIGGER_BY_ID.deal_followup_cadence.body, cad(2)!.vars).startsWith("Mande um WhatsApp curto"), true, "o modelo do gatilho renderiza o corpo");
+eq(whatsappLink("5511987654321"), "https://wa.me/5511987654321", "telefone com DDI");
+eq(whatsappLink("(11) 98765-4321"), "https://wa.me/5511987654321", "telefone sem DDI assume Brasil");
+eq(whatsappLink("123"), "", "telefone curto não gera link");
+eq(whatsappLink(null), "", "sem telefone");
+// regra pronta e destinatários
+const cadRule = BUILTIN_RULES.find((b) => b.key === "followup_cadencia")!;
+ok(cadRule, "regra pronta de cadência existe");
+eq(cadRule.enabled, true, "cadência vem ligada");
+eq(cadRule.name, "Cadência de follow-up (30 dias)", "nome da regra");
+eq(cadRule.params, { cadence: [2, 5, 9, 14, 21, 30] }, "parâmetros padrão da regra");
+eq(describeParams("deal_followup_cadence", cadRule.params), "avisa nos dias 2, 5, 9, 14, 21 e 30 da etapa Follow Up", "descrição em português");
+const toks = (cadRule.actions[0] as { to: string[] }).to;
+eq(resolveRecipients(toks, { entity: { kind: "deal", id: "dfu", label: "x", href: "/negocios/dfu", ownerId: "u1" }, actorId: null }, users), ["u1", "sup", "adm1", "adm2"], "destinatários: responsável, gestor e todos os administradores ativos");
+eq(resolveRecipients(toks, { entity: { kind: "deal", id: "dfu", label: "x", href: "/", ownerId: "u2" }, actorId: null }, users), ["u2", "adm1", "adm2"], "sem gestor direto: responsável + administradores (sem duplicar)");
+eq(resolveRecipients(toks, { entity: { kind: "deal", id: "dfu", label: "x", href: "/", ownerId: null }, actorId: null }, users), ["adm1", "adm2"], "sem responsável: só os administradores ativos");
+// exclusão nas regras sobrepostas (Follow Up já é coberto pela cadência)
+const inFu = (o: Partial<DealFacts> = {}) => deal({ stageId: 8, stageName: "Follow Up", isFollowUp: true, stageEntryMs: NOW.ms - 20 * DAY, lastContactMs: NOW.ms - 20 * DAY, valueCents: 9_000_000, ...o });
+eq(evalDealTime("deal_stalled", { days: 7 }, inFu(), NOW), null, "negócio parado ignora quem está em Follow Up");
+eq(evalDealTime("deal_no_activity", { days: 5 }, inFu(), NOW), null, "sem atividade ignora quem está em Follow Up");
+eq(evalDealTime("deal_high_value_stalled", { minValueCents: 5_000_000, days: 3 }, inFu(), NOW), null, "valor alto parado ignora quem está em Follow Up");
+ok(evalDealTime("deal_stalled", { days: 7 }, inFu({ isFollowUp: false }), NOW), "com a cadência desligada (isFollowUp=false) a regra de parado volta a cobrir");
+ok(evalDealTime("deal_stalled", { days: 7, stageIds: [8] }, inFu(), NOW), "se a própria regra lista a etapa Follow Up, ela vale");
+ok(evalDealTime("deal_stalled", { days: 7 }, inFu({ isFollowUp: false, stageId: 4, stageName: "Proposta enviada" }), NOW), "outras etapas seguem avisando");
+ok(evalDealTime("deal_close_overdue", {}, inFu({ expectedClose: "2026-10-01" }), NOW), "previsão de fechamento vencida continua valendo em Follow Up");
+eq(evalDealTime("deal_new_no_contact", { hours: 4 }, inFu({ isFirstStage: true, lastContactMs: null, createdAtMs: NOW.ms - 5 * HOUR }), NOW)?.key, "nocontact:d1", "lead sem contato só olha a 1ª etapa (Follow Up nunca é a 1ª)");
+// nome da etapa
+for (const n of ["Follow Up", "follow-up", "FOLLOWUP", "  Follow  Up "]) ok(isFollowUpName(n), "“" + n + "” é a etapa de follow-up");
+for (const n of ["Follow Up 2", "Negociação", "Follow Upgrade", "Novo lead"]) eq(isFollowUpName(n), false, "“" + n + "” não é a etapa de follow-up");
+// validação dos parâmetros
+eq(cleanCadence([5, 2, 9, 2]), [2, 5, 9], "ordenada e sem repetidos");
+eq(cleanCadence([1, 60]), [1, 60], "limites 1 e 60 valem");
+eq(cleanCadence([0, 5]), null, "0 é inválido");
+eq(cleanCadence([5, 61]), null, "61 é inválido");
+eq(cleanCadence([2.5]), null, "decimal é inválido");
+eq(cleanCadence([]), null, "vazia é inválida");
+eq(cleanCadence(Array.from({ length: 10 }, (_, i) => i + 1))?.length, 10, "10 marcos é o máximo");
+eq(cleanCadence(Array.from({ length: 11 }, (_, i) => i + 1)), null, "11 marcos é demais");
+eq(cleanCadence("2,5"), null, "não-lista é inválida");
+eq(sanitizeParams("deal_followup_cadence", { cadence: [14, 3, 7] }), { cadence: [3, 7, 14] }, "sanitizeParams ordena");
+eq(sanitizeParams("deal_followup_cadence", { cadence: [0, 99] }), { cadence: [2, 5, 9, 14, 21, 30] }, "inválida volta ao padrão");
+eq(sanitizeParams("deal_followup_cadence", { cadence: [3], stageIds: [8, 8, 9] }), { cadence: [3], stageIds: [8, 9] }, "stageIds únicos");
+const okR = sanitizeRule({ name: "Cadência", trigger: "deal_followup_cadence", params: { cadence: [10, 3] }, actions: [{ type: "notify", to: ["owner", "admins"] }] });
+ok(!("error" in okR) && JSON.stringify(okR.params) === JSON.stringify({ cadence: [3, 10] }), "regra com cadência válida é aceita e ordenada");
+for (const bad of [[0, 3], [3, 61], [], Array.from({ length: 11 }, (_, i) => i + 1), [1.5]]) {
+  eq(sanitizeRule({ name: "Cadência", trigger: "deal_followup_cadence", params: { cadence: bad }, actions: [{ type: "notify", to: ["owner"] }] }), { error: "Cadência: use de 1 a 10 marcos, cada um entre 1 e 60 dias." }, "editor recusa cadência " + JSON.stringify(bad));
+}
+eq(sanitizeRule({ name: "Cadência", trigger: "deal_followup_cadence", params: {}, actions: [{ type: "notify", to: ["owner"] }] }) && ("error" in (sanitizeRule({ name: "Cadência", trigger: "deal_followup_cadence", params: {}, actions: [{ type: "notify", to: ["owner"] }] }) as object)), false, "sem informar a cadência: usa o padrão (não é erro)");
 
 console.log(fail ? `\n${fail} de ${total} verificações falharam` : `Todas as ${total} verificações passaram`);
 process.exit(fail ? 1 : 0);

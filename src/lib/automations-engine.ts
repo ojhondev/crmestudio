@@ -18,6 +18,7 @@ import {
   evalPropostaOwner,
   evalPropostaStep,
   evalTaskTime,
+  isFollowUpName,
   extractMentions,
   involvedIds,
   moneyText,
@@ -479,12 +480,22 @@ export type OpenDeal = { deal: typeof schema.deals.$inferSelect; stageName: stri
 
 /** Negócios abertos com os fatos de tempo (entrada na etapa, último contato) usados pelas regras e pelos avisos do painel. */
 export async function loadOpenDeals(limit = 2000): Promise<OpenDeal[]> {
+  await ensureBuiltinRules();
   const [first] = await db.select({ id: schema.stages.id }).from(schema.stages).orderBy(asc(schema.stages.position)).limit(1);
+  // a cadência de follow-up (se ligada) cobre os negócios da etapa Follow Up: as outras regras de “parado” os ignoram
+  const cadence = await db
+    .select({ params: schema.automationRules.params })
+    .from(schema.automationRules)
+    .where(and(eq(schema.automationRules.enabled, true), eq(schema.automationRules.trigger, "deal_followup_cadence")));
+  const cadenceStageIds = new Set(cadence.flatMap((r) => r.params?.stageIds ?? []));
+  const cadenceOn = cadence.length > 0;
   const rows = await db
     .select({
       deal: schema.deals,
       stageName: schema.stages.name,
       source: schema.contacts.source,
+      contactName: schema.contacts.name,
+      contactPhone: schema.contacts.phone,
       lastEtapa: sql<string | null>`(select (extract(epoch from max(a.created_at)) * 1000)::bigint from activities a where a.deal_id = ${schema.deals.id} and a.type = 'etapa')`,
       lastContact: sql<string | null>`(select (extract(epoch from max(a.created_at)) * 1000)::bigint from activities a where a.deal_id = ${schema.deals.id} and (a.type in ('ligacao','email','reuniao','visita','whatsapp') or (a.type = 'nota' and a.user_id is not null and btrim(a.body) <> 'Negócio criado')))`,
     })
@@ -512,6 +523,9 @@ export async function loadOpenDeals(limit = 2000): Promise<OpenDeal[]> {
         createdAtMs: d.createdAt.getTime(),
         stageEntryMs: r.lastEtapa ? Number(r.lastEtapa) : d.createdAt.getTime(),
         lastContactMs: r.lastContact ? Number(r.lastContact) : null,
+        isFollowUp: cadenceOn && (isFollowUpName(r.stageName) || cadenceStageIds.has(d.stageId)),
+        contactName: r.contactName,
+        phone: r.contactPhone,
       },
     };
   });

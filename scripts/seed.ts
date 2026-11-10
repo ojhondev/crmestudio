@@ -9,18 +9,11 @@ import { drizzle } from "drizzle-orm/neon-http";
 import { eq } from "drizzle-orm";
 import * as schema from "../src/lib/db/schema";
 import { hashPassword, randomToken } from "../src/lib/password";
+import { FINAL_STAGES } from "./stages-def";
 
 const db = drizzle(neon(process.env.DATABASE_URL!), { schema });
 
-const STAGES: { name: string; probability: number; color: string; kind: schema.StageKind }[] = [
-  { name: "Novo lead", probability: 10, color: "#9a948f", kind: "aberto" },
-  { name: "Qualificação", probability: 25, color: "#537179", kind: "aberto" },
-  { name: "Visita técnica", probability: 40, color: "#776157", kind: "aberto" },
-  { name: "Proposta enviada", probability: 60, color: "#b75928", kind: "aberto" },
-  { name: "Negociação", probability: 80, color: "#002934", kind: "aberto" },
-  { name: "Fechado", probability: 100, color: "#2f6b4f", kind: "ganho" },
-  { name: "Perdido", probability: 0, color: "#c0392b", kind: "perdido" },
-];
+const STAGES = FINAL_STAGES;
 
 async function main() {
   const existing = await db.select().from(schema.stages);
