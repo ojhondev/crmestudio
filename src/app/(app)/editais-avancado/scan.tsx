@@ -13,7 +13,7 @@ import type { RunDTO } from "@/lib/editais/queries";
 const EVENT = "editais:scan";
 const active = (r: RunDTO) => r.status === "solicitada" || r.status === "executando";
 
-/** Botão da barra de ferramentas: pede a varredura (grava o pedido para o GitHub e roda a rápida já). */
+/** Botão da barra de ferramentas: roda a varredura manual (rápida) aqui no CRM. */
 export function ScanButton() {
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -28,8 +28,8 @@ export function ScanButton() {
           const r = await requestScanAction();
           if (!r || !("ok" in r)) return;
           window.dispatchEvent(new Event(EVENT));
-          toast.success(r.alreadyOpen ? "Já havia um pedido em andamento — acompanhe abaixo." : "Busca pedida: a varredura rápida já começou e o GitHub fará a completa.", {
-            description: r.alreadyOpen ? undefined : r.githubDispatched ? "Disparei o GitHub agora mesmo." : "O GitHub verifica pedidos de hora em hora.",
+          toast.success(r.alreadyOpen ? "Já havia um pedido em andamento — acompanhe abaixo." : "Busca iniciada: a varredura manual já começou.", {
+            description: r.alreadyOpen ? undefined : "Leva cerca de 30 segundos; não há varredura automática.",
           });
           router.refresh();
         })
@@ -116,7 +116,7 @@ export function RunStatus({ initial }: { initial: RunDTO[] }) {
           ? "Varredura rápida em andamento…"
           : quick.status === "concluida"
             ? `Varredura rápida concluída ${fmtDateTime(quick.finishedAt)} — ${n(s.created)} ${n(s.created) === 1 ? "edital novo" : "editais novos"}, ${n(s.relevant)} relevantes encontrados.`
-            : `Varredura rápida parou antes do fim (${quick.error ?? "o PNCP demorou"}); a completa do GitHub cobre o resto.`,
+            : `Varredura rápida parou antes do fim (${quick.error ?? "o PNCP demorou"}); clique em Buscar de novo mais tarde.`,
     });
   }
   if (full) {

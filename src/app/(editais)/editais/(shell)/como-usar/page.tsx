@@ -85,7 +85,7 @@ const SECTIONS: S[] = [
         <Steps
           items={[
             <>
-              Toque em <strong>Buscar oportunidades</strong>. Uma varredura rápida roda na hora e a completa roda no GitHub; todo dia, às 06:17, ela roda sozinha.
+              Toque em <strong>Buscar oportunidades</strong>. A varredura roda na hora, aqui no CRM (cerca de 30 segundos). Não há varredura automática: só busca quando alguém clica.
             </>,
             <>
               Leia o cartão: órgão e UF, o objeto em destaque, a relevância (Alta, Média ou Baixa), o tipo, o valor e os <strong>dias restantes</strong> (vermelho perto do prazo).

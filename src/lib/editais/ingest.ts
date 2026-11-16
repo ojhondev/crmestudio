@@ -1,5 +1,5 @@
 import "server-only";
-import { and, desc, eq, inArray, lt, or, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, lt, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db, schema } from "@/lib/db";
 import { audit } from "@/lib/audit";
@@ -286,46 +286,24 @@ export async function ensureSources() {
     .onConflictDoNothing();
 }
 
-/* ------------------------- pedido pelo botão + GitHub opcional ------------------------- */
+/* ------------------------- busca manual (botão) ------------------------- */
 
-/** Dispara o workflow no GitHub, se existirem GITHUB_DISPATCH_TOKEN + GITHUB_REPO (opcional; sem isso o agendamento de 30 min atende). */
-export async function dispatchWorkflow(days: number): Promise<{ ok: boolean; note: string }> {
-  const token = process.env.GITHUB_DISPATCH_TOKEN;
-  const repo = process.env.GITHUB_REPO || "ojhondev/crmestudio";
-  if (!token) return { ok: false, note: "sem GITHUB_DISPATCH_TOKEN: o GitHub atende o pedido na próxima verificação (até ~30 min)" };
-  try {
-    const res = await fetch(`https://api.github.com/repos/${repo}/actions/workflows/editais.yml/dispatches`, {
-      method: "POST",
-      headers: { authorization: `Bearer ${token}`, accept: "application/vnd.github+json", "x-github-api-version": "2022-11-28", "content-type": "application/json", "user-agent": "crm-estudio-restaura" },
-      body: JSON.stringify({ ref: "main", inputs: { dias: String(days), fonte: "tudo" } }),
-      signal: AbortSignal.timeout(8000),
-    });
-    return res.status === 204 ? { ok: true, note: "workflow disparado no GitHub" } : { ok: false, note: `GitHub respondeu ${res.status}` };
-  } catch {
-    return { ok: false, note: "não consegui falar com o GitHub" };
-  }
-}
-
-/** Pedido do botão: registra a solicitação (o GitHub atende), tenta o disparo imediato e cria a rodada rápida. */
+/**
+ * Botão “Buscar oportunidades”: roda SÓ a varredura rápida aqui no CRM, quando alguém clica.
+ * Não existe mais varredura automática nem gatilho no GitHub/Vercel (desativados a pedido do Estúdio).
+ */
 export async function requestScan(by: { id: string; name: string }, days = 14) {
   await ensureSources();
   await sweepStaleRuns();
-  const [open] = await db
+  const [busy] = await db
     .select()
     .from(schema.editalRuns)
-    .where(or(and(eq(schema.editalRuns.status, "solicitada"), eq(schema.editalRuns.mode, "completa")), and(eq(schema.editalRuns.status, "executando"), eq(schema.editalRuns.mode, "completa"))))
+    .where(and(eq(schema.editalRuns.mode, "rapida"), eq(schema.editalRuns.status, "executando"), sql`${schema.editalRuns.startedAt} > now() - interval '2 minutes'`))
     .orderBy(desc(schema.editalRuns.id))
     .limit(1);
-  const request = open ?? (await createRun({ mode: "completa", trigger: "painel", status: "solicitada", days, by }));
-  const dispatch = open ? { ok: false, note: "já havia um pedido em andamento" } : await dispatchWorkflow(days);
-  const [busy] = await db
-    .select({ id: schema.editalRuns.id })
-    .from(schema.editalRuns)
-    .where(and(eq(schema.editalRuns.mode, "rapida"), eq(schema.editalRuns.status, "executando"), sql`${schema.editalRuns.startedAt} > now() - interval '2 minutes'`))
-    .limit(1);
-  let quick: typeof request | null = null;
-  if (!busy) quick = await createRun({ mode: "rapida", trigger: "painel", status: "executando", days, by, parentId: request.id });
-  if (!open) await audit(by, "editais_busca", `Pediu a busca de editais de restauro (${days} dias)`, { entity: "edital", meta: { runId: request.id, dispatch: dispatch.note } });
-  return { request, quick, dispatch, alreadyOpen: !!open };
+  const dispatch = { ok: false, note: "busca manual: nenhuma varredura automática" };
+  if (busy) return { request: busy, quick: null, dispatch, alreadyOpen: true };
+  const quick = await createRun({ mode: "rapida", trigger: "painel", status: "executando", days, by });
+  await audit(by, "editais_busca", `Buscou editais de restauro (${days} dias)`, { entity: "edital", meta: { runId: quick.id } });
+  return { request: quick, quick, dispatch, alreadyOpen: false };
 }
-

@@ -178,10 +178,10 @@ function Oportunidades() {
       <H3>Como os editais chegam</H3>
       <Bullets>
         <>
-          <strong>Varredura completa automática</strong>: roda no GitHub todos os dias às 06:17 (horário de Brasília), mesmo sem ninguém pedir.
+          <strong>Sem varredura automática</strong>: o sistema só busca editais quando alguém toca em Buscar oportunidades.
         </>
         <>
-          <strong>De hora em hora</strong> o GitHub confere se alguém pediu uma busca e, se houver pedido, faz a varredura completa.
+          <strong>Busca manual</strong>: a varredura roda aqui no CRM, na hora, e leva cerca de 30 segundos.
         </>
         <>
           <strong>Varredura rápida</strong>: ao tocar em <UI>Buscar oportunidades</UI> ela roda na hora, no próprio sistema (cerca de 30 segundos), nas buscas mais importantes.
@@ -193,7 +193,7 @@ function Oportunidades() {
           Em <A href="/editais-avancado">Editais → Oportunidades</A>, toque em <UI>Buscar oportunidades</UI> (aparece para quem pode editar Editais).
         </>
         <>
-          Aparece o aviso “Busca pedida: a varredura rápida já começou e o GitHub fará a completa”. Se já havia um pedido aberto, o aviso diz isso: não precisa pedir de novo.
+          Aparece o aviso “Busca iniciada: a varredura manual já começou”. Se já havia uma busca rodando, o aviso diz isso: não precisa pedir de novo.
         </>
         <>
           Acompanhe a faixa acima da lista. Ela se atualiza sozinha a cada poucos segundos e, quando termina, a lista recarrega.
@@ -205,10 +205,10 @@ function Oportunidades() {
 
       <Bullets title="Os estados da busca (faixa acima da lista)">
         <>
-          <UI>Solicitada</UI>: o pedido foi gravado e o GitHub atende em até cerca de 1 hora (a busca rápida roda na hora).
+          <UI>Solicitada</UI>: pedido registrado (a busca roda na hora).
         </>
         <>
-          <UI>Executando</UI>: a varredura está rodando. Mostra quantos editais foram vistos e quantos são novos; o link “ver execução” abre o GitHub.
+          <UI>Executando</UI>: a varredura está rodando. Mostra quantos editais foram vistos e quantos são novos.
         </>
         <>
           <UI>Concluída</UI>: terminou. Mostra quantos são novos e quantos relevantes entre os vistos.
@@ -863,7 +863,7 @@ function FaqSec() {
         </Faq>
         <Faq q="O botão Buscar oportunidades demora. Está travado?">
           <p>
-            Não necessariamente. A varredura rápida leva cerca de 30 segundos; a completa roda no GitHub e pode levar até cerca de 1 hora só para começar. A faixa mostra <UI>Solicitada</UI>, <UI>Executando</UI> e <UI>Concluída</UI>. Não precisa tocar de novo: o sistema avisa que já há um pedido em andamento.
+            Não necessariamente. A varredura manual leva cerca de 30 segundos. A faixa mostra <UI>Solicitada</UI>, <UI>Executando</UI> e <UI>Concluída</UI>. Não precisa tocar de novo: o sistema avisa que já há um pedido em andamento.
           </p>
           <p>
             Se aparecer <UI>Parcial</UI>, o PNCP demorou e a busca será retomada sozinha. Se aparecer <UI>Falhou</UI>, leia o motivo e tente de novo mais tarde.

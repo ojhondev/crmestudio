@@ -683,7 +683,7 @@ export const articles: Article[] = [
         t: "steps",
         title: "Usar o Radar",
         items: [
-          "Toque em Buscar oportunidades para pedir uma varredura (a rápida roda na hora; a completa roda no GitHub). Todo dia, às 06:17, ela também roda sozinha.",
+          "Toque em Buscar oportunidades para rodar uma varredura manual aqui no CRM (leva cerca de 30 segundos). Não existe varredura automática: os editais só são buscados quando alguém clica.",
           "Em cada cartão: Tenho interesse, Descartar (um toque no motivo e pronto) ou Compartilhar com parceiros. A relevância aparece como Alta, Média ou Baixa; os dias restantes mudam de cor perto do prazo.",
           "Os filtros visíveis são busca, UF, tipo, prazo e relevância. O resto (esfera, município, valor, responsável, modalidade e situação) fica em Mais filtros.",
           "Toque no cartão para abrir o edital: objeto, prazos, valor, órgão, links oficiais, por que está no Radar e o próximo passo. Na lista, o menu “…” exporta o CSV e permite selecionar vários para compartilhar de uma vez.",
@@ -700,7 +700,7 @@ export const articles: Article[] = [
       },
       { t: "tip", text: "O app não envia propostas por você: ele encontra o edital e organiza o trabalho. O envio é feito no portal do órgão; depois você registra o comprovante em “Revisão e envio”." },
       { t: "tip", text: "Primeira vez? Abra Como usar (menu da sua foto) para a aula completa. Ela fica em /editais/como-usar." },
-      { t: "warn", text: "O PNCP às vezes demora ou recusa conexões. Se a varredura rápida parar no meio, a completa do GitHub cobre o resto e se retoma sozinha." },
+      { t: "warn", text: "O PNCP às vezes demora ou recusa conexões. Se a varredura parar no meio, clique em Buscar oportunidades de novo mais tarde." },
     ],
   },
   {
@@ -923,8 +923,8 @@ export const tours: Record<string, { label: string; steps: TourStep[] }> = {
     label: "Tour dos Editais (modo avançado)",
     steps: [
       { target: ["edital-como-usar"], title: "Como usar", body: "Primeira vez por aqui? Este botão abre uma aula completa dos Editais: configuração do primeiro dia, passo a passo, rotina e glossário. Fica em todas as telas do módulo." },
-      { target: ["edital-scan"], title: "Buscar oportunidades", body: "Pede a varredura do PNCP: uma busca rápida roda na hora e o GitHub faz a completa (até cerca de 1 hora para começar). Todo dia ela roda sozinha." },
-      { target: ["edital-run"], title: "Andamento", body: "Mostra se a varredura foi solicitada, está rodando ou terminou, com quantos editais novos e o link da execução no GitHub." },
+      { target: ["edital-scan"], title: "Buscar oportunidades", body: "Roda a varredura manual do PNCP aqui no CRM (cerca de 30 segundos). Não há varredura automática: só busca quando alguém clica." },
+      { target: ["edital-run"], title: "Andamento", body: "Mostra se a varredura está rodando ou terminou, com quantos editais novos foram encontrados." },
       { target: ["edital-kpis"], title: "Resumo", body: "Abertos relevantes, novos da semana, os que encerram em 7 dias e os que você acompanha. Toque para filtrar." },
       { target: ["edital-tipos", "edital-ufs"], title: "Tipo e estado", body: "Separe projeto de restauro de execução de obra, e toque num estado para ver só ele." },
       { target: ["edital-filters"], title: "Filtros precisos", body: "Esfera, município, faixa de valor, prazo, situação, triagem, responsável e relevância mínima." },

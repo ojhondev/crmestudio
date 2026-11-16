@@ -50,7 +50,7 @@ export function ScanControl({ lastFinishedAt, initialBusy }: { lastFinishedAt: s
       if (!r || "error" in r) return void toast.error(r && "error" in r ? String(r.error) : "Não foi possível buscar agora.");
       was.current = true;
       setBusy(true);
-      toast.success(r.alreadyOpen ? "Já há uma busca em andamento." : "Buscando oportunidades…", { description: r.alreadyOpen ? undefined : "A varredura rápida já começou; a completa roda no GitHub." });
+      toast.success(r.alreadyOpen ? "Já há uma busca em andamento." : "Buscando oportunidades…", { description: r.alreadyOpen ? undefined : "A busca manual está rodando no CRM; leva cerca de 30 segundos." });
       void poll();
     });
   }
